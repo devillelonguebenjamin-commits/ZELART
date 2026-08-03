@@ -57,14 +57,46 @@ Protégé par la variable d'environnement `ADMIN_PASSWORD` (session par cookie s
 - **Congés** : blocage de périodes, immédiatement retirées des créneaux publics.
 - **Galerie** : upload de photos (Vercel Blob, variable `BLOB_READ_WRITE_TOKEN`) affichées sur l'accueil.
 
-## Notifications e-mail (facultatif)
+## Notifications e-mail
 
-Via [Resend](https://resend.com) : renseigner `RESEND_API_KEY` et `NOTIFY_EMAIL` (adresse qui
-reçoit les nouvelles demandes). À la confirmation d'un rendez-vous par la gérante, la cliente
-reçoit un e-mail récapitulatif. `EMAIL_FROM` permet d'utiliser un expéditeur personnalisé après
-vérification d'un domaine chez Resend. Sans ces variables, le site fonctionne sans e-mails.
+Deux services sont pris en charge, `BREVO_API_KEY` étant prioritaire sur `RESEND_API_KEY` :
+
+- `NOTIFY_EMAIL` — adresse qui reçoit les nouvelles demandes de rendez-vous.
+- `EMAIL_FROM` — adresse expéditrice.
+
+À la confirmation d'un rendez-vous depuis l'espace gérante, la cliente reçoit un e-mail
+récapitulatif. Sans clé configurée, le site fonctionne normalement, sans e-mails : aucune
+réservation n'est perdue, elles restent visibles dans l'agenda de `/admin`.
+
+La page `/admin/reglages` affiche l'état de cette configuration et permet d'envoyer un e-mail de
+test en affichant l'erreur exacte du service.
+
+## À FAIRE : nom de domaine et adresse e-mail de Zélia
+
+Configuration actuelle (provisoire) : Resend sans domaine vérifié, ce qui impose deux limites —
+expéditeur figé à `onboarding@resend.dev`, et envoi possible uniquement vers l'adresse du compte
+Resend. Les notifications ne peuvent donc pas encore partir vers la boîte de Zélia.
+
+Marche à suivre le jour de l'achat du domaine (ex. `zelart.fr`, ~10 €/an chez OVH, Gandi ou
+directement dans Vercel) :
+
+1. **Brancher le domaine au site** — Vercel → Settings → Domains → *Add* → suivre les
+   enregistrements DNS indiqués (un `A` sur la racine, un `CNAME` sur `www`). Le certificat HTTPS
+   est automatique.
+2. **Vérifier le domaine chez Resend** — resend.com → *Domains* → *Add Domain* → ajouter les
+   enregistrements DKIM/SPF fournis chez le registrar → attendre la validation.
+3. **Mettre à jour les variables Vercel** :
+   - `EMAIL_FROM` = `Zelart Nails <contact@zelart.fr>`
+   - `NOTIFY_EMAIL` = `Zelia.barreteaupro@outlook.fr`
+4. **Redéployer**, puis vérifier via `/admin/reglages` (test d'envoi vers l'adresse de Zélia) et
+   par une réservation réelle de bout en bout.
+
+Alternative sans achat de domaine : basculer sur [Brevo](https://brevo.com) (`BREVO_API_KEY`), qui
+autorise l'envoi vers n'importe quel destinataire ; l'adresse expéditrice se valide en cliquant un
+lien reçu dans la boîte concernée.
 
 ## Prochaines étapes envisagées
 
 - Commandes de press-on nails (sets personnalisés et collections).
 - Rappels automatiques avant le rendez-vous (e-mail/SMS).
+- Compression automatique des photos à l'envoi dans la galerie.

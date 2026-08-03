@@ -6,6 +6,7 @@ import { del, put } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { exigerAdmin, fermerSessionAdmin, ouvrirSessionAdmin } from "@/lib/auth";
 import { envoyerEmail } from "@/lib/email";
+import { z } from "zod";
 import { dateParis, formatHeure, formatJour } from "@/lib/creneaux";
 import type { StatutRendezVous } from "@/generated/prisma/client";
 
@@ -136,23 +137,78 @@ export async function supprimerConge(id: string): Promise<void> {
   revalidatePath("/admin/conges");
 }
 
+// --- Diagnostic e-mail ---
+
+export type EtatTestEmail = { ok?: boolean; message?: string };
+
+export async function envoyerEmailTest(
+  _etatPrecedent: EtatTestEmail,
+  formData: FormData
+): Promise<EtatTestEmail> {
+  await exigerAdmin();
+
+  const destinataire = z
+    .string()
+    .trim()
+    .email()
+    .safeParse(formData.get("destinataire"));
+  if (!destinataire.success) {
+    return { ok: false, message: "Adresse e-mail invalide." };
+  }
+
+  const resultat = await envoyerEmail(
+    destinataire.data,
+    "Test d'envoi — Zelart Nails",
+    `<p>Bonjour,</p>
+     <p>Ceci est un e-mail de test envoyé depuis l'espace gérante du site Zelart Nails.</p>
+     <p>Si vous le recevez, les notifications de rendez-vous fonctionnent ✨</p>`
+  );
+
+  return resultat.ok
+    ? { ok: true, message: `E-mail envoyé à ${destinataire.data} via ${resultat.fournisseur}. Vérifiez la boîte de réception (et les indésirables).` }
+    : { ok: false, message: resultat.erreur };
+}
+
 // --- Galerie ---
 
-export async function ajouterPhoto(formData: FormData): Promise<void> {
+export type EtatPhoto = { ok?: boolean; message?: string };
+
+export async function ajouterPhoto(
+  _etatPrecedent: EtatPhoto,
+  formData: FormData
+): Promise<EtatPhoto> {
   await exigerAdmin();
+
   const fichier = formData.get("fichier");
-  if (!(fichier instanceof File) || fichier.size === 0) return;
-  if (fichier.size > 8 * 1024 * 1024) return; // 8 Mo max
-  if (!fichier.type.startsWith("image/")) return;
+  if (!(fichier instanceof File) || fichier.size === 0) {
+    return { ok: false, message: "Choisissez une image à envoyer." };
+  }
+  if (!fichier.type.startsWith("image/")) {
+    return { ok: false, message: "Ce fichier n'est pas une image." };
+  }
+  if (fichier.size > 8 * 1024 * 1024) {
+    return {
+      ok: false,
+      message: `Image trop lourde (${(fichier.size / 1024 / 1024).toFixed(1)} Mo). Maximum 8 Mo.`,
+    };
+  }
 
-  const nom = `galerie/${Date.now()}-${fichier.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-  const blob = await put(nom, fichier, { access: "public" });
+  try {
+    const nom = `galerie/${Date.now()}-${fichier.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const blob = await put(nom, fichier, { access: "public" });
 
-  await prisma.photo.create({
-    data: { url: blob.url, legende: String(formData.get("legende") ?? "").slice(0, 200) || null },
-  });
+    await prisma.photo.create({
+      data: { url: blob.url, legende: String(formData.get("legende") ?? "").slice(0, 200) || null },
+    });
+  } catch (erreur) {
+    const message = erreur instanceof Error ? erreur.message : String(erreur);
+    console.error("Ajout de photo échoué", erreur);
+    return { ok: false, message: `Envoi impossible : ${message}` };
+  }
+
   revalidatePath("/admin/galerie");
   revalidatePath("/");
+  return { ok: true, message: "Photo ajoutée ✨" };
 }
 
 export async function supprimerPhoto(id: string): Promise<void> {

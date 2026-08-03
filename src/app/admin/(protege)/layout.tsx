@@ -10,6 +10,7 @@ const liens = [
   { href: "/admin/prestations", label: "Prestations" },
   { href: "/admin/conges", label: "Congés" },
   { href: "/admin/galerie", label: "Galerie" },
+  { href: "/admin/reglages", label: "Réglages" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

@@ -3,8 +3,35 @@
 // Sans aucune clé, les envois sont simplement ignorés : le site fonctionne
 // normalement, sans notifications.
 
-async function envoyerViaBrevo(cle: string, destinataire: string, sujet: string, html: string) {
-  const expediteur = process.env.EMAIL_FROM ?? "zelart.notifications@example.invalid";
+export type Fournisseur = "brevo" | "resend" | null;
+
+export type ResultatEmail =
+  | { ok: true; fournisseur: Exclude<Fournisseur, null> }
+  | { ok: false; erreur: string };
+
+export function fournisseurEmail(): Fournisseur {
+  if (process.env.BREVO_API_KEY) return "brevo";
+  if (process.env.RESEND_API_KEY) return "resend";
+  return null;
+}
+
+export function expediteurConfigure(): string {
+  if (process.env.EMAIL_FROM) return process.env.EMAIL_FROM;
+  return fournisseurEmail() === "resend"
+    ? "Zelart Nails <onboarding@resend.dev>"
+    : "(non défini)";
+}
+
+async function envoyerViaBrevo(
+  cle: string,
+  destinataire: string,
+  sujet: string,
+  html: string
+): Promise<ResultatEmail> {
+  const expediteur = process.env.EMAIL_FROM;
+  if (!expediteur) {
+    return { ok: false, erreur: "EMAIL_FROM n'est pas défini (adresse expéditrice validée chez Brevo)." };
+  }
   const reponse = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: { "api-key": cle, "Content-Type": "application/json" },
@@ -16,11 +43,17 @@ async function envoyerViaBrevo(cle: string, destinataire: string, sujet: string,
     }),
   });
   if (!reponse.ok) {
-    console.error("Envoi Brevo refusé", reponse.status, await reponse.text());
+    return { ok: false, erreur: `Brevo a refusé l'envoi (${reponse.status}) : ${await reponse.text()}` };
   }
+  return { ok: true, fournisseur: "brevo" };
 }
 
-async function envoyerViaResend(cle: string, destinataire: string, sujet: string, html: string) {
+async function envoyerViaResend(
+  cle: string,
+  destinataire: string,
+  sujet: string,
+  html: string
+): Promise<ResultatEmail> {
   const reponse = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${cle}`, "Content-Type": "application/json" },
@@ -32,22 +65,30 @@ async function envoyerViaResend(cle: string, destinataire: string, sujet: string
     }),
   });
   if (!reponse.ok) {
-    console.error("Envoi Resend refusé", reponse.status, await reponse.text());
+    return { ok: false, erreur: `Resend a refusé l'envoi (${reponse.status}) : ${await reponse.text()}` };
   }
+  return { ok: true, fournisseur: "resend" };
 }
 
 export async function envoyerEmail(
   destinataire: string,
   sujet: string,
   html: string
-): Promise<void> {
+): Promise<ResultatEmail> {
+  const fournisseur = fournisseurEmail();
+  if (!fournisseur) {
+    return { ok: false, erreur: "Aucune clé d'envoi configurée (BREVO_API_KEY ou RESEND_API_KEY)." };
+  }
   try {
-    if (process.env.BREVO_API_KEY) {
-      await envoyerViaBrevo(process.env.BREVO_API_KEY, destinataire, sujet, html);
-    } else if (process.env.RESEND_API_KEY) {
-      await envoyerViaResend(process.env.RESEND_API_KEY, destinataire, sujet, html);
-    }
+    const resultat =
+      fournisseur === "brevo"
+        ? await envoyerViaBrevo(process.env.BREVO_API_KEY!, destinataire, sujet, html)
+        : await envoyerViaResend(process.env.RESEND_API_KEY!, destinataire, sujet, html);
+    if (!resultat.ok) console.error(resultat.erreur);
+    return resultat;
   } catch (erreur) {
+    const message = erreur instanceof Error ? erreur.message : String(erreur);
     console.error("Envoi e-mail échoué", erreur);
+    return { ok: false, erreur: `Envoi impossible : ${message}` };
   }
 }
