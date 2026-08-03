@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { del, put } from "@vercel/blob";
+import { del } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { exigerAdmin, fermerSessionAdmin, ouvrirSessionAdmin } from "@/lib/auth";
 import { envoyerEmail } from "@/lib/email";
@@ -171,44 +171,24 @@ export async function envoyerEmailTest(
 
 // --- Galerie ---
 
-export type EtatPhoto = { ok?: boolean; message?: string };
-
-export async function ajouterPhoto(
-  _etatPrecedent: EtatPhoto,
-  formData: FormData
-): Promise<EtatPhoto> {
+// L'image est envoyée directement du navigateur au stockage (voir
+// /api/galerie/upload) ; il ne reste ici qu'à enregistrer sa référence.
+export async function enregistrerPhoto(url: string, legende: string): Promise<void> {
   await exigerAdmin();
-
-  const fichier = formData.get("fichier");
-  if (!(fichier instanceof File) || fichier.size === 0) {
-    return { ok: false, message: "Choisissez une image à envoyer." };
-  }
-  if (!fichier.type.startsWith("image/")) {
-    return { ok: false, message: "Ce fichier n'est pas une image." };
-  }
-  if (fichier.size > 8 * 1024 * 1024) {
-    return {
-      ok: false,
-      message: `Image trop lourde (${(fichier.size / 1024 / 1024).toFixed(1)} Mo). Maximum 8 Mo.`,
-    };
-  }
-
+  let hote: string;
   try {
-    const nom = `galerie/${Date.now()}-${fichier.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-    const blob = await put(nom, fichier, { access: "public" });
-
-    await prisma.photo.create({
-      data: { url: blob.url, legende: String(formData.get("legende") ?? "").slice(0, 200) || null },
-    });
-  } catch (erreur) {
-    const message = erreur instanceof Error ? erreur.message : String(erreur);
-    console.error("Ajout de photo échoué", erreur);
-    return { ok: false, message: `Envoi impossible : ${message}` };
+    const analysee = new URL(url);
+    hote = analysee.hostname;
+    if (analysee.protocol !== "https:") throw new Error();
+  } catch {
+    throw new Error("URL d'image inattendue.");
   }
-
+  if (!hote.endsWith(".blob.vercel-storage.com")) {
+    throw new Error("URL d'image inattendue.");
+  }
+  await prisma.photo.create({ data: { url, legende: legende.slice(0, 200) || null } });
   revalidatePath("/admin/galerie");
   revalidatePath("/");
-  return { ok: true, message: "Photo ajoutée ✨" };
 }
 
 export async function supprimerPhoto(id: string): Promise<void> {
