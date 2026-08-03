@@ -2,8 +2,6 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { upload } from "@vercel/blob/client";
-import { enregistrerPhoto } from "@/actions/admin";
 
 const COTE_MAX = 1600;
 const SEUIL_COMPRESSION = 700 * 1024;
@@ -58,15 +56,16 @@ export default function FormulairePhoto() {
     setEtat(null);
     try {
       const image = await compresser(fichier);
-      const nom = `galerie/${fichier.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9._-]/g, "_")}.jpg`;
+      const envoi = new FormData();
+      envoi.append("fichier", image, fichier.name);
+      envoi.append("legende", legende);
 
-      const blob = await upload(nom, image, {
-        access: "public",
-        handleUploadUrl: "/api/galerie/upload",
-        contentType: image.type || "image/jpeg",
-      });
+      const reponse = await fetch("/api/galerie/upload", { method: "POST", body: envoi });
+      if (!reponse.ok) {
+        const { error } = (await reponse.json().catch(() => ({}))) as { error?: string };
+        throw new Error(error ?? `Erreur ${reponse.status}`);
+      }
 
-      await enregistrerPhoto(blob.url, legende);
       formulaire.current?.reset();
       setEtat({ ok: true, message: "Photo ajoutée ✨" });
       router.refresh();

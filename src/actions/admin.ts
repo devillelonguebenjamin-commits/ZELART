@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { del } from "@vercel/blob";
-import { jetonBlob } from "@/lib/blob";
+import { optionsBlob } from "@/lib/blob";
 import { prisma } from "@/lib/prisma";
 import { exigerAdmin, fermerSessionAdmin, ouvrirSessionAdmin } from "@/lib/auth";
 import { envoyerEmail } from "@/lib/email";
@@ -172,31 +172,14 @@ export async function envoyerEmailTest(
 
 // --- Galerie ---
 
-// L'image est envoyée directement du navigateur au stockage (voir
-// /api/galerie/upload) ; il ne reste ici qu'à enregistrer sa référence.
-export async function enregistrerPhoto(url: string, legende: string): Promise<void> {
-  await exigerAdmin();
-  let hote: string;
-  try {
-    const analysee = new URL(url);
-    hote = analysee.hostname;
-    if (analysee.protocol !== "https:") throw new Error();
-  } catch {
-    throw new Error("URL d'image inattendue.");
-  }
-  if (!hote.endsWith(".blob.vercel-storage.com")) {
-    throw new Error("URL d'image inattendue.");
-  }
-  await prisma.photo.create({ data: { url, legende: legende.slice(0, 200) || null } });
-  revalidatePath("/admin/galerie");
-  revalidatePath("/");
-}
+// L'ajout de photo est traité par la route /api/galerie/upload, qui contourne
+// la limite de 1 Mo imposée aux Server Actions.
 
 export async function supprimerPhoto(id: string): Promise<void> {
   await exigerAdmin();
   const photo = await prisma.photo.delete({ where: { id } });
   try {
-    await del(photo.url, { token: jetonBlob() });
+    await del(photo.url, optionsBlob());
   } catch (erreur) {
     console.error("Suppression du fichier blob échouée", erreur);
   }

@@ -1,36 +1,56 @@
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { estAdmin } from "@/lib/auth";
-import { jetonBlob } from "@/lib/blob";
+import { optionsBlob, stockageConfigure } from "@/lib/blob";
+import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
-// Délivre au navigateur un jeton d'envoi à usage unique, après vérification
-// que la session admin est bien ouverte. L'image transite ensuite directement
-// du navigateur vers le stockage, sans passer par le serveur — ce qui évite
-// la limite de 1 Mo des Server Actions.
+// Limite confortable : les images sont compressées côté navigateur avant envoi
+// (environ 0,5 Mo), bien en deçà du plafond des fonctions Vercel.
+const TAILLE_MAX = 4 * 1024 * 1024;
+
 export async function POST(request: Request): Promise<NextResponse> {
-  const body = (await request.json()) as HandleUploadBody;
+  if (!(await estAdmin())) {
+    return NextResponse.json({ error: "Session gérante requise." }, { status: 401 });
+  }
+  if (!stockageConfigure()) {
+    return NextResponse.json({ error: "Stockage des photos non configuré." }, { status: 500 });
+  }
+
+  const donnees = await request.formData();
+  const fichier = donnees.get("fichier");
+  if (!(fichier instanceof File) || fichier.size === 0) {
+    return NextResponse.json({ error: "Aucune image reçue." }, { status: 400 });
+  }
+  if (!fichier.type.startsWith("image/")) {
+    return NextResponse.json({ error: "Ce fichier n'est pas une image." }, { status: 400 });
+  }
+  if (fichier.size > TAILLE_MAX) {
+    return NextResponse.json({ error: "Image trop lourde après compression." }, { status: 400 });
+  }
 
   try {
-    const resultat = await handleUpload({
-      body,
-      request,
-      token: jetonBlob(),
-      onBeforeGenerateToken: async () => {
-        if (!(await estAdmin())) throw new Error("Session gérante requise.");
-        return {
-          allowedContentTypes: ["image/jpeg", "image/png", "image/webp", "image/avif"],
-          maximumSizeInBytes: 10 * 1024 * 1024,
-          addRandomSuffix: true,
-        };
-      },
-      onUploadCompleted: async () => {
-        // L'enregistrement en base est fait par l'appel à `enregistrerPhoto`
-        // depuis le navigateur : ce callback n'est pas joignable en local.
+    const base = fichier.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9._-]/g, "_") || "photo";
+    const blob = await put(`galerie/${base}.jpg`, fichier, {
+      access: "public",
+      addRandomSuffix: true,
+      contentType: fichier.type,
+      ...optionsBlob(),
+    });
+
+    await prisma.photo.create({
+      data: {
+        url: blob.url,
+        legende: String(donnees.get("legende") ?? "").slice(0, 200) || null,
       },
     });
-    return NextResponse.json(resultat);
+
+    revalidatePath("/admin/galerie");
+    revalidatePath("/");
+    return NextResponse.json({ url: blob.url });
   } catch (erreur) {
     const message = erreur instanceof Error ? erreur.message : "Envoi refusé.";
-    return NextResponse.json({ error: message }, { status: 400 });
+    console.error("Ajout de photo échoué", erreur);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

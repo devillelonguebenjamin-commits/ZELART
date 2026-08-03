@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { supprimerPhoto } from "@/actions/admin";
-import { jetonBlob } from "@/lib/blob";
+import { stockageConfigure } from "@/lib/blob";
 import FormulairePhoto from "@/components/FormulairePhoto";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export default async function Galerie() {
   const photos = await prisma.photo.findMany({
     orderBy: [{ ordre: "asc" }, { creeLe: "desc" }],
   });
-  const stockagePret = Boolean(jetonBlob());
+  const stockagePret = stockageConfigure();
   // Diagnostic : noms des variables (jamais leurs valeurs) et version déployée
   const variablesBlob = Object.keys(process.env).filter((nom) => nom.includes("BLOB"));
   const version = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "locale";
