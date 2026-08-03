@@ -35,6 +35,7 @@ npm run dev
 | `Disponibilite` | Fenêtres d'ouverture récurrentes — lundi à samedi, 9h et 14h (une cliente par fenêtre) |
 | `Indisponibilite` | Exceptions ponctuelles : congés, jours fériés… |
 | `RendezVous` | Créneau réservé, statut `EN_ATTENTE` par défaut (Zélia confirme à la main) |
+| `InspirationImage` | Photos d'inspiration jointes par la cliente à sa demande |
 
 Les créneaux libres sont **calculés à la volée** (`src/lib/creneaux.ts`) : fenêtres récurrentes,
 moins les indisponibilités et les rendez-vous actifs. Les horaires sont interprétés dans le
@@ -47,15 +48,35 @@ fuseau `Europe/Paris` quel que soit le fuseau du serveur.
 3. `/confirmation/[id]` — récapitulatif ; la demande reste **en attente** jusqu'à la confirmation
    par Zélia (acompte de 15 € via SumUp pour les nouvelles clientes, cf. CGV).
 
+La dernière étape comporte une section **inspiration** : la cliente décrit ses envies et joint
+jusqu'à 3 photos, que Zélia retrouve sur la demande dans son agenda. La route d'envoi
+`/api/inspirations/upload` est publique par nécessité — elle est donc bornée par le type MIME, un
+poids de 2 Mo et le nombre d'images ; les URL soumises avec le formulaire sont revalidées côté
+serveur pour n'accepter que celles de notre propre stockage.
+
 ## Espace gérante (`/admin`)
 
 Protégé par la variable d'environnement `ADMIN_PASSWORD` (session par cookie signé, 30 jours) :
 
 - **Agenda** : demandes à confirmer, rendez-vous à venir, historique — changement de statut en un clic.
-- **Clientes** : liste, fiche avec historique et notes de suivi privées.
+- **Clientes** : liste complète avec recherche, nombre de poses honorées, total dépensé et état du
+  consentement ; ajout manuel d'une fiche, export CSV (`/api/clientes/export`, séparateur
+  point-virgule et BOM UTF-8 pour Excel en français), fiche détaillée avec historique, notes
+  privées, accord aux offres et suppression définitive.
 - **Prestations** : édition des prix, durées, visibilité.
 - **Congés** : blocage de périodes, immédiatement retirées des créneaux publics.
-- **Galerie** : upload de photos (Vercel Blob, variable `BLOB_READ_WRITE_TOKEN`) affichées sur l'accueil.
+- **Galerie** : upload de photos affichées sur l'accueil.
+
+### Stockage des photos
+
+Les images vivent dans un magasin Vercel Blob. Deux modes d'authentification coexistent et sont
+tous deux pris en charge (voir `src/lib/blob.ts`) : le jeton statique `BLOB_READ_WRITE_TOKEN`
+— éventuellement préfixé du nom du magasin — ou l'authentification OIDC automatique, où seul
+`BLOB_STORE_ID` est exposé.
+
+L'envoi passe par la route `POST /api/galerie/upload` plutôt que par une Server Action, dont le
+corps de requête est plafonné à 1 Mo. Le navigateur réduit l'image avant l'envoi (côté max
+1600 px, JPEG 82 %) : une photo de téléphone de 5 Mo est transmise en environ 0,5 Mo.
 
 ## Notifications e-mail
 
@@ -70,6 +91,25 @@ réservation n'est perdue, elles restent visibles dans l'agenda de `/admin`.
 
 La page `/admin/reglages` affiche l'état de cette configuration et permet d'envoyer un e-mail de
 test en affichant l'erreur exacte du service.
+
+## Campagnes de fidélisation
+
+L'onglet **Campagnes** de l'espace gérante permet de composer un e-mail, de choisir un groupe de
+destinataires, de s'envoyer un test puis de diffuser.
+
+Le cadre légal est respecté par construction : seules les clientes ayant explicitement coché la case
+de consentement à la réservation (`consentementMarketing`) et ne s'étant pas désinscrites sont
+contactables. Chaque message porte l'identité de l'entreprise et un lien de désinscription en un
+clic (`/desabonnement/[jeton]`), sans authentification. Les pages `/mentions-legales` et
+`/confidentialite` complètent le dispositif.
+
+Les segments sont définis dans `src/lib/segments.ts` : toutes, clientes à relancer (aucun rendez-vous
+depuis 3 mois), nouvelles clientes (moins de 60 jours), clientes fidèles (3 rendez-vous honorés).
+
+L'envoi est **découpé en lots** appelés en boucle par le navigateur (`POST /api/campagnes/envoyer`) :
+la progression est visible, aucune requête ne dépasse le temps d'exécution autorisé, et une
+campagne interrompue reprend là où elle s'était arrêtée — chaque destinataire n'étant traité
+qu'une fois grâce à la contrainte d'unicité sur `EnvoiCampagne`.
 
 ## À FAIRE : nom de domaine et adresse e-mail de Zélia
 

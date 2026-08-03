@@ -11,6 +11,24 @@ export const reservationSchema = z.object({
     .trim()
     .regex(/^(\+33\s?|0)[1-9](?:[\s.-]?\d{2}){4}$/, "Numéro de téléphone invalide (format français attendu)."),
   noteCliente: z.string().trim().max(500, "Votre message ne doit pas dépasser 500 caractères.").optional(),
+  inspiration: z
+    .string()
+    .trim()
+    .max(1000, "Votre inspiration ne doit pas dépasser 1000 caractères.")
+    .optional(),
 });
+
+// Les URL d'images sont produites par notre propre stockage : on refuse tout
+// autre hôte, le formulaire étant public.
+export function urlImageValide(url: string): boolean {
+  try {
+    const analysee = new URL(url);
+    return (
+      analysee.protocol === "https:" && analysee.hostname.endsWith(".blob.vercel-storage.com")
+    );
+  } catch {
+    return false;
+  }
+}
 
 export type DonneesReservation = z.infer<typeof reservationSchema>;

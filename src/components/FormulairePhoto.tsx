@@ -1,16 +1,60 @@
 "use client";
 
-import { useActionState } from "react";
-import { ajouterPhoto, type EtatPhoto } from "@/actions/admin";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { compresserImage } from "@/lib/image-client";
 
 export default function FormulairePhoto() {
-  const [etat, action, enCours] = useActionState<EtatPhoto, FormData>(ajouterPhoto, {});
+  const router = useRouter();
+  const formulaire = useRef<HTMLFormElement>(null);
+  const [enCours, setEnCours] = useState(false);
+  const [etat, setEtat] = useState<{ ok: boolean; message: string } | null>(null);
+
+  async function envoyer(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const donnees = new FormData(event.currentTarget);
+    const fichier = donnees.get("fichier");
+    const legende = String(donnees.get("legende") ?? "");
+
+    if (!(fichier instanceof File) || fichier.size === 0) {
+      setEtat({ ok: false, message: "Choisissez une image à envoyer." });
+      return;
+    }
+    if (!fichier.type.startsWith("image/")) {
+      setEtat({ ok: false, message: "Ce fichier n'est pas une image." });
+      return;
+    }
+
+    setEnCours(true);
+    setEtat(null);
+    try {
+      const image = await compresserImage(fichier);
+      const envoi = new FormData();
+      envoi.append("fichier", image, fichier.name);
+      envoi.append("legende", legende);
+
+      const reponse = await fetch("/api/galerie/upload", { method: "POST", body: envoi });
+      if (!reponse.ok) {
+        const { error } = (await reponse.json().catch(() => ({}))) as { error?: string };
+        throw new Error(error ?? `Erreur ${reponse.status}`);
+      }
+
+      formulaire.current?.reset();
+      setEtat({ ok: true, message: "Photo ajoutée ✨" });
+      router.refresh();
+    } catch (erreur) {
+      const message = erreur instanceof Error ? erreur.message : String(erreur);
+      setEtat({ ok: false, message: `Envoi impossible : ${message}` });
+    } finally {
+      setEnCours(false);
+    }
+  }
 
   return (
     <div>
-      <form action={action} className="flex flex-wrap items-end gap-4">
+      <form ref={formulaire} onSubmit={envoyer} className="flex flex-wrap items-end gap-4">
         <label className="block text-sm">
-          <span className="text-foreground/70">Image (8 Mo max)</span>
+          <span className="text-foreground/70">Image</span>
           <input
             type="file"
             name="fichier"
@@ -36,7 +80,11 @@ export default function FormulairePhoto() {
         </button>
       </form>
 
-      {etat.message && (
+      <p className="mt-2 text-xs text-foreground/60">
+        Les photos sont réduites automatiquement avant l&rsquo;envoi — inutile de les préparer.
+      </p>
+
+      {etat && (
         <p
           role="status"
           className={`mt-3 break-words rounded-xl px-4 py-3 text-sm ${

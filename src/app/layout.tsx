@@ -73,6 +73,14 @@ export default function RootLayout({
               <p className="mt-1">Zelia.barreteaupro@outlook.fr</p>
               <p>06 45 29 20 01 (SMS uniquement)</p>
               <p className="mt-1">Paiement en espèces ou par carte (SumUp)</p>
+              <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1">
+                <Link href="/mentions-legales" className="hover:text-pink-500">
+                  Mentions légales
+                </Link>
+                <Link href="/confidentialite" className="hover:text-pink-500">
+                  Protection des données
+                </Link>
+              </p>
             </div>
           </div>
         </footer>

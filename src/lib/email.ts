@@ -32,7 +32,7 @@ async function envoyerViaBrevo(
   if (!expediteur) {
     return { ok: false, erreur: "EMAIL_FROM n'est pas défini (adresse expéditrice validée chez Brevo)." };
   }
-  const reponse = await fetch("https://api.brevo.com/v3/smtp/email", {
+  const reponse = await fetch(process.env.BREVO_API_URL ?? "https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: { "api-key": cle, "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -54,7 +54,7 @@ async function envoyerViaResend(
   sujet: string,
   html: string
 ): Promise<ResultatEmail> {
-  const reponse = await fetch("https://api.resend.com/emails", {
+  const reponse = await fetch(process.env.RESEND_API_URL ?? "https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${cle}`, "Content-Type": "application/json" },
     body: JSON.stringify({

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { getCreneauxDisponibles } from "@/lib/creneaux";
 import { formatPrix, grouperParCategorie } from "@/lib/format";
+import { stockageConfigure } from "@/lib/blob";
 import ReservationWizard from "@/components/ReservationWizard";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +39,11 @@ export default async function Reserver() {
           Zélia vous répondra par message pour la confirmer 🤍
         </p>
       </div>
-      <ReservationWizard categories={categories} creneaux={creneaux} />
+      <ReservationWizard
+        categories={categories}
+        creneaux={creneaux}
+        envoiImagesActif={stockageConfigure()}
+      />
     </div>
   );
 }

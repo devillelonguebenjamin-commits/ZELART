@@ -8,15 +8,56 @@ datasource db {
 }
 
 model Cliente {
-  id         String       @id @default(cuid())
-  prenom     String
-  nom        String
-  email      String       @unique
-  telephone  String
-  notes      String? // suivi : allergies, préférences, particularités des ongles…
-  creeLe     DateTime     @default(now())
-  modifieLe  DateTime     @updatedAt
+  id        String  @id @default(cuid())
+  prenom    String
+  nom       String
+  email     String  @unique
+  telephone String
+  notes     String? // suivi : allergies, préférences, particularités des ongles…
+
+  // Prospection : consentement recueilli à la réservation, révocable à tout
+  // moment via le lien de désinscription (jeton non devinable).
+  consentementMarketing Boolean   @default(false)
+  consentementLe        DateTime?
+  desabonneLe           DateTime?
+  jetonDesabonnement    String    @unique @default(cuid())
+
+  creeLe     DateTime        @default(now())
+  modifieLe  DateTime        @updatedAt
   rendezVous RendezVous[]
+  envois     EnvoiCampagne[]
+}
+
+// Campagne de fidélisation / parrainage envoyée aux clientes consentantes.
+model Campagne {
+  id        String          @id @default(cuid())
+  objet     String
+  contenu   String // texte simple ; {{prenom}} est remplacé à l'envoi
+  segment   String // voir src/lib/segments.ts
+  statut    StatutCampagne  @default(BROUILLON)
+  creeLe    DateTime        @default(now())
+  envoyeeLe DateTime?
+  envois    EnvoiCampagne[]
+}
+
+// Une ligne par destinataire : évite les doublons et garde une trace des échecs.
+model EnvoiCampagne {
+  id         String   @id @default(cuid())
+  campagne   Campagne @relation(fields: [campagneId], references: [id], onDelete: Cascade)
+  campagneId String
+  cliente    Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId  String
+  ok         Boolean
+  erreur     String?
+  envoyeLe   DateTime @default(now())
+
+  @@unique([campagneId, clienteId])
+}
+
+enum StatutCampagne {
+  BROUILLON
+  EN_COURS
+  ENVOYEE
 }
 
 model Prestation {
@@ -62,7 +103,7 @@ model Photo {
 
 model RendezVous {
   id           String           @id @default(cuid())
-  cliente      Cliente          @relation(fields: [clienteId], references: [id])
+  cliente      Cliente          @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   clienteId    String
   prestation   Prestation       @relation(fields: [prestationId], references: [id])
   prestationId String
@@ -70,9 +111,23 @@ model RendezVous {
   fin          DateTime // figé à la réservation, indépendant des évolutions de la prestation
   statut       StatutRendezVous @default(EN_ATTENTE)
   noteCliente  String?
+  inspiration  String? // envies décrites par la cliente
   creeLe       DateTime         @default(now())
 
+  inspirations InspirationImage[]
+
   @@index([debut])
+}
+
+// Photos d'inspiration jointes par la cliente à sa demande de rendez-vous.
+model InspirationImage {
+  id           String     @id @default(cuid())
+  url          String
+  rendezVous   RendezVous @relation(fields: [rendezVousId], references: [id], onDelete: Cascade)
+  rendezVousId String
+  creeLe       DateTime   @default(now())
+
+  @@index([rendezVousId])
 }
 
 // EN_ATTENTE par défaut : Zélia confirme chaque demande à la main

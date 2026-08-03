@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { del, put } from "@vercel/blob";
+import { del } from "@vercel/blob";
+import { optionsBlob } from "@/lib/blob";
 import { prisma } from "@/lib/prisma";
 import { exigerAdmin, fermerSessionAdmin, ouvrirSessionAdmin } from "@/lib/auth";
 import { envoyerEmail } from "@/lib/email";
@@ -171,51 +172,14 @@ export async function envoyerEmailTest(
 
 // --- Galerie ---
 
-export type EtatPhoto = { ok?: boolean; message?: string };
-
-export async function ajouterPhoto(
-  _etatPrecedent: EtatPhoto,
-  formData: FormData
-): Promise<EtatPhoto> {
-  await exigerAdmin();
-
-  const fichier = formData.get("fichier");
-  if (!(fichier instanceof File) || fichier.size === 0) {
-    return { ok: false, message: "Choisissez une image à envoyer." };
-  }
-  if (!fichier.type.startsWith("image/")) {
-    return { ok: false, message: "Ce fichier n'est pas une image." };
-  }
-  if (fichier.size > 8 * 1024 * 1024) {
-    return {
-      ok: false,
-      message: `Image trop lourde (${(fichier.size / 1024 / 1024).toFixed(1)} Mo). Maximum 8 Mo.`,
-    };
-  }
-
-  try {
-    const nom = `galerie/${Date.now()}-${fichier.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-    const blob = await put(nom, fichier, { access: "public" });
-
-    await prisma.photo.create({
-      data: { url: blob.url, legende: String(formData.get("legende") ?? "").slice(0, 200) || null },
-    });
-  } catch (erreur) {
-    const message = erreur instanceof Error ? erreur.message : String(erreur);
-    console.error("Ajout de photo échoué", erreur);
-    return { ok: false, message: `Envoi impossible : ${message}` };
-  }
-
-  revalidatePath("/admin/galerie");
-  revalidatePath("/");
-  return { ok: true, message: "Photo ajoutée ✨" };
-}
+// L'ajout de photo est traité par la route /api/galerie/upload, qui contourne
+// la limite de 1 Mo imposée aux Server Actions.
 
 export async function supprimerPhoto(id: string): Promise<void> {
   await exigerAdmin();
   const photo = await prisma.photo.delete({ where: { id } });
   try {
-    await del(photo.url);
+    await del(photo.url, optionsBlob());
   } catch (erreur) {
     console.error("Suppression du fichier blob échouée", erreur);
   }

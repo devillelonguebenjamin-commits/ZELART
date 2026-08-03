@@ -4,6 +4,7 @@ import { useActionState, useMemo, useState } from "react";
 import { creerReservation, type EtatReservation } from "@/actions/reservation";
 import type { Creneau } from "@/lib/creneaux";
 import { formatDuree } from "@/lib/format";
+import ChampInspiration from "@/components/ChampInspiration";
 
 export type PrestationPublique = {
   id: string;
@@ -21,11 +22,12 @@ export type CategoriePublique = {
 type Props = {
   categories: CategoriePublique[];
   creneaux: Creneau[];
+  envoiImagesActif: boolean;
 };
 
 const etapes = ["Prestation", "Créneau", "Coordonnées"] as const;
 
-export default function ReservationWizard({ categories, creneaux }: Props) {
+export default function ReservationWizard({ categories, creneaux, envoiImagesActif }: Props) {
   const [etape, setEtape] = useState(0);
   const [prestationId, setPrestationId] = useState<string | null>(null);
   const [creneauChoisi, setCreneauChoisi] = useState<Creneau | null>(null);
@@ -243,16 +245,19 @@ export default function ReservationWizard({ categories, creneaux }: Props) {
           </label>
           <label className="block sm:col-span-2">
             <span className="text-sm font-medium">
-              Un message pour Zélia ? <span className="text-foreground/50">(envies, allergies…)</span>
+              Un message pour Zélia ?{" "}
+              <span className="text-foreground/50">(allergies, précisions pratiques…)</span>
             </span>
             <textarea
               name="noteCliente"
-              rows={3}
+              rows={2}
               maxLength={500}
               className="mt-1 w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
             />
           </label>
         </div>
+
+        <ChampInspiration actif={envoiImagesActif} />
         <label className="mt-4 flex items-start gap-3 text-sm">
           <input type="checkbox" name="majeure" required className="mt-1 accent-pink-500" />
           <span>
@@ -261,6 +266,22 @@ export default function ReservationWizard({ categories, creneaux }: Props) {
             rendez-vous. *
           </span>
         </label>
+
+        <label className="mt-3 flex items-start gap-3 text-sm">
+          <input type="checkbox" name="consentementMarketing" className="mt-1 accent-pink-500" />
+          <span>
+            J&rsquo;accepte de recevoir par e-mail les offres et actualités de Zelart Nails
+            (facultatif, désinscription en un clic à tout moment).
+          </span>
+        </label>
+
+        <p className="mt-3 text-xs text-foreground/60">
+          Vos coordonnées servent uniquement à gérer votre rendez-vous et ne sont jamais transmises à
+          des tiers.{" "}
+          <a href="/confidentialite" target="_blank" className="text-pink-600 hover:underline">
+            En savoir plus
+          </a>
+        </p>
 
         {etat.erreur && (
           <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
