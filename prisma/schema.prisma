@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Cliente {
+  id         String       @id @default(cuid())
+  prenom     String
+  nom        String
+  email      String       @unique
+  telephone  String
+  notes      String? // suivi : allergies, préférences, particularités des ongles…
+  creeLe     DateTime     @default(now())
+  modifieLe  DateTime     @updatedAt
+  rendezVous RendezVous[]
+}
+
+model Prestation {
+  id          String       @id @default(cuid())
+  nom         String
+  categorie   String // "Vernis semi-permanent", "Gainage", "Pose Gel X", "Pose Pop-it"
+  description String?
+  dureeMin    Int // durée indicative en minutes
+  prixCents   Int // 3500 = 35,00 €
+  aPartirDe   Boolean      @default(false) // prix "à partir de" (nail art niveau 3…)
+  active      Boolean      @default(true)
+  ordre       Int          @default(0)
+  rendezVous  RendezVous[]
+}
+
+// Créneaux d'ouverture récurrents : Zélia reçoit du lundi au samedi à 9h ou 14h.
+// Une ligne = une fenêtre réservable (un seul rendez-vous par fenêtre).
+model Disponibilite {
+  id          String @id @default(cuid())
+  jourSemaine Int // 1 = lundi … 7 = dimanche (ISO 8601)
+  heureDebut  String // "09:00"
+  heureFin    String // "12:30"
+
+  @@index([jourSemaine])
+}
+
+// Exceptions ponctuelles : congés, jour férié, rendez-vous perso…
+model Indisponibilite {
+  id    String   @id @default(cuid())
+  debut DateTime
+  fin   DateTime
+  motif String?
+}
+
+model RendezVous {
+  id           String           @id @default(cuid())
+  cliente      Cliente          @relation(fields: [clienteId], references: [id])
+  clienteId    String
+  prestation   Prestation       @relation(fields: [prestationId], references: [id])
+  prestationId String
+  debut        DateTime
+  fin          DateTime // figé à la réservation, indépendant des évolutions de la prestation
+  statut       StatutRendezVous @default(EN_ATTENTE)
+  noteCliente  String?
+  creeLe       DateTime         @default(now())
+
+  @@index([debut])
+}
+
+// EN_ATTENTE par défaut : Zélia confirme chaque demande à la main
+// (et demande un acompte de 15 € aux nouvelles clientes, cf. CGV).
+enum StatutRendezVous {
+  EN_ATTENTE
+  CONFIRME
+  ANNULE
+  TERMINE
+  NO_SHOW
+}
