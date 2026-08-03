@@ -72,14 +72,26 @@ export async function creerReservation(
         });
         if (conflitRdv || conflitIndispo) throw new Error("CRENEAU_PRIS");
 
+        // Le consentement se donne, jamais ne se retire tout seul : une
+        // réservation sans la case cochée n'annule pas un accord antérieur.
+        const accord = formData.get("consentementMarketing") === "on";
         const cliente = await tx.cliente.upsert({
           where: { email: donnees.email },
-          update: { prenom: donnees.prenom, nom: donnees.nom, telephone: donnees.telephone },
+          update: {
+            prenom: donnees.prenom,
+            nom: donnees.nom,
+            telephone: donnees.telephone,
+            ...(accord
+              ? { consentementMarketing: true, consentementLe: new Date(), desabonneLe: null }
+              : {}),
+          },
           create: {
             prenom: donnees.prenom,
             nom: donnees.nom,
             email: donnees.email,
             telephone: donnees.telephone,
+            consentementMarketing: accord,
+            consentementLe: accord ? new Date() : null,
           },
         });
 

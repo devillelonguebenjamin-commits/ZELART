@@ -262,6 +262,22 @@ export default function ReservationWizard({ categories, creneaux }: Props) {
           </span>
         </label>
 
+        <label className="mt-3 flex items-start gap-3 text-sm">
+          <input type="checkbox" name="consentementMarketing" className="mt-1 accent-pink-500" />
+          <span>
+            J&rsquo;accepte de recevoir par e-mail les offres et actualités de Zelart Nails
+            (facultatif, désinscription en un clic à tout moment).
+          </span>
+        </label>
+
+        <p className="mt-3 text-xs text-foreground/60">
+          Vos coordonnées servent uniquement à gérer votre rendez-vous et ne sont jamais transmises à
+          des tiers.{" "}
+          <a href="/confidentialite" target="_blank" className="text-pink-600 hover:underline">
+            En savoir plus
+          </a>
+        </p>
+
         {etat.erreur && (
           <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
             {etat.erreur}
