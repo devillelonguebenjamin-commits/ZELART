@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { filtreDestinataires, seuilFidelite } from "@/lib/segments";
+import { urlSite } from "@/lib/site";
 
 export type Destinataire = {
   id: string;
@@ -8,14 +9,6 @@ export type Destinataire = {
   email: string;
   jetonDesabonnement: string;
 };
-
-export function urlSite(): string {
-  if (process.env.SITE_URL) return process.env.SITE_URL.replace(/\/$/, "");
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-  }
-  return "http://localhost:3000";
-}
 
 export async function destinataires(segment: string): Promise<Destinataire[]> {
   const clientes = await prisma.cliente.findMany({

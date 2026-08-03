@@ -131,17 +131,20 @@ Configuration actuelle (provisoire) : Resend sans domaine vérifié, ce qui impo
 expéditeur figé à `onboarding@resend.dev`, et envoi possible uniquement vers l'adresse du compte
 Resend. Les notifications ne peuvent donc pas encore partir vers la boîte de Zélia.
 
-Marche à suivre le jour de l'achat du domaine (ex. `zelart.fr`, ~10 €/an chez OVH, Gandi ou
-directement dans Vercel) :
+Marche à suivre le jour de l'achat du domaine (ex. `zelart.fr`, ~10 €/an chez OVH ou Gandi,
+~15 €/an directement dans Vercel — cette dernière option évite toute manipulation DNS) :
 
-1. **Brancher le domaine au site** — Vercel → Settings → Domains → *Add* → suivre les
-   enregistrements DNS indiqués (un `A` sur la racine, un `CNAME` sur `www`). Le certificat HTTPS
-   est automatique.
+1. **Brancher le domaine au site** — Vercel → Settings → Domains → *Add*. Vercel affiche alors les
+   enregistrements DNS **propres à ce projet** : les recopier tels quels chez le registrar (ne pas
+   réutiliser des valeurs trouvées ailleurs, elles varient d'un projet à l'autre). Le certificat
+   HTTPS est automatique une fois la propagation faite.
 2. **Vérifier le domaine chez Resend** — resend.com → *Domains* → *Add Domain* → ajouter les
    enregistrements DKIM/SPF fournis chez le registrar → attendre la validation.
 3. **Mettre à jour les variables Vercel** :
    - `EMAIL_FROM` = `Zelart Nails <contact@zelart.fr>`
    - `NOTIFY_EMAIL` = `Zelia.barreteaupro@outlook.fr`
+   - `SITE_URL` n'a pas à être renseignée : les liens des e-mails suivent automatiquement le
+     domaine de production (`src/lib/site.ts`).
 4. **Redéployer**, puis vérifier via `/admin/reglages` (test d'envoi vers l'adresse de Zélia) et
    par une réservation réelle de bout en bout.
 

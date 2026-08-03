@@ -6,6 +6,7 @@ import { fenetrePourDebut, formatHeure, formatJour, PREAVIS_MS } from "@/lib/cre
 import { reservationSchema, urlImageValide } from "@/lib/validations";
 import { envoyerEmail } from "@/lib/email";
 import { envoyerDemandeAcompte, estNouvelleCliente } from "@/lib/acompte";
+import { urlSite } from "@/lib/site";
 
 export type EtatReservation = { erreur?: string };
 
@@ -146,7 +147,7 @@ export async function creerReservation(
        <p>${donnees.prenom} ${donnees.nom}<br>
        ${donnees.telephone} · ${donnees.email}</p>
        ${donnees.noteCliente ? `<p>Message : ${donnees.noteCliente}</p>` : ""}
-       <p><a href="https://zelart.vercel.app/admin">Ouvrir l'espace gérante</a></p>`
+       <p><a href="${urlSite()}/admin">Ouvrir l'espace gérante</a></p>`
     );
   }
 
