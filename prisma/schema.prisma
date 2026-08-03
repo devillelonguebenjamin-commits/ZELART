@@ -103,7 +103,7 @@ model Photo {
 
 model RendezVous {
   id           String           @id @default(cuid())
-  cliente      Cliente          @relation(fields: [clienteId], references: [id])
+  cliente      Cliente          @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   clienteId    String
   prestation   Prestation       @relation(fields: [prestationId], references: [id])
   prestationId String

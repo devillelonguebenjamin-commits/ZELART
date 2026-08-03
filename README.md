@@ -52,7 +52,10 @@ fuseau `Europe/Paris` quel que soit le fuseau du serveur.
 Protégé par la variable d'environnement `ADMIN_PASSWORD` (session par cookie signé, 30 jours) :
 
 - **Agenda** : demandes à confirmer, rendez-vous à venir, historique — changement de statut en un clic.
-- **Clientes** : liste, fiche avec historique et notes de suivi privées.
+- **Clientes** : liste complète avec recherche, nombre de poses honorées, total dépensé et état du
+  consentement ; ajout manuel d'une fiche, export CSV (`/api/clientes/export`, séparateur
+  point-virgule et BOM UTF-8 pour Excel en français), fiche détaillée avec historique, notes
+  privées, accord aux offres et suppression définitive.
 - **Prestations** : édition des prix, durées, visibilité.
 - **Congés** : blocage de périodes, immédiatement retirées des créneaux publics.
 - **Galerie** : upload de photos affichées sur l'accueil.
