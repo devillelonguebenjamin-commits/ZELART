@@ -171,21 +171,44 @@ export async function envoyerEmailTest(
 
 // --- Galerie ---
 
-export async function ajouterPhoto(formData: FormData): Promise<void> {
+export type EtatPhoto = { ok?: boolean; message?: string };
+
+export async function ajouterPhoto(
+  _etatPrecedent: EtatPhoto,
+  formData: FormData
+): Promise<EtatPhoto> {
   await exigerAdmin();
+
   const fichier = formData.get("fichier");
-  if (!(fichier instanceof File) || fichier.size === 0) return;
-  if (fichier.size > 8 * 1024 * 1024) return; // 8 Mo max
-  if (!fichier.type.startsWith("image/")) return;
+  if (!(fichier instanceof File) || fichier.size === 0) {
+    return { ok: false, message: "Choisissez une image à envoyer." };
+  }
+  if (!fichier.type.startsWith("image/")) {
+    return { ok: false, message: "Ce fichier n'est pas une image." };
+  }
+  if (fichier.size > 8 * 1024 * 1024) {
+    return {
+      ok: false,
+      message: `Image trop lourde (${(fichier.size / 1024 / 1024).toFixed(1)} Mo). Maximum 8 Mo.`,
+    };
+  }
 
-  const nom = `galerie/${Date.now()}-${fichier.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-  const blob = await put(nom, fichier, { access: "public" });
+  try {
+    const nom = `galerie/${Date.now()}-${fichier.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const blob = await put(nom, fichier, { access: "public" });
 
-  await prisma.photo.create({
-    data: { url: blob.url, legende: String(formData.get("legende") ?? "").slice(0, 200) || null },
-  });
+    await prisma.photo.create({
+      data: { url: blob.url, legende: String(formData.get("legende") ?? "").slice(0, 200) || null },
+    });
+  } catch (erreur) {
+    const message = erreur instanceof Error ? erreur.message : String(erreur);
+    console.error("Ajout de photo échoué", erreur);
+    return { ok: false, message: `Envoi impossible : ${message}` };
+  }
+
   revalidatePath("/admin/galerie");
   revalidatePath("/");
+  return { ok: true, message: "Photo ajoutée ✨" };
 }
 
 export async function supprimerPhoto(id: string): Promise<void> {
