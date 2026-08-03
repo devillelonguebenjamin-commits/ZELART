@@ -42,7 +42,7 @@ function tzOffsetMs(date: Date): number {
 }
 
 // Instant UTC correspondant à une heure « murale » parisienne
-function dateParis(annee: number, mois: number, jour: number, heure: number, minute: number): Date {
+export function dateParis(annee: number, mois: number, jour: number, heure: number, minute: number): Date {
   const estimation = Date.UTC(annee, mois - 1, jour, heure, minute);
   return new Date(estimation - tzOffsetMs(new Date(estimation)));
 }

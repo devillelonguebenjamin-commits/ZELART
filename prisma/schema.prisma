@@ -51,6 +51,15 @@ model Indisponibilite {
   motif String?
 }
 
+// Galerie de réalisations affichée sur la page d'accueil
+model Photo {
+  id      String   @id @default(cuid())
+  url     String
+  legende String?
+  ordre   Int      @default(0)
+  creeLe  DateTime @default(now())
+}
+
 model RendezVous {
   id           String           @id @default(cuid())
   cliente      Cliente          @relation(fields: [clienteId], references: [id])

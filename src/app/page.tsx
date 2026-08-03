@@ -5,10 +5,10 @@ import { formatPrix, grouperParCategorie } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function Accueil() {
-  const prestations = await prisma.prestation.findMany({
-    where: { active: true },
-    orderBy: { ordre: "asc" },
-  });
+  const [prestations, photos] = await Promise.all([
+    prisma.prestation.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
+    prisma.photo.findMany({ orderBy: [{ ordre: "asc" }, { creeLe: "desc" }], take: 12 }),
+  ]);
   const categories = grouperParCategorie(prestations);
 
   return (
@@ -81,6 +81,34 @@ export default async function Accueil() {
           e-mail ou Instagram.
         </p>
       </section>
+
+      {/* Galerie */}
+      {photos.length > 0 && (
+        <section id="galerie" className="scroll-mt-20 py-10">
+          <h2 className="font-display text-center text-3xl font-bold">Mes réalisations 💅</h2>
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+            {photos.map((photo) => (
+              <figure
+                key={photo.id}
+                className="overflow-hidden rounded-2xl border border-pink-100 bg-white"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={photo.url}
+                  alt={photo.legende ?? "Réalisation Zelart"}
+                  loading="lazy"
+                  className="aspect-square w-full object-cover transition hover:scale-105"
+                />
+                {photo.legende && (
+                  <figcaption className="px-3 py-2 text-xs text-foreground/60">
+                    {photo.legende}
+                  </figcaption>
+                )}
+              </figure>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* L'institut */}
       <section className="py-10">
