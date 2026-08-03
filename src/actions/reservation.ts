@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { fenetrePourDebut, formatHeure, formatJour, PREAVIS_MS } from "@/lib/creneaux";
 import { reservationSchema, urlImageValide } from "@/lib/validations";
 import { envoyerEmail } from "@/lib/email";
+import { envoyerDemandeAcompte, estNouvelleCliente } from "@/lib/acompte";
 
 export type EtatReservation = { erreur?: string };
 
@@ -122,6 +123,16 @@ export async function creerReservation(
     }
     console.error("Échec de la réservation", e);
     return { erreur: "Une erreur est survenue, merci de réessayer." };
+  }
+
+  // Nouvelle cliente : envoi automatique du lien d'acompte, si Zélia l'a
+  // renseigné dans ses réglages.
+  const rendezVous = await prisma.rendezVous.findUnique({
+    where: { id: rendezVousId },
+    select: { clienteId: true },
+  });
+  if (rendezVous && (await estNouvelleCliente(rendezVous.clienteId, rendezVousId))) {
+    await envoyerDemandeAcompte(rendezVousId);
   }
 
   // Notification à Zélia (sans effet si RESEND_API_KEY / NOTIFY_EMAIL absents)

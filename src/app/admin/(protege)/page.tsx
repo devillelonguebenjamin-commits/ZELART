@@ -2,7 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { formatPrix } from "@/lib/format";
-import { changerStatutRendezVous } from "@/actions/admin";
+import { changerStatutRendezVous, marquerAcompteRegle, renvoyerLienAcompte } from "@/actions/admin";
+import { reglagesAcompte } from "@/lib/parametres";
 import type { Prisma } from "@/generated/prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +33,15 @@ function BoutonStatut({ id, statut, label }: { id: string; statut: string; label
   );
 }
 
-function CarteRdv({ rdv }: { rdv: RdvComplet }) {
+function CarteRdv({
+  rdv,
+  nouvelle,
+  lienAcompteConfigure,
+}: {
+  rdv: RdvComplet;
+  nouvelle: boolean;
+  lienAcompteConfigure: boolean;
+}) {
   const badge = BADGES[rdv.statut] ?? BADGES.EN_ATTENTE;
   return (
     <div className="rounded-2xl border border-pink-100 bg-white px-5 py-4">
@@ -40,8 +49,15 @@ function CarteRdv({ rdv }: { rdv: RdvComplet }) {
         <p className="font-semibold capitalize">
           {formatJour(rdv.debut)} · {formatHeure(rdv.debut)}
         </p>
-        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${badge.classes}`}>
-          {badge.label}
+        <span className="flex flex-wrap items-center gap-2">
+          {nouvelle && (
+            <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-800">
+              Nouvelle cliente
+            </span>
+          )}
+          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${badge.classes}`}>
+            {badge.label}
+          </span>
         </span>
       </div>
       <p className="mt-1 text-sm">
@@ -82,6 +98,42 @@ function CarteRdv({ rdv }: { rdv: RdvComplet }) {
           )}
         </div>
       )}
+      {nouvelle && rdv.statut !== "ANNULE" && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl bg-violet-50 px-4 py-2 text-sm">
+          {rdv.acompteRegleLe ? (
+            <span className="font-medium text-violet-900">
+              💳 Acompte reçu le {formatJour(rdv.acompteRegleLe)}
+            </span>
+          ) : (
+            <>
+              <span className="text-violet-900">
+                {rdv.acompteDemandeLe
+                  ? `💳 Lien d'acompte envoyé le ${formatJour(rdv.acompteDemandeLe)} — en attente de paiement`
+                  : "💳 Acompte à demander"}
+              </span>
+              <form action={marquerAcompteRegle.bind(null, rdv.id, true)}>
+                <button
+                  type="submit"
+                  className="rounded-full border border-violet-300 bg-white px-3 py-1 text-xs font-medium text-violet-700 transition hover:bg-violet-100"
+                >
+                  Acompte reçu
+                </button>
+              </form>
+              {lienAcompteConfigure && (
+                <form action={renvoyerLienAcompte.bind(null, rdv.id)}>
+                  <button
+                    type="submit"
+                    className="rounded-full border border-violet-300 bg-white px-3 py-1 text-xs font-medium text-violet-700 transition hover:bg-violet-100"
+                  >
+                    {rdv.acompteDemandeLe ? "Renvoyer le lien" : "Envoyer le lien"}
+                  </button>
+                </form>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       <div className="mt-3 flex flex-wrap gap-2">
         {rdv.statut === "EN_ATTENTE" && (
           <>
@@ -108,11 +160,24 @@ export default async function Agenda() {
   const maintenant = new Date();
   const ilYa14Jours = new Date(maintenant.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-  const rdvs = await prisma.rendezVous.findMany({
-    where: { debut: { gte: ilYa14Jours } },
-    include: { cliente: true, prestation: true, inspirations: true },
-    orderBy: { debut: "asc" },
+  const [rdvs, acompte] = await Promise.all([
+    prisma.rendezVous.findMany({
+      where: { debut: { gte: ilYa14Jours } },
+      include: { cliente: true, prestation: true, inspirations: true },
+      orderBy: { debut: "asc" },
+    }),
+    reglagesAcompte(),
+  ]);
+
+  // Une cliente est nouvelle si elle n'a aucun autre rendez-vous actif.
+  const comptes = await prisma.rendezVous.groupBy({
+    by: ["clienteId"],
+    where: { statut: { not: "ANNULE" } },
+    _count: { _all: true },
   });
+  const nbParCliente = new Map(comptes.map((c) => [c.clienteId, c._count._all]));
+  const estNouvelle = (rdv: RdvComplet) =>
+    rdv.statut !== "ANNULE" && (nbParCliente.get(rdv.clienteId) ?? 0) <= 1;
 
   const enAttente = rdvs.filter((r) => r.statut === "EN_ATTENTE" && r.fin >= maintenant);
   const aVenir = rdvs.filter((r) => r.statut === "CONFIRME" && r.fin >= maintenant);
@@ -138,7 +203,12 @@ export default async function Agenda() {
               Aucune demande en attente 🤍
             </p>
           ) : (
-            enAttente.map((rdv) => <CarteRdv key={rdv.id} rdv={rdv} />)
+            enAttente.map((rdv) => <CarteRdv
+                key={rdv.id}
+                rdv={rdv}
+                nouvelle={estNouvelle(rdv)}
+                lienAcompteConfigure={Boolean(acompte.lien)}
+              />)
           )}
         </div>
       </section>
@@ -151,7 +221,12 @@ export default async function Agenda() {
               Aucun rendez-vous confirmé à venir.
             </p>
           ) : (
-            aVenir.map((rdv) => <CarteRdv key={rdv.id} rdv={rdv} />)
+            aVenir.map((rdv) => <CarteRdv
+                key={rdv.id}
+                rdv={rdv}
+                nouvelle={estNouvelle(rdv)}
+                lienAcompteConfigure={Boolean(acompte.lien)}
+              />)
           )}
         </div>
       </section>
@@ -164,7 +239,12 @@ export default async function Agenda() {
               Rien sur les 14 derniers jours.
             </p>
           ) : (
-            passes.map((rdv) => <CarteRdv key={rdv.id} rdv={rdv} />)
+            passes.map((rdv) => <CarteRdv
+                key={rdv.id}
+                rdv={rdv}
+                nouvelle={estNouvelle(rdv)}
+                lienAcompteConfigure={Boolean(acompte.lien)}
+              />)
           )}
         </div>
       </section>

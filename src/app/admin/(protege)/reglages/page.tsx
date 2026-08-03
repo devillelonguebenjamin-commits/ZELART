@@ -1,6 +1,8 @@
 import { expediteurConfigure, fournisseurEmail } from "@/lib/email";
 import { modeStockage, stockageConfigure } from "@/lib/blob";
 import TestEmailForm from "@/components/TestEmailForm";
+import ReglagesAcompteForm from "@/components/ReglagesAcompteForm";
+import { reglagesAcompte } from "@/lib/parametres";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +37,8 @@ function Ligne({
   );
 }
 
-export default function Reglages() {
+export default async function Reglages() {
+  const acompte = await reglagesAcompte();
   const fournisseur = fournisseurEmail();
   const notify = process.env.NOTIFY_EMAIL ?? "";
   const expediteur = expediteurConfigure();
@@ -75,6 +78,12 @@ export default function Reglages() {
           aide="EMAIL_FROM"
         />
         <Ligne
+          label="Envoi automatique de l'acompte"
+          valeur={acompte.lien ? "activé" : "manuel"}
+          ok={Boolean(acompte.lien)}
+          aide="lien de paiement SumUp réutilisable"
+        />
+        <Ligne
           label="Stockage des photos"
           valeur={blob ? "connecté" : "non connecté"}
           ok={blob}
@@ -108,6 +117,23 @@ export default function Reglages() {
           </p>
         </div>
       )}
+
+      <section className="rounded-2xl border border-pink-100 bg-white p-5">
+        <h2 className="font-semibold">Acompte des nouvelles clientes</h2>
+        <p className="mt-1 text-xs text-foreground/60">
+          Collez ici votre <strong>lien de paiement réutilisable</strong> SumUp : il sera envoyé
+          automatiquement par e-mail à chaque cliente qui réserve pour la première fois. Pour le
+          créer : application SumUp → <em>Paiements par lien</em> → montant fixe →{" "}
+          <em>Activer lien réutilisable</em>. Laissez le champ vide pour continuer à l&rsquo;envoyer
+          vous-même.
+        </p>
+        <div className="mt-4">
+          <ReglagesAcompteForm
+            lien={acompte.lien ?? ""}
+            montantEuros={(acompte.montantCents / 100).toString().replace(".", ",")}
+          />
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-pink-100 bg-white p-5">
         <h2 className="font-semibold">Tester l&rsquo;envoi</h2>

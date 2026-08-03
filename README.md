@@ -92,6 +92,20 @@ réservation n'est perdue, elles restent visibles dans l'agenda de `/admin`.
 La page `/admin/reglages` affiche l'état de cette configuration et permet d'envoyer un e-mail de
 test en affichant l'erreur exacte du service.
 
+## Acompte des nouvelles clientes
+
+Zélia colle dans `/admin/reglages` un **lien de paiement SumUp réutilisable** (créé depuis
+l'application SumUp : *Paiements par lien* → montant fixe → *Activer lien réutilisable*). Toute
+cliente sans autre rendez-vous actif reçoit alors automatiquement, à sa réservation, un e-mail
+contenant ce lien et le rappel des conditions.
+
+Le lien réutilisable est préféré à l'API SumUp : les `hosted_checkout_url` créés par l'API
+n'ont qu'une validité de 30 minutes, incompatible avec un lien envoyé par e-mail.
+
+L'agenda signale les nouvelles clientes, l'état de l'acompte (`acompteDemandeLe`,
+`acompteRegleLe`) et permet de renvoyer le lien ou de marquer l'acompte reçu. Sans lien
+configuré, rien n'est envoyé : la demande reste manuelle.
+
 ## Campagnes de fidélisation
 
 L'onglet **Campagnes** de l'espace gérante permet de composer un e-mail, de choisir un groupe de

@@ -9,6 +9,13 @@ import { exigerAdmin, fermerSessionAdmin, ouvrirSessionAdmin } from "@/lib/auth"
 import { envoyerEmail } from "@/lib/email";
 import { z } from "zod";
 import { dateParis, formatHeure, formatJour } from "@/lib/creneaux";
+import { envoyerDemandeAcompte } from "@/lib/acompte";
+import {
+  CLE_LIEN_ACOMPTE,
+  CLE_MONTANT_ACOMPTE,
+  enregistrerParametre,
+  lienSumUpValide,
+} from "@/lib/parametres";
 import type { StatutRendezVous } from "@/generated/prisma/client";
 
 // --- Session ---
@@ -136,6 +143,54 @@ export async function supprimerConge(id: string): Promise<void> {
   await exigerAdmin();
   await prisma.indisponibilite.delete({ where: { id } });
   revalidatePath("/admin/conges");
+}
+
+// --- Acompte ---
+
+export async function marquerAcompteRegle(id: string, regle: boolean): Promise<void> {
+  await exigerAdmin();
+  await prisma.rendezVous.update({
+    where: { id },
+    data: { acompteRegleLe: regle ? new Date() : null },
+  });
+  revalidatePath("/admin");
+}
+
+export type EtatAcompte = { ok?: boolean; message?: string };
+
+export async function renvoyerLienAcompte(id: string): Promise<void> {
+  await exigerAdmin();
+  await envoyerDemandeAcompte(id);
+  revalidatePath("/admin");
+}
+
+export async function enregistrerReglagesAcompte(
+  _etatPrecedent: EtatAcompte,
+  formData: FormData
+): Promise<EtatAcompte> {
+  await exigerAdmin();
+
+  const lien = String(formData.get("lienAcompte") ?? "").trim();
+  const montant = Number(String(formData.get("montantAcompte") ?? "").replace(",", "."));
+
+  if (lien && !lienSumUpValide(lien)) {
+    return { ok: false, message: "Ce lien ne provient pas de SumUp (adresse en https://…sumup.com)." };
+  }
+  if (!Number.isFinite(montant) || montant <= 0) {
+    return { ok: false, message: "Montant invalide." };
+  }
+
+  await enregistrerParametre(CLE_LIEN_ACOMPTE, lien);
+  await enregistrerParametre(CLE_MONTANT_ACOMPTE, String(Math.round(montant * 100)));
+  revalidatePath("/admin/reglages");
+  revalidatePath("/admin");
+
+  return {
+    ok: true,
+    message: lien
+      ? "Réglages enregistrés — le lien partira automatiquement aux nouvelles clientes."
+      : "Lien retiré : plus aucun envoi automatique d'acompte.",
+  };
 }
 
 // --- Diagnostic e-mail ---

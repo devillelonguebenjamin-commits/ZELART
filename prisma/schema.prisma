@@ -114,9 +114,20 @@ model RendezVous {
   inspiration  String? // envies décrites par la cliente
   creeLe       DateTime         @default(now())
 
+  // Acompte demandé aux nouvelles clientes (cf. CGV)
+  acompteDemandeLe DateTime?
+  acompteRegleLe   DateTime?
+
   inspirations InspirationImage[]
 
   @@index([debut])
+}
+
+// Réglages modifiables par la gérante sans redéploiement (lien d'acompte…).
+model Parametre {
+  cle       String   @id
+  valeur    String
+  modifieLe DateTime @updatedAt
 }
 
 // Photos d'inspiration jointes par la cliente à sa demande de rendez-vous.
