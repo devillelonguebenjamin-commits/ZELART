@@ -6,6 +6,7 @@ import { del, put } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { exigerAdmin, fermerSessionAdmin, ouvrirSessionAdmin } from "@/lib/auth";
 import { envoyerEmail } from "@/lib/email";
+import { z } from "zod";
 import { dateParis, formatHeure, formatJour } from "@/lib/creneaux";
 import type { StatutRendezVous } from "@/generated/prisma/client";
 
@@ -134,6 +135,38 @@ export async function supprimerConge(id: string): Promise<void> {
   await exigerAdmin();
   await prisma.indisponibilite.delete({ where: { id } });
   revalidatePath("/admin/conges");
+}
+
+// --- Diagnostic e-mail ---
+
+export type EtatTestEmail = { ok?: boolean; message?: string };
+
+export async function envoyerEmailTest(
+  _etatPrecedent: EtatTestEmail,
+  formData: FormData
+): Promise<EtatTestEmail> {
+  await exigerAdmin();
+
+  const destinataire = z
+    .string()
+    .trim()
+    .email()
+    .safeParse(formData.get("destinataire"));
+  if (!destinataire.success) {
+    return { ok: false, message: "Adresse e-mail invalide." };
+  }
+
+  const resultat = await envoyerEmail(
+    destinataire.data,
+    "Test d'envoi — Zelart Nails",
+    `<p>Bonjour,</p>
+     <p>Ceci est un e-mail de test envoyé depuis l'espace gérante du site Zelart Nails.</p>
+     <p>Si vous le recevez, les notifications de rendez-vous fonctionnent ✨</p>`
+  );
+
+  return resultat.ok
+    ? { ok: true, message: `E-mail envoyé à ${destinataire.data} via ${resultat.fournisseur}. Vérifiez la boîte de réception (et les indésirables).` }
+    : { ok: false, message: resultat.erreur };
 }
 
 // --- Galerie ---
