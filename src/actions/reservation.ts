@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { fenetrePourDebut, formatHeure, formatJour, PREAVIS_MS } from "@/lib/creneaux";
-import { reservationSchema } from "@/lib/validations";
+import { reservationSchema, urlImageValide } from "@/lib/validations";
 import { envoyerEmail } from "@/lib/email";
 
 export type EtatReservation = { erreur?: string };
@@ -27,6 +27,7 @@ export async function creerReservation(
     email: formData.get("email"),
     telephone: formData.get("telephone"),
     noteCliente: formData.get("noteCliente") ?? undefined,
+    inspiration: formData.get("inspiration") ?? undefined,
   });
   if (!analyse.success) {
     return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
@@ -51,6 +52,11 @@ export async function creerReservation(
   }
 
   const finRendezVous = new Date(debut.getTime() + prestation.dureeMin * 60_000);
+
+  const imagesInspiration = formData
+    .getAll("inspirationImages")
+    .filter((v): v is string => typeof v === "string" && urlImageValide(v))
+    .slice(0, 3);
 
   let rendezVousId: string;
   try {
@@ -102,6 +108,8 @@ export async function creerReservation(
             debut,
             fin: finRendezVous,
             noteCliente: donnees.noteCliente || null,
+            inspiration: donnees.inspiration || null,
+            inspirations: { create: imagesInspiration.map((url) => ({ url })) },
           },
         });
         return rendezVous.id;

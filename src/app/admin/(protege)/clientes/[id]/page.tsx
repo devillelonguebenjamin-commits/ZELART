@@ -83,9 +83,10 @@ export default async function FicheCliente({
       </section>
 
       <section className="rounded-2xl border border-pink-100 bg-white p-5">
-        <h2 className="font-semibold">Notes de suivi</h2>
+        <h2 className="font-semibold">Commentaire</h2>
         <p className="mt-1 text-xs text-foreground/60">
-          Allergies, préférences, particularités des ongles… visibles uniquement par vous.
+          Allergies, préférences, particularités des ongles… visibles uniquement par vous. Ce
+          commentaire est aussi modifiable directement depuis la liste des clientes.
         </p>
         <form action={enregistrerNotesCliente.bind(null, cliente.id)} className="mt-3">
           <textarea

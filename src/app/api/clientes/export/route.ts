@@ -14,7 +14,7 @@ const COLONNES = [
   "Accepte les offres",
   "Désinscrite le",
   "Cliente depuis",
-  "Notes",
+  "Commentaire",
 ];
 
 // Excel en configuration française attend le point-virgule comme séparateur ;

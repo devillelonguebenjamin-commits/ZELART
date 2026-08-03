@@ -2,34 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-
-const COTE_MAX = 1600;
-const SEUIL_COMPRESSION = 700 * 1024;
-
-// Réduit les photos de téléphone (souvent 3–5 Mo) avant l'envoi, pour que la
-// page d'accueil reste rapide. En cas d'échec (format exotique type HEIC),
-// le fichier d'origine est envoyé tel quel.
-async function compresser(fichier: File): Promise<Blob> {
-  try {
-    const image = await createImageBitmap(fichier, { imageOrientation: "from-image" });
-    const echelle = Math.min(1, COTE_MAX / Math.max(image.width, image.height));
-    if (echelle === 1 && fichier.size <= SEUIL_COMPRESSION) return fichier;
-
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(image.width * echelle);
-    canvas.height = Math.round(image.height * echelle);
-    const contexte = canvas.getContext("2d");
-    if (!contexte) return fichier;
-    contexte.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-    const compressee = await new Promise<Blob | null>((resoudre) =>
-      canvas.toBlob(resoudre, "image/jpeg", 0.82)
-    );
-    return compressee && compressee.size < fichier.size ? compressee : fichier;
-  } catch {
-    return fichier;
-  }
-}
+import { compresserImage } from "@/lib/image-client";
 
 export default function FormulairePhoto() {
   const router = useRouter();
@@ -55,7 +28,7 @@ export default function FormulairePhoto() {
     setEnCours(true);
     setEtat(null);
     try {
-      const image = await compresser(fichier);
+      const image = await compresserImage(fichier);
       const envoi = new FormData();
       envoi.append("fichier", image, fichier.name);
       envoi.append("legende", legende);

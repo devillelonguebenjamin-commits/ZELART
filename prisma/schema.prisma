@@ -111,9 +111,23 @@ model RendezVous {
   fin          DateTime // figé à la réservation, indépendant des évolutions de la prestation
   statut       StatutRendezVous @default(EN_ATTENTE)
   noteCliente  String?
+  inspiration  String? // envies décrites par la cliente
   creeLe       DateTime         @default(now())
 
+  inspirations InspirationImage[]
+
   @@index([debut])
+}
+
+// Photos d'inspiration jointes par la cliente à sa demande de rendez-vous.
+model InspirationImage {
+  id           String     @id @default(cuid())
+  url          String
+  rendezVous   RendezVous @relation(fields: [rendezVousId], references: [id], onDelete: Cascade)
+  rendezVousId String
+  creeLe       DateTime   @default(now())
+
+  @@index([rendezVousId])
 }
 
 // EN_ATTENTE par défaut : Zélia confirme chaque demande à la main

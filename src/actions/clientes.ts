@@ -75,6 +75,20 @@ export async function basculerConsentement(clienteId: string, accorder: boolean)
   revalidatePath("/admin/clientes");
 }
 
+// Commentaire libre, modifiable depuis la liste comme depuis la fiche.
+export async function enregistrerCommentaire(
+  clienteId: string,
+  texte: string
+): Promise<void> {
+  await exigerAdmin();
+  await prisma.cliente.update({
+    where: { id: clienteId },
+    data: { notes: texte.trim().slice(0, 2000) || null },
+  });
+  revalidatePath("/admin/clientes");
+  revalidatePath(`/admin/clientes/${clienteId}`);
+}
+
 // Droit à l'effacement : supprime la cliente et tout son historique.
 export async function supprimerCliente(clienteId: string): Promise<void> {
   await exigerAdmin();

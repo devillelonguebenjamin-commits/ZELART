@@ -3,6 +3,7 @@ import { listerClientes } from "@/lib/clientes";
 import { formatJour } from "@/lib/creneaux";
 import { formatPrix } from "@/lib/format";
 import FormulaireNouvelleCliente from "@/components/FormulaireNouvelleCliente";
+import CelluleCommentaire from "@/components/CelluleCommentaire";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +65,7 @@ export default async function Clientes({
       </form>
 
       <div className="overflow-x-auto rounded-2xl border border-pink-100 bg-white">
-        <table className="w-full min-w-[820px] text-sm">
+        <table className="w-full min-w-[1020px] text-sm">
           <thead>
             <tr className="border-b border-pink-100 text-left text-foreground/60">
               <th className="px-5 py-3 font-medium">Cliente</th>
@@ -73,6 +74,7 @@ export default async function Clientes({
               <th className="px-5 py-3 font-medium text-right">Total</th>
               <th className="px-5 py-3 font-medium">Dernière venue</th>
               <th className="px-5 py-3 font-medium">Offres</th>
+              <th className="px-5 py-3 font-medium">Commentaire</th>
             </tr>
           </thead>
           <tbody>
@@ -85,7 +87,6 @@ export default async function Clientes({
                   >
                     {cliente.prenom} {cliente.nom}
                   </Link>
-                  {cliente.notes && <span title={cliente.notes}> 📝</span>}
                   <span className="block text-xs text-foreground/50">
                     cliente depuis le {formatJour(cliente.creeLe)}
                   </span>
@@ -119,11 +120,14 @@ export default async function Clientes({
                     <span className="text-xs text-foreground/50">non</span>
                   )}
                 </td>
+                <td className="px-5 py-2 align-top">
+                  <CelluleCommentaire clienteId={cliente.id} valeur={cliente.notes ?? ""} />
+                </td>
               </tr>
             ))}
             {clientes.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-6 text-center text-foreground/60">
+                <td colSpan={7} className="px-5 py-6 text-center text-foreground/60">
                   {q ? "Aucune cliente ne correspond à cette recherche." : "Aucune cliente pour l’instant."}
                 </td>
               </tr>

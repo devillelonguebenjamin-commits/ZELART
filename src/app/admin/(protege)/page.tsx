@@ -8,7 +8,7 @@ import type { Prisma } from "@/generated/prisma/client";
 export const dynamic = "force-dynamic";
 
 type RdvComplet = Prisma.RendezVousGetPayload<{
-  include: { cliente: true; prestation: true };
+  include: { cliente: true; prestation: true; inspirations: true };
 }>;
 
 const BADGES: Record<string, { label: string; classes: string }> = {
@@ -62,6 +62,26 @@ function CarteRdv({ rdv }: { rdv: RdvComplet }) {
           💬 {rdv.noteCliente}
         </p>
       )}
+      {(rdv.inspiration || rdv.inspirations.length > 0) && (
+        <div className="mt-2 rounded-xl bg-pink-50 px-4 py-3 text-sm text-foreground/80">
+          <p className="text-xs font-semibold uppercase tracking-wide text-pink-500">Inspiration</p>
+          {rdv.inspiration && <p className="mt-1">{rdv.inspiration}</p>}
+          {rdv.inspirations.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {rdv.inspirations.map((image) => (
+                <a key={image.id} href={image.url} target="_blank" rel="noreferrer">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={image.url}
+                    alt="Inspiration de la cliente"
+                    className="h-24 w-24 rounded-xl border border-pink-200 object-cover transition hover:opacity-90"
+                  />
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <div className="mt-3 flex flex-wrap gap-2">
         {rdv.statut === "EN_ATTENTE" && (
           <>
@@ -90,7 +110,7 @@ export default async function Agenda() {
 
   const rdvs = await prisma.rendezVous.findMany({
     where: { debut: { gte: ilYa14Jours } },
-    include: { cliente: true, prestation: true },
+    include: { cliente: true, prestation: true, inspirations: true },
     orderBy: { debut: "asc" },
   });
 

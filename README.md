@@ -35,6 +35,7 @@ npm run dev
 | `Disponibilite` | Fenêtres d'ouverture récurrentes — lundi à samedi, 9h et 14h (une cliente par fenêtre) |
 | `Indisponibilite` | Exceptions ponctuelles : congés, jours fériés… |
 | `RendezVous` | Créneau réservé, statut `EN_ATTENTE` par défaut (Zélia confirme à la main) |
+| `InspirationImage` | Photos d'inspiration jointes par la cliente à sa demande |
 
 Les créneaux libres sont **calculés à la volée** (`src/lib/creneaux.ts`) : fenêtres récurrentes,
 moins les indisponibilités et les rendez-vous actifs. Les horaires sont interprétés dans le
@@ -46,6 +47,12 @@ fuseau `Europe/Paris` quel que soit le fuseau du serveur.
 2. `/reserver` — tunnel en 3 étapes : prestation → créneau → coordonnées.
 3. `/confirmation/[id]` — récapitulatif ; la demande reste **en attente** jusqu'à la confirmation
    par Zélia (acompte de 15 € via SumUp pour les nouvelles clientes, cf. CGV).
+
+La dernière étape comporte une section **inspiration** : la cliente décrit ses envies et joint
+jusqu'à 3 photos, que Zélia retrouve sur la demande dans son agenda. La route d'envoi
+`/api/inspirations/upload` est publique par nécessité — elle est donc bornée par le type MIME, un
+poids de 2 Mo et le nombre d'images ; les URL soumises avec le formulaire sont revalidées côté
+serveur pour n'accepter que celles de notre propre stockage.
 
 ## Espace gérante (`/admin`)
 
