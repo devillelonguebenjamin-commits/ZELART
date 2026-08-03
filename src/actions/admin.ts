@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { del } from "@vercel/blob";
+import { jetonBlob } from "@/lib/blob";
 import { prisma } from "@/lib/prisma";
 import { exigerAdmin, fermerSessionAdmin, ouvrirSessionAdmin } from "@/lib/auth";
 import { envoyerEmail } from "@/lib/email";
@@ -195,7 +196,7 @@ export async function supprimerPhoto(id: string): Promise<void> {
   await exigerAdmin();
   const photo = await prisma.photo.delete({ where: { id } });
   try {
-    await del(photo.url);
+    await del(photo.url, { token: jetonBlob() });
   } catch (erreur) {
     console.error("Suppression du fichier blob échouée", erreur);
   }

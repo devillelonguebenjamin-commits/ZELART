@@ -1,4 +1,5 @@
 import { expediteurConfigure, fournisseurEmail } from "@/lib/email";
+import { nomVariableBlob } from "@/lib/blob";
 import TestEmailForm from "@/components/TestEmailForm";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +39,10 @@ export default function Reglages() {
   const fournisseur = fournisseurEmail();
   const notify = process.env.NOTIFY_EMAIL ?? "";
   const expediteur = expediteurConfigure();
-  const blob = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+  const variableBlob = nomVariableBlob();
+  const blob = Boolean(variableBlob);
+  // Noms (jamais les valeurs) des variables liées au stockage, pour diagnostic
+  const variablesBlob = Object.keys(process.env).filter((nom) => nom.includes("BLOB"));
 
   const expediteurResendInvalide =
     fournisseur === "resend" && Boolean(process.env.EMAIL_FROM) && !expediteur.includes("resend.dev");
@@ -75,9 +79,25 @@ export default function Reglages() {
           label="Stockage des photos"
           valeur={blob ? "connecté" : "non connecté"}
           ok={blob}
-          aide="BLOB_READ_WRITE_TOKEN — onglet Storage de Vercel"
+          aide={variableBlob ?? "BLOB_READ_WRITE_TOKEN — onglet Storage de Vercel"}
         />
       </section>
+
+      {!blob && (
+        <div className="rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900">
+          <p className="font-semibold">Le magasin de photos n&rsquo;est pas relié à ce projet</p>
+          <p className="mt-1">
+            Créer le magasin ne suffit pas : il faut le <strong>connecter au projet</strong> pour que
+            Vercel y ajoute la variable. Ouvrez le magasin <em>zelart-photos</em> → section{" "}
+            <strong>Projects</strong> → <strong>Connect Project</strong> → choisir le projet du site,
+            puis redéployer.
+          </p>
+          <p className="mt-2">
+            Variables liées au stockage vues par le site :{" "}
+            <code>{variablesBlob.length > 0 ? variablesBlob.join(", ") : "aucune"}</code>
+          </p>
+        </div>
+      )}
 
       {expediteurResendInvalide && (
         <div className="rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900">

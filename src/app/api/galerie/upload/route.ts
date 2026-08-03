@@ -1,6 +1,7 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import { estAdmin } from "@/lib/auth";
+import { jetonBlob } from "@/lib/blob";
 
 // Délivre au navigateur un jeton d'envoi à usage unique, après vérification
 // que la session admin est bien ouverte. L'image transite ensuite directement
@@ -13,6 +14,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     const resultat = await handleUpload({
       body,
       request,
+      token: jetonBlob(),
       onBeforeGenerateToken: async () => {
         if (!(await estAdmin())) throw new Error("Session gérante requise.");
         return {

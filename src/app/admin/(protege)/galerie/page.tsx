@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { supprimerPhoto } from "@/actions/admin";
+import { jetonBlob } from "@/lib/blob";
 import FormulairePhoto from "@/components/FormulairePhoto";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +9,7 @@ export default async function Galerie() {
   const photos = await prisma.photo.findMany({
     orderBy: [{ ordre: "asc" }, { creeLe: "desc" }],
   });
-  const stockagePret = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+  const stockagePret = Boolean(jetonBlob());
 
   return (
     <div className="space-y-8">
