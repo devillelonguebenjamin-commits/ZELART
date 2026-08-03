@@ -55,7 +55,18 @@ Protégé par la variable d'environnement `ADMIN_PASSWORD` (session par cookie s
 - **Clientes** : liste, fiche avec historique et notes de suivi privées.
 - **Prestations** : édition des prix, durées, visibilité.
 - **Congés** : blocage de périodes, immédiatement retirées des créneaux publics.
-- **Galerie** : upload de photos (Vercel Blob, variable `BLOB_READ_WRITE_TOKEN`) affichées sur l'accueil.
+- **Galerie** : upload de photos affichées sur l'accueil.
+
+### Stockage des photos
+
+Les images vivent dans un magasin Vercel Blob. Deux modes d'authentification coexistent et sont
+tous deux pris en charge (voir `src/lib/blob.ts`) : le jeton statique `BLOB_READ_WRITE_TOKEN`
+— éventuellement préfixé du nom du magasin — ou l'authentification OIDC automatique, où seul
+`BLOB_STORE_ID` est exposé.
+
+L'envoi passe par la route `POST /api/galerie/upload` plutôt que par une Server Action, dont le
+corps de requête est plafonné à 1 Mo. Le navigateur réduit l'image avant l'envoi (côté max
+1600 px, JPEG 82 %) : une photo de téléphone de 5 Mo est transmise en environ 0,5 Mo.
 
 ## Notifications e-mail
 
