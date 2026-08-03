@@ -2,8 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { fenetrePourDebut, PREAVIS_MS } from "@/lib/creneaux";
+import { fenetrePourDebut, formatHeure, formatJour, PREAVIS_MS } from "@/lib/creneaux";
 import { reservationSchema } from "@/lib/validations";
+import { envoyerEmail } from "@/lib/email";
 
 export type EtatReservation = { erreur?: string };
 
@@ -101,6 +102,21 @@ export async function creerReservation(
     }
     console.error("Échec de la réservation", e);
     return { erreur: "Une erreur est survenue, merci de réessayer." };
+  }
+
+  // Notification à Zélia (sans effet si RESEND_API_KEY / NOTIFY_EMAIL absents)
+  if (process.env.NOTIFY_EMAIL) {
+    await envoyerEmail(
+      process.env.NOTIFY_EMAIL,
+      `Nouvelle demande de RDV — ${donnees.prenom} ${donnees.nom}`,
+      `<p>Nouvelle demande de rendez-vous à confirmer :</p>
+       <p><strong>${prestation.nom}</strong><br>
+       ${formatJour(debut)} à ${formatHeure(debut)}</p>
+       <p>${donnees.prenom} ${donnees.nom}<br>
+       ${donnees.telephone} · ${donnees.email}</p>
+       ${donnees.noteCliente ? `<p>Message : ${donnees.noteCliente}</p>` : ""}
+       <p><a href="https://zelart.vercel.app/admin">Ouvrir l'espace gérante</a></p>`
+    );
   }
 
   redirect(`/confirmation/${rendezVousId}`);
