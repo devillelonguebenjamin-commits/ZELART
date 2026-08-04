@@ -189,6 +189,7 @@ export async function creerReservation(
               create: lignes.map((ligne, ordre) => ({
                 prestationId: ligne.prestation.id,
                 automatique: ligne.automatique,
+                prixCents: ligne.prestation.prixCents,
                 ordre,
               })),
             },

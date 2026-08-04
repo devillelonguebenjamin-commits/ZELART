@@ -35,7 +35,7 @@ npm run dev
 | `Disponibilite` | Fenêtres d'ouverture récurrentes — lundi à samedi, 9h et 14h (une cliente par fenêtre) |
 | `Indisponibilite` | Exceptions ponctuelles : congés, jours fériés… |
 | `RendezVous` | Créneau réservé, statut `EN_ATTENTE` par défaut (Zélia confirme à la main) |
-| `LignePrestation` | Prestations d'une demande : la cliente peut en cocher plusieurs, la dépose imposée s'y ajoute avec `automatique = true` |
+| `LignePrestation` | Prestations d'une demande : la cliente peut en cocher plusieurs, la dépose imposée s'y ajoute avec `automatique = true` ; `prixCents` fige le tarif du jour |
 | `InspirationImage` | Photos d'inspiration jointes par la cliente à sa demande |
 | `ModelePressOn` | Catalogue des press-on : sets sur-mesure et collections déjà dessinées |
 | `CommandePressOn` | Commande d'un set : mode de remise, frais de port, statut de fabrication |
@@ -120,6 +120,10 @@ désactivé plutôt que supprimé, pour ne pas rompre l'historique des récompen
 Protégé par la variable d'environnement `ADMIN_PASSWORD` (session par cookie signé, 30 jours) :
 
 - **Agenda** : demandes à confirmer, rendez-vous à venir, historique — changement de statut en un clic.
+- **Chiffres** : chiffre d'affaires mois par mois (poses honorées + press-on remis), panier moyen,
+  prestations les plus demandées, taux de remplissage sur 30 jours, part de clientes qui reviennent
+  et créneaux perdus. Le prix est figé sur chaque ligne de prestation au moment de la demande
+  (`LignePrestation.prixCents`) : modifier un tarif ne réécrit pas l'historique.
 - **Clientes** : liste complète avec recherche, nombre de poses honorées, total dépensé et état du
   consentement ; ajout manuel d'une fiche, export CSV (`/api/clientes/export`, séparateur
   point-virgule et BOM UTF-8 pour Excel en français), fiche détaillée avec historique, notes
@@ -234,4 +238,4 @@ La cliente suit l'avancement de sa commande depuis `/mon-espace`.
 
 ## Prochaines étapes envisagées
 
-- Tableau de bord des chiffres (chiffre d'affaires, prestations les plus demandées, panier moyen).
+- Envoi de SMS en complément des e-mails (rappels et campagnes).

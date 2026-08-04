@@ -7,6 +7,7 @@ export const metadata = { robots: { index: false } };
 
 const liens = [
   { href: "/admin", label: "Agenda" },
+  { href: "/admin/chiffres", label: "Chiffres" },
   { href: "/admin/clientes", label: "Clientes" },
   { href: "/admin/prestations", label: "Prestations" },
   { href: "/admin/press-on", label: "Press-on" },

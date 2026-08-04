@@ -70,6 +70,29 @@ function partiesParis(date: Date): { annee: number; mois: number; jour: number; 
   };
 }
 
+// Clé de regroupement mensuel ("2026-08") dans le fuseau du salon : un
+// rendez-vous du 1er août à 9h ne doit pas retomber en juillet.
+export function moisParis(date: Date): string {
+  const { annee, mois } = partiesParis(date);
+  return `${annee}-${String(mois).padStart(2, "0")}`;
+}
+
+// Premier instant d'un mois parisien, `decalage` mois avant le mois en cours.
+export function debutDeMoisParis(reference: Date, decalage = 0): Date {
+  const { annee, mois } = partiesParis(reference);
+  const total = annee * 12 + (mois - 1) - decalage;
+  return dateParis(Math.floor(total / 12), (total % 12) + 1, 1, 0, 0);
+}
+
+export function formatMois(cle: string): string {
+  const [annee, mois] = cle.split("-").map(Number);
+  return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: PARIS_TZ,
+    month: "long",
+    year: "numeric",
+  }).format(dateParis(annee, mois, 1, 12, 0));
+}
+
 export function formatJour(date: Date): string {
   return new Intl.DateTimeFormat("fr-FR", {
     timeZone: PARIS_TZ,
@@ -143,6 +166,48 @@ export async function getCreneauxDisponibles(): Promise<Creneau[]> {
   }
 
   return creneaux.sort((a, b) => a.debut.localeCompare(b.debut));
+}
+
+// Fenêtres d'ouverture d'une période écoulée, indisponibilités déduites.
+// Le calendrier récurrent est celui d'aujourd'hui : une modification des
+// horaires se répercute donc sur le passé, ce qui reste une approximation
+// suffisante pour un taux de remplissage.
+export async function creneauxOuverts(debutPeriode: Date, finPeriode: Date): Promise<number> {
+  const [dispos, indispos] = await Promise.all([
+    prisma.disponibilite.findMany(),
+    prisma.indisponibilite.findMany({
+      where: { debut: { lt: finPeriode }, fin: { gt: debutPeriode } },
+      select: { debut: true, fin: true },
+    }),
+  ]);
+
+  const depart = partiesParis(debutPeriode);
+  const ancre = Date.UTC(depart.annee, depart.mois - 1, depart.jour, 12);
+  let ouverts = 0;
+
+  for (let i = 0; ; i++) {
+    const jourCourant = new Date(ancre + i * JOUR_MS);
+    if (jourCourant.getTime() > finPeriode.getTime() + JOUR_MS) break;
+
+    const annee = jourCourant.getUTCFullYear();
+    const mois = jourCourant.getUTCMonth() + 1;
+    const jour = jourCourant.getUTCDate();
+    const jourSemaine = ((jourCourant.getUTCDay() + 6) % 7) + 1;
+
+    for (const dispo of dispos) {
+      if (dispo.jourSemaine !== jourSemaine) continue;
+      const [hd, md] = dispo.heureDebut.split(":").map(Number);
+      const [hf, mf] = dispo.heureFin.split(":").map(Number);
+      const debut = dateParis(annee, mois, jour, hd, md);
+      const fin = dateParis(annee, mois, jour, hf, mf);
+
+      if (debut < debutPeriode || debut >= finPeriode) continue;
+      if (indispos.some((r) => chevauche(r, debut, fin))) continue;
+      ouverts++;
+    }
+  }
+
+  return ouverts;
 }
 
 // Retrouve la fenêtre d'ouverture dont `debut` est l'heure de départ.

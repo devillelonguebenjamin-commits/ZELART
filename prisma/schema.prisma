@@ -141,6 +141,10 @@ model LignePrestation {
   automatique  Boolean    @default(false)
   ordre        Int        @default(0)
 
+  // Prix au moment de la demande : le catalogue évolue, l'histoire non. Nul
+  // pour les demandes antérieures à ce suivi, qui retombent sur le tarif actuel.
+  prixCents Int?
+
   @@unique([rendezVousId, prestationId])
   @@index([rendezVousId])
 }
