@@ -39,6 +39,12 @@ export default function RootLayout({
               <Link href="/#infos" className="hidden text-foreground/80 hover:text-pink-500 sm:block">
                 Infos pratiques
               </Link>
+              <Link href="/press-on" className="text-foreground/80 hover:text-pink-500">
+                Press-on
+              </Link>
+              <Link href="/mon-espace" className="text-foreground/80 hover:text-pink-500">
+                Mon espace
+              </Link>
               <Link
                 href="/reserver"
                 className="rounded-full bg-pink-500 px-4 py-2 font-medium text-white shadow-sm transition hover:bg-pink-600"

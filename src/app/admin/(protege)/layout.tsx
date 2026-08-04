@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { deconnexionAdmin } from "@/actions/admin";
 import { exigerAdmin } from "@/lib/auth";
+import { versionDeployee } from "@/lib/site";
 
 export const metadata = { robots: { index: false } };
 
@@ -8,14 +9,17 @@ const liens = [
   { href: "/admin", label: "Agenda" },
   { href: "/admin/clientes", label: "Clientes" },
   { href: "/admin/prestations", label: "Prestations" },
+  { href: "/admin/press-on", label: "Press-on" },
   { href: "/admin/conges", label: "Congés" },
   { href: "/admin/galerie", label: "Galerie" },
   { href: "/admin/campagnes", label: "Campagnes" },
+  { href: "/admin/roue", label: "Roue" },
   { href: "/admin/reglages", label: "Réglages" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await exigerAdmin();
+  const version = versionDeployee();
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -41,6 +45,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </form>
       </div>
       {children}
+
+      <p className="mt-10 text-center text-xs text-foreground/40">
+        Version en ligne : <code>{version.sha}</code>
+        {version.message && ` — ${version.message}`}
+      </p>
     </div>
   );
 }

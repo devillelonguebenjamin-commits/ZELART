@@ -3,11 +3,14 @@
 import { useActionState, useMemo, useState } from "react";
 import { creerReservation, type EtatReservation } from "@/actions/reservation";
 import type { Creneau } from "@/lib/creneaux";
-import { formatDuree, formatPrix } from "@/lib/format";
+import { formatDuree, formatPrix, totalDuree, totalTarifs } from "@/lib/format";
 import {
-  deposeImposee,
+  aUnePose,
+  deposeNecessaire,
   ETATS_ONGLES,
+  motifDepose,
   prestationProposee,
+  remplissageAutorise,
   trouverDepose,
   TYPES_POSE,
 } from "@/lib/regles";
@@ -38,7 +41,7 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
   const [etape, setEtape] = useState(0);
   const [etatOngles, setEtatOngles] = useState<EtatOngles | null>(null);
   const [typePoseActuel, setTypePoseActuel] = useState<TypePose | null>(null);
-  const [prestationId, setPrestationId] = useState<string | null>(null);
+  const [choisies, setChoisies] = useState<string[]>([]);
   const [creneauChoisi, setCreneauChoisi] = useState<Creneau | null>(null);
   const [etat, formAction, enCours] = useActionState<EtatReservation, FormData>(
     creerReservation,
@@ -66,13 +69,24 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
     return [...groupes.entries()];
   }, [disponibles]);
 
-  // Une prestation devenue incompatible (retour en arrière) cesse d'être retenue.
-  const prestationChoisie = disponibles.find((p) => p.id === prestationId) ?? null;
-  const depose = deposeImposee(etatOngles, typePoseActuel)
+  // Les prestations devenues incompatibles (retour en arrière) cessent d'être retenues.
+  const prestationsChoisies = disponibles.filter((p) => choisies.includes(p.id));
+  const deposeAjoutee = deposeNecessaire(
+    etatOngles,
+    typePoseActuel,
+    prestationsChoisies.map((p) => p.typeActe)
+  )
     ? trouverDepose(prestations, typePoseActuel)
     : null;
-  // Une dépose seule ne se double pas d'une seconde dépose.
-  const deposeAjoutee = prestationChoisie?.typeActe === "DEPOSE" ? null : depose;
+
+  const lignes = deposeAjoutee ? [...prestationsChoisies, deposeAjoutee] : prestationsChoisies;
+  const total = totalTarifs(lignes);
+
+  function basculer(id: string) {
+    setChoisies((precedentes) =>
+      precedentes.includes(id) ? precedentes.filter((x) => x !== id) : [...precedentes, id]
+    );
+  }
 
   const jours = useMemo(() => {
     const parJour = new Map<string, Creneau[]>();
@@ -110,7 +124,9 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
 
       <input type="hidden" name="etatOngles" value={etatOngles ?? ""} />
       <input type="hidden" name="typePoseActuel" value={typePoseActuel ?? ""} />
-      <input type="hidden" name="prestationId" value={prestationChoisie?.id ?? ""} />
+      {prestationsChoisies.map((p) => (
+        <input key={p.id} type="hidden" name="prestationIds" value={p.id} />
+      ))}
       <input type="hidden" name="debut" value={creneauChoisi?.debut ?? ""} />
 
       {/* Étape 1 : état des ongles */}
@@ -172,14 +188,12 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
           </div>
         )}
 
-        {deposeAjoutee && (
+        {aUnePose(etatOngles) && typePoseActuel && (
           <p className="mt-5 rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900">
-            <strong>Une dépose sera nécessaire</strong> —{" "}
-            {etatOngles === "POSE_EXTERIEURE"
-              ? "Zélia ne remplit pas une pose réalisée par une autre prothésiste : elle sera retirée avant la nouvelle."
-              : "les capsules Gel X se retirent, elles ne se remplissent pas."}{" "}
-            Elle est ajoutée automatiquement à votre rendez-vous ({deposeAjoutee.nom} —{" "}
-            {formatPrix(deposeAjoutee.prixCents, deposeAjoutee.aPartirDe)}).
+            <strong>Votre pose actuelle doit être traitée.</strong>{" "}
+            {remplissageAutorise(etatOngles, typePoseActuel)
+              ? "À l'étape suivante, choisissez soit un remplissage, soit une nouvelle pose — dans ce dernier cas, la dépose est ajoutée automatiquement."
+              : `Une dépose est donc prévue : ${motifDepose(etatOngles, typePoseActuel)}`}
           </p>
         )}
 
@@ -197,16 +211,31 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
 
       {/* Étape 2 : prestation */}
       <section hidden={etape !== 1}>
-        <h2 className="font-display text-2xl font-bold">Choisissez votre prestation</h2>
+        <h2 className="font-display text-2xl font-bold">Choisissez vos prestations</h2>
+        <p className="mt-2 text-sm text-foreground/70">
+          Vous pouvez en cocher plusieurs si vous souhaitez cumuler.
+        </p>
         {etatOngles === "NATUREL" && (
           <p className="mt-2 text-sm text-foreground/70">
             Vos ongles étant nus, seules les nouvelles poses vous sont proposées.
           </p>
         )}
-        {deposeAjoutee && (
+        {aUnePose(etatOngles) && typePoseActuel && (
           <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            {deposeAjoutee.nom} ({formatPrix(deposeAjoutee.prixCents, deposeAjoutee.aPartirDe)}) sera
-            ajoutée automatiquement.
+            {deposeAjoutee ? (
+              <>
+                <strong>{deposeAjoutee.nom}</strong> (
+                {formatPrix(deposeAjoutee.prixCents, deposeAjoutee.aPartirDe)}) est ajoutée
+                automatiquement : {motifDepose(etatOngles, typePoseActuel)}
+              </>
+            ) : prestationsChoisies.length > 0 ? (
+              <>Aucune dépose nécessaire pour cette prestation.</>
+            ) : (
+              <>
+                Vous portez une pose : choisissez un remplissage, une dépose seule, ou une nouvelle
+                pose — la dépose sera alors ajoutée automatiquement.
+              </>
+            )}
           </p>
         )}
 
@@ -219,18 +248,17 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
                   <label
                     key={p.id}
                     className={`flex cursor-pointer items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition ${
-                      prestationId === p.id
+                      choisies.includes(p.id)
                         ? "border-pink-500 bg-pink-50 ring-1 ring-pink-500"
                         : "border-pink-100 bg-white hover:border-pink-300"
                     }`}
                   >
                     <span className="flex items-center gap-3">
                       <input
-                        type="radio"
-                        name="choixPrestation"
+                        type="checkbox"
                         className="accent-pink-500"
-                        checked={prestationId === p.id}
-                        onChange={() => setPrestationId(p.id)}
+                        checked={choisies.includes(p.id)}
+                        onChange={() => basculer(p.id)}
                       />
                       <span>
                         <span className="block font-medium">{p.nom}</span>
@@ -259,7 +287,7 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
           </button>
           <button
             type="button"
-            disabled={!prestationChoisie}
+            disabled={prestationsChoisies.length === 0}
             onClick={() => setEtape(2)}
             className="rounded-full bg-pink-500 px-8 py-3 font-medium text-white shadow-sm transition hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-40"
           >
@@ -271,11 +299,12 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
       {/* Étape 3 : créneau */}
       <section hidden={etape !== 2}>
         <h2 className="font-display text-2xl font-bold">Choisissez votre créneau</h2>
-        {prestationChoisie && (
+        {lignes.length > 0 && (
           <p className="mt-2 text-sm text-foreground/70">
-            Pour : {prestationChoisie.nom} (
-            {formatPrix(prestationChoisie.prixCents, prestationChoisie.aPartirDe)})
-            {deposeAjoutee && ` + ${deposeAjoutee.nom} (${formatPrix(deposeAjoutee.prixCents, deposeAjoutee.aPartirDe)})`}
+            Pour : {lignes.map((l) => l.nom).join(" + ")} —{" "}
+            <span className="font-medium text-pink-600">
+              {formatPrix(total.prixCents, total.aPartirDe)}
+            </span>
           </p>
         )}
         {jours.length === 0 ? (
@@ -333,20 +362,31 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
       {/* Étape 4 : coordonnées */}
       <section hidden={etape !== 3}>
         <h2 className="font-display text-2xl font-bold">Vos coordonnées</h2>
-        {prestationChoisie && creneauChoisi && (
-          <p className="mt-3 rounded-2xl bg-pink-50 px-5 py-3 text-sm text-foreground/80">
-            <span className="font-semibold">{prestationChoisie.nom}</span> (
-            {formatPrix(prestationChoisie.prixCents, prestationChoisie.aPartirDe)})
-            {deposeAjoutee && (
-              <>
-                {" + "}
-                <span className="font-semibold">{deposeAjoutee.nom}</span> (
-                {formatPrix(deposeAjoutee.prixCents, deposeAjoutee.aPartirDe)})
-              </>
-            )}
-            {" — "}
-            <span className="capitalize">{creneauChoisi.jourLabel}</span> à {creneauChoisi.heureLabel}
-          </p>
+        {lignes.length > 0 && creneauChoisi && (
+          <div className="mt-3 rounded-2xl bg-pink-50 px-5 py-4 text-sm text-foreground/80">
+            <ul className="space-y-1">
+              {lignes.map((ligne) => (
+                <li key={ligne.id} className="flex justify-between gap-4">
+                  <span>
+                    {ligne.nom}
+                    {ligne.id === deposeAjoutee?.id && (
+                      <span className="text-foreground/50"> (ajoutée automatiquement)</span>
+                    )}
+                  </span>
+                  <span className="shrink-0 font-medium">
+                    {formatPrix(ligne.prixCents, ligne.aPartirDe)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 flex justify-between gap-4 border-t border-pink-200 pt-2 font-semibold">
+              <span>Total · environ {formatDuree(totalDuree(lignes))}</span>
+              <span className="text-pink-600">{formatPrix(total.prixCents, total.aPartirDe)}</span>
+            </p>
+            <p className="mt-2 capitalize text-foreground/70">
+              {creneauChoisi.jourLabel} à {creneauChoisi.heureLabel}
+            </p>
+          </div>
         )}
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <label className="block">
@@ -386,6 +426,18 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
               autoComplete="tel"
               placeholder="06 12 34 56 78"
               className="mt-1 w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
+            />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="text-sm font-medium">
+              Code de parrainage{" "}
+              <span className="text-foreground/50">(facultatif, si une cliente vous a recommandée)</span>
+            </span>
+            <input
+              name="codeParrainage"
+              placeholder="ZEL-XXXXX"
+              maxLength={20}
+              className="mt-1 w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 uppercase outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
             />
           </label>
           <label className="block sm:col-span-2">
@@ -460,7 +512,7 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
           </button>
           <button
             type="submit"
-            disabled={enCours || !prestationChoisie || !creneauChoisi}
+            disabled={enCours || prestationsChoisies.length === 0 || !creneauChoisi}
             className="rounded-full bg-pink-500 px-8 py-3 font-medium text-white shadow-sm transition hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {enCours ? "Envoi en cours…" : "Envoyer ma demande ✨"}

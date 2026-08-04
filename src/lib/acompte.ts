@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { envoyerEmail } from "@/lib/email";
 import { formatHeure, formatJour } from "@/lib/creneaux";
-import { formatPrix } from "@/lib/format";
+import { formatPrix, totalTarifs } from "@/lib/format";
 import { reglagesAcompte } from "@/lib/parametres";
 
 // Une cliente est « nouvelle » tant qu'elle n'a pas d'autre rendez-vous actif
@@ -24,9 +24,14 @@ export async function envoyerDemandeAcompte(rendezVousId: string): Promise<boole
 
   const rendezVous = await prisma.rendezVous.findUnique({
     where: { id: rendezVousId },
-    include: { cliente: true, prestation: true },
+    include: {
+      cliente: true,
+      lignes: { include: { prestation: true }, orderBy: { ordre: "asc" } },
+    },
   });
   if (!rendezVous) return false;
+
+  const total = totalTarifs(rendezVous.lignes.map((l) => l.prestation));
 
   const resultat = await envoyerEmail(
     rendezVous.cliente.email,
@@ -35,8 +40,14 @@ export async function envoyerDemandeAcompte(rendezVousId: string): Promise<boole
       <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
       <p>Bonjour ${rendezVous.cliente.prenom},</p>
       <p>Merci pour votre demande de rendez-vous :</p>
-      <p><strong>${rendezVous.prestation.nom}</strong><br>
-      ${formatJour(rendezVous.debut)} à ${formatHeure(rendezVous.debut)}<br>
+      <p>${rendezVous.lignes
+        .map(
+          (l) =>
+            `<strong>${l.prestation.nom}</strong> — ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}`
+        )
+        .join("<br>")}<br>
+      <strong>Total : ${formatPrix(total.prixCents, total.aPartirDe)}</strong></p>
+      <p>${formatJour(rendezVous.debut)} à ${formatHeure(rendezVous.debut)}<br>
       L'Atelier du Regard — 108 avenue de la République, 44600 Saint-Nazaire</p>
       <p>S'agissant de votre premier rendez-vous, un acompte de
       <strong>${formatPrix(montantCents)}</strong> est demandé pour le confirmer. Il sera

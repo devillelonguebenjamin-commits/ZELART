@@ -22,10 +22,61 @@ model Cliente {
   desabonneLe           DateTime?
   jetonDesabonnement    String    @unique @default(cuid())
 
-  creeLe     DateTime        @default(now())
-  modifieLe  DateTime        @updatedAt
+  // Espace cliente (facultatif) : connexion par lien envoyé par e-mail,
+  // sans mot de passe à créer ni à retenir.
+  codeParrainage String  @unique
+  parraine       Cliente?  @relation("Parrainage", fields: [parraineParId], references: [id])
+  parraineParId  String?
+  filleules      Cliente[] @relation("Parrainage")
+
+  creeLe     DateTime         @default(now())
+  modifieLe  DateTime         @updatedAt
   rendezVous RendezVous[]
-  envois     EnvoiCampagne[]
+  envois      EnvoiCampagne[]
+  jetons      JetonConnexion[]
+  recompenses Recompense[]
+  commandes   CommandePressOn[]
+}
+
+// Lots de la roue, entièrement gérés depuis l'espace gérante.
+model LotFidelite {
+  id              String  @id @default(cuid())
+  libelle         String // texte complet annoncé à la gagnante
+  texteSurRoue    String // version courte affichée sur le quartier
+  chance          Int // poids du tirage ; la part effective est calculée sur le total
+  couleur         String  @default("#f9a8d4")
+  aRetirerAuSalon Boolean @default(true)
+  actif           Boolean @default(true)
+  ordre           Int     @default(0)
+
+  recompenses Recompense[]
+}
+
+// Lot gagné à la roue de fidélité, présenté au salon par la cliente.
+model Recompense {
+  id        String      @id @default(cuid())
+  cliente   Cliente     @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String
+  lot       LotFidelite @relation(fields: [lotId], references: [id])
+  lotId     String
+  code      String      @unique
+  gagneLe   DateTime    @default(now())
+  utiliseLe DateTime?
+
+  @@index([clienteId])
+}
+
+// Lien de connexion à usage unique et à durée limitée.
+model JetonConnexion {
+  id        String    @id @default(cuid())
+  jeton     String    @unique
+  cliente   Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String
+  expireLe  DateTime
+  utiliseLe DateTime?
+  creeLe    DateTime  @default(now())
+
+  @@index([clienteId])
 }
 
 // Campagne de fidélisation / parrainage envoyée aux clientes consentantes.
@@ -76,8 +127,22 @@ model Prestation {
   typeActe TypeActe @default(POSE)
   typePose TypePose
 
-  rendezVous       RendezVous[]
-  rendezVousDepose RendezVous[] @relation("DeposeRendezVous")
+  lignes LignePrestation[]
+}
+
+// Une demande peut porter plusieurs prestations : la cliente en coche autant
+// qu'elle souhaite, et la dépose imposée par les règles s'y ajoute (automatique).
+model LignePrestation {
+  id           String     @id @default(cuid())
+  rendezVous   RendezVous @relation(fields: [rendezVousId], references: [id], onDelete: Cascade)
+  rendezVousId String
+  prestation   Prestation @relation(fields: [prestationId], references: [id])
+  prestationId String
+  automatique  Boolean    @default(false)
+  ordre        Int        @default(0)
+
+  @@unique([rendezVousId, prestationId])
+  @@index([rendezVousId])
 }
 
 enum TypeActe {
@@ -132,8 +197,7 @@ model RendezVous {
   id           String           @id @default(cuid())
   cliente      Cliente          @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   clienteId    String
-  prestation   Prestation       @relation(fields: [prestationId], references: [id])
-  prestationId String
+  lignes       LignePrestation[]
   debut        DateTime
   fin          DateTime // figé à la réservation, indépendant des évolutions de la prestation
   statut       StatutRendezVous @default(EN_ATTENTE)
@@ -143,10 +207,8 @@ model RendezVous {
 
   // État des ongles déclaré à la réservation, et dépose ajoutée d'office
   // lorsque les règles l'imposent (pose extérieure, ou Gel X à retirer).
-  etatOngles      EtatOngles?
-  typePoseActuel  TypePose?
-  depose          Prestation? @relation("DeposeRendezVous", fields: [deposeId], references: [id])
-  deposeId        String?
+  etatOngles     EtatOngles?
+  typePoseActuel TypePose?
 
   // Case obligatoire : santé, allergies et droit de refus de la prestation
   consentementSante Boolean @default(false)
@@ -154,6 +216,18 @@ model RendezVous {
   // Acompte demandé aux nouvelles clientes (cf. CGV)
   acompteDemandeLe DateTime?
   acompteRegleLe   DateTime?
+
+  // Horodatages des envois automatiques, pour ne jamais écrire deux fois
+  rappelEnvoyeLe   DateTime?
+  relanceEnvoyeeLe DateTime?
+
+  // Fiche technique remplie par Zélia après la pose : ce qu'elle a
+  // réellement fait, pour reproduire à l'identique et suivre les réactions.
+  forme       String?
+  longueur    String?
+  produits    String? // références de gels, couleurs, marques
+  noteTechnique String?
+  realisations Realisation[]
 
   inspirations InspirationImage[]
 
@@ -167,6 +241,19 @@ model Parametre {
   modifieLe DateTime @updatedAt
 }
 
+// Photos de la pose réalisée, prises par Zélia. Peuvent alimenter la galerie
+// publique d'un clic.
+model Realisation {
+  id           String     @id @default(cuid())
+  url          String
+  rendezVous   RendezVous @relation(fields: [rendezVousId], references: [id], onDelete: Cascade)
+  rendezVousId String
+  publiee      Boolean    @default(false)
+  creeLe       DateTime   @default(now())
+
+  @@index([rendezVousId])
+}
+
 // Photos d'inspiration jointes par la cliente à sa demande de rendez-vous.
 model InspirationImage {
   id           String     @id @default(cuid())
@@ -176,6 +263,93 @@ model InspirationImage {
   creeLe       DateTime   @default(now())
 
   @@index([rendezVousId])
+}
+
+// Catalogue des press-on : les sets sur-mesure (tarifés par niveau de nail art)
+// et les collections déjà dessinées, prêtes à commander.
+model ModelePressOn {
+  id          String  @id @default(cuid())
+  nom         String
+  collection  String // "Sur-mesure", "Automne / Hiver", "Capsule Halloween", "Printemps / Été"
+  description String?
+  prixCents   Int
+  aPartirDe   Boolean @default(false)
+  // Un set sur-mesure est dessiné d'après les envies décrites par la cliente ;
+  // un modèle de collection existe déjà, seules les mesures changent.
+  surMesure   Boolean @default(false)
+  photoUrl    String?
+  actif       Boolean @default(true)
+  ordre       Int     @default(0)
+
+  commandes CommandePressOn[]
+}
+
+// Remise en main propre (ou par un proche) ou envoi postal aux frais de la
+// cliente, annoncés avant validation — cf. CGV.
+enum ModeRemise {
+  MAIN_PROPRE
+  POSTAL
+}
+
+// Les press-on étant personnalisés, le paiement intégral précède la
+// fabrication : le statut suit cette chronologie.
+enum StatutCommandePressOn {
+  DEMANDE
+  A_PAYER
+  PAYEE
+  EN_FABRICATION
+  PRETE
+  REMISE
+  ANNULEE
+}
+
+model CommandePressOn {
+  id        String        @id @default(cuid())
+  cliente   Cliente       @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String
+  modele    ModelePressOn @relation(fields: [modeleId], references: [id])
+  modeleId  String
+
+  // Prix figé à la commande : le catalogue peut évoluer ensuite.
+  prixCents      Int
+  aPartirDe      Boolean @default(false)
+  fraisPortCents Int? // chiffrés par Zélia pour un envoi postal
+
+  modeRemise ModeRemise
+  adresse    String? // uniquement pour l'envoi postal
+
+  // Sur-mesure : ce que la cliente veut. Mesures : indispensables pour tailler
+  // les capsules, quel que soit le modèle.
+  forme       String?
+  longueur    String?
+  mesures     String?
+  inspiration String?
+
+  statut StatutCommandePressOn @default(DEMANDE)
+  note   String? // note interne de Zélia
+
+  paiementDemandeLe DateTime?
+  paiementRecuLe    DateTime?
+  remiseLe          DateTime?
+
+  creeLe    DateTime @default(now())
+  modifieLe DateTime @updatedAt
+
+  images ImagePressOn[]
+
+  @@index([clienteId])
+  @@index([statut])
+}
+
+// Photos jointes par la cliente à sa commande de press-on.
+model ImagePressOn {
+  id         String          @id @default(cuid())
+  url        String
+  commande   CommandePressOn @relation(fields: [commandeId], references: [id], onDelete: Cascade)
+  commandeId String
+  creeLe     DateTime        @default(now())
+
+  @@index([commandeId])
 }
 
 // EN_ATTENTE par défaut : Zélia confirme chaque demande à la main

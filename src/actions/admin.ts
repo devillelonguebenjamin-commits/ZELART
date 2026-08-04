@@ -10,6 +10,7 @@ import { envoyerEmail } from "@/lib/email";
 import { z } from "zod";
 import { dateParis, formatHeure, formatJour } from "@/lib/creneaux";
 import { envoyerDemandeAcompte } from "@/lib/acompte";
+import { formatPrix, totalTarifs } from "@/lib/format";
 import {
   CLE_LIEN_ACOMPTE,
   CLE_MONTANT_ACOMPTE,
@@ -52,17 +53,27 @@ export async function changerStatutRendezVous(
   const rendezVous = await prisma.rendezVous.update({
     where: { id },
     data: { statut: statut as StatutRendezVous },
-    include: { cliente: true, prestation: true },
+    include: {
+      cliente: true,
+      lignes: { include: { prestation: true }, orderBy: { ordre: "asc" } },
+    },
   });
 
   if (statut === "CONFIRME") {
+    const total = totalTarifs(rendezVous.lignes.map((l) => l.prestation));
     await envoyerEmail(
       rendezVous.cliente.email,
       "Votre rendez-vous chez Zelart Nails est confirmé 🤍",
       `<p>Bonjour ${rendezVous.cliente.prenom},</p>
        <p>Votre rendez-vous est confirmé :</p>
-       <p><strong>${rendezVous.prestation.nom}</strong><br>
-       ${formatJour(rendezVous.debut)} à ${formatHeure(rendezVous.debut)}<br>
+       <p>${rendezVous.lignes
+         .map(
+           (l) =>
+             `<strong>${l.prestation.nom}</strong> — ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}`
+         )
+         .join("<br>")}<br>
+       <strong>Total : ${formatPrix(total.prixCents, total.aPartirDe)}</strong></p>
+       <p>${formatJour(rendezVous.debut)} à ${formatHeure(rendezVous.debut)}<br>
        L'Atelier du Regard — 108 avenue de la République, 44600 Saint-Nazaire</p>
        <p>À très vite,<br>Zélia ✨</p>`
     );

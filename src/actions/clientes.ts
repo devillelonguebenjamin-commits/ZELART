@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { exigerAdmin } from "@/lib/auth";
+import { nouveauCode } from "@/lib/cliente-auth";
 
 const clienteSchema = z.object({
   prenom: z.string().trim().min(1, "Indiquez le prénom.").max(60, "Prénom trop long."),
@@ -52,6 +53,7 @@ export async function creerCliente(
     data: {
       ...analyse.data,
       notes: analyse.data.notes || null,
+      codeParrainage: nouveauCode(),
       consentementMarketing: accord,
       consentementLe: accord ? new Date() : null,
     },
@@ -87,6 +89,18 @@ export async function enregistrerCommentaire(
   });
   revalidatePath("/admin/clientes");
   revalidatePath(`/admin/clientes/${clienteId}`);
+}
+
+export async function marquerRecompenseUtilisee(
+  recompenseId: string,
+  utilisee: boolean
+): Promise<void> {
+  await exigerAdmin();
+  const recompense = await prisma.recompense.update({
+    where: { id: recompenseId },
+    data: { utiliseLe: utilisee ? new Date() : null },
+  });
+  revalidatePath(`/admin/clientes/${recompense.clienteId}`);
 }
 
 // Droit à l'effacement : supprime la cliente et tout son historique.

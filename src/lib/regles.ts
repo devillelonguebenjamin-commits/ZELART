@@ -41,15 +41,37 @@ export function remplissageAutorise(
   return typeActuel === "GAINAGE" || typeActuel === "POP_IT";
 }
 
-// Une dépose s'impose d'office quand la pose vient d'ailleurs — Zélia ne
-// reprend pas le travail d'une autre — ou quand il s'agit de capsules Gel X.
-export function deposeImposee(
+export function aUnePose(etat: EtatOngles | null): boolean {
+  return etat === "POSE_ZELART" || etat === "POSE_EXTERIEURE";
+}
+
+// Une pose existante ne se recouvre pas : elle est soit remplie, soit retirée.
+// Dès lors que la sélection ne comporte ni remplissage ni dépose, la dépose
+// correspondante est ajoutée d'office.
+export function deposeNecessaire(
+  etat: EtatOngles | null,
+  typeActuel: TypePose | null,
+  typesActesChoisis: TypeActe[]
+): boolean {
+  if (!aUnePose(etat) || !typeActuel || typesActesChoisis.length === 0) return false;
+  return !typesActesChoisis.some((t) => t === "DEPOSE" || t === "REMPLISSAGE");
+}
+
+// Explication donnée à la cliente, adaptée à sa situation.
+export function motifDepose(
   etat: EtatOngles | null,
   typeActuel: TypePose | null
-): boolean {
-  if (!typeActuel) return false;
-  if (etat === "POSE_EXTERIEURE") return true;
-  return etat === "POSE_ZELART" && typeActuel === "GEL_X";
+): string {
+  if (etat === "POSE_EXTERIEURE") {
+    return "Zélia ne reprend pas une pose réalisée par une autre prothésiste : elle sera retirée avant la nouvelle.";
+  }
+  if (typeActuel === "GEL_X") {
+    return "les capsules Gel X se retirent, elles ne se remplissent pas.";
+  }
+  if (typeActuel === "VSP") {
+    return "votre vernis semi-permanent est retiré avant la nouvelle pose.";
+  }
+  return "votre pose actuelle est retirée avant d'en poser une nouvelle.";
 }
 
 // Ongles nus : ni dépose ni remplissage n'ont de sens.
@@ -61,8 +83,9 @@ export function prestationProposee(
   if (!etat) return true;
 
   if (prestation.typeActe === "DEPOSE") {
-    // Une dépose seule reste réservable si la cliente a bien quelque chose à retirer.
-    return etat !== "NATUREL";
+    // Une dépose seule reste réservable, mais seulement celle qui correspond à
+    // la technique portée : les tarifs diffèrent d'une dépose à l'autre.
+    return aUnePose(etat) && prestation.typePose === typeActuel;
   }
 
   if (prestation.typeActe === "REMPLISSAGE") {

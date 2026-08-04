@@ -7,7 +7,22 @@ import { reservationSchema, urlImageValide } from "@/lib/validations";
 import { envoyerEmail } from "@/lib/email";
 import { envoyerDemandeAcompte, estNouvelleCliente } from "@/lib/acompte";
 import { urlSite } from "@/lib/site";
-import { deposeImposee, prestationProposee, trouverDepose } from "@/lib/regles";
+import { nouveauCode } from "@/lib/cliente-auth";
+import { deposeNecessaire, prestationProposee, trouverDepose } from "@/lib/regles";
+import { formatPrix, totalDuree, totalTarifs } from "@/lib/format";
+
+const LIBELLE_ETAT: Record<string, string> = {
+  NATUREL: "ongles nus",
+  POSE_ZELART: "pose Zelart",
+  POSE_EXTERIEURE: "pose faite ailleurs",
+};
+
+const LIBELLE_POSE: Record<string, string> = {
+  VSP: "vernis semi-permanent",
+  GAINAGE: "gainage",
+  GEL_X: "Gel X",
+  POP_IT: "Pop-it",
+};
 
 export type EtatReservation = { erreur?: string };
 
@@ -29,7 +44,7 @@ export async function creerReservation(
   }
 
   const analyse = reservationSchema.safeParse({
-    prestationId: formData.get("prestationId"),
+    prestationIds: formData.getAll("prestationIds").filter((v) => typeof v === "string"),
     debut: formData.get("debut"),
     prenom: formData.get("prenom"),
     nom: formData.get("nom"),
@@ -51,23 +66,37 @@ export async function creerReservation(
   }
 
   const catalogue = await prisma.prestation.findMany({ where: { active: true } });
-  const prestation = catalogue.find((p) => p.id === donnees.prestationId);
-  if (!prestation) {
-    return { erreur: "Cette prestation n'est plus proposée." };
+  const demandees = [...new Set(donnees.prestationIds)].map((id) =>
+    catalogue.find((p) => p.id === id)
+  );
+  if (demandees.some((p) => !p)) {
+    return { erreur: "Une des prestations choisies n'est plus proposée." };
   }
+  const prestations = demandees.filter((p) => p !== undefined);
 
   // Le formulaire filtre déjà, mais il est contournable : on revalide ici.
-  if (!prestationProposee(prestation, etatOngles, typePoseActuel)) {
+  if (!prestations.every((p) => prestationProposee(p, etatOngles, typePoseActuel))) {
     return {
       erreur:
-        "Cette prestation ne correspond pas à l'état de vos ongles. Reprenez la première étape.",
+        "Une des prestations ne correspond pas à l'état de vos ongles. Reprenez la première étape.",
     };
   }
 
-  const deposeRequise =
-    prestation.typeActe !== "DEPOSE" && deposeImposee(etatOngles, typePoseActuel)
-      ? trouverDepose(catalogue, typePoseActuel)
-      : null;
+  const deposeRequise = deposeNecessaire(
+    etatOngles,
+    typePoseActuel,
+    prestations.map((p) => p.typeActe)
+  )
+    ? trouverDepose(catalogue, typePoseActuel)
+    : null;
+
+  // La dépose imposée peut déjà figurer dans la sélection : pas de doublon.
+  const lignes = [
+    ...prestations.map((prestation) => ({ prestation, automatique: false })),
+    ...(deposeRequise && !prestations.some((p) => p.id === deposeRequise.id)
+      ? [{ prestation: deposeRequise, automatique: true }]
+      : []),
+  ];
 
   const debut = new Date(donnees.debut);
   if (Number.isNaN(debut.getTime()) || debut.getTime() < Date.now() + PREAVIS_MS) {
@@ -79,8 +108,7 @@ export async function creerReservation(
     return { erreur: CRENEAU_INDISPONIBLE };
   }
 
-  // La dépose s'ajoute au temps de fauteuil.
-  const dureeTotale = prestation.dureeMin + (deposeRequise?.dureeMin ?? 0);
+  const dureeTotale = totalDuree(lignes.map((l) => l.prestation));
   const finRendezVous = new Date(debut.getTime() + dureeTotale * 60_000);
 
   const imagesInspiration = formData
@@ -126,23 +154,44 @@ export async function creerReservation(
             nom: donnees.nom,
             email: donnees.email,
             telephone: donnees.telephone,
+            codeParrainage: nouveauCode(),
             consentementMarketing: accord,
             consentementLe: accord ? new Date() : null,
           },
         });
 
+        // Parrainage : rattachement une seule fois, et jamais à soi-même.
+        const code = String(formData.get("codeParrainage") ?? "").trim().toUpperCase();
+        if (code && !cliente.parraineParId) {
+          const marraine = await tx.cliente.findUnique({
+            where: { codeParrainage: code },
+            select: { id: true },
+          });
+          if (marraine && marraine.id !== cliente.id) {
+            await tx.cliente.update({
+              where: { id: cliente.id },
+              data: { parraineParId: marraine.id },
+            });
+          }
+        }
+
         const rendezVous = await tx.rendezVous.create({
           data: {
             clienteId: cliente.id,
-            prestationId: prestation.id,
             debut,
             fin: finRendezVous,
             noteCliente: donnees.noteCliente || null,
             inspiration: donnees.inspiration || null,
             etatOngles,
             typePoseActuel,
-            deposeId: deposeRequise?.id ?? null,
             consentementSante: true,
+            lignes: {
+              create: lignes.map((ligne, ordre) => ({
+                prestationId: ligne.prestation.id,
+                automatique: ligne.automatique,
+                ordre,
+              })),
+            },
             inspirations: { create: imagesInspiration.map((url) => ({ url })) },
           },
         });
@@ -169,13 +218,21 @@ export async function creerReservation(
   }
 
   // Notification à Zélia (sans effet si RESEND_API_KEY / NOTIFY_EMAIL absents)
+  const total = totalTarifs(lignes.map((l) => l.prestation));
   if (process.env.NOTIFY_EMAIL) {
     await envoyerEmail(
       process.env.NOTIFY_EMAIL,
       `Nouvelle demande de RDV — ${donnees.prenom} ${donnees.nom}`,
       `<p>Nouvelle demande de rendez-vous à confirmer :</p>
-       <p><strong>${prestation.nom}</strong><br>
+       <p>${lignes
+         .map(
+           (l) =>
+             `<strong>${l.prestation.nom}</strong> — ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}${l.automatique ? " (dépose ajoutée)" : ""}`
+         )
+         .join("<br>")}<br>
+       <strong>Total : ${formatPrix(total.prixCents, total.aPartirDe)}</strong><br>
        ${formatJour(debut)} à ${formatHeure(debut)}</p>
+       <p>Ongles à l'arrivée : ${LIBELLE_ETAT[etatOngles]}${typePoseActuel ? ` (${LIBELLE_POSE[typePoseActuel]})` : ""}</p>
        <p>${donnees.prenom} ${donnees.nom}<br>
        ${donnees.telephone} · ${donnees.email}</p>
        ${donnees.noteCliente ? `<p>Message : ${donnees.noteCliente}</p>` : ""}

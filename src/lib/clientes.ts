@@ -35,7 +35,11 @@ export async function listerClientes(recherche = ""): Promise<LigneCliente[]> {
     where: filtreRecherche(recherche),
     include: {
       rendezVous: {
-        select: { debut: true, statut: true, prestation: { select: { prixCents: true } } },
+        select: {
+          debut: true,
+          statut: true,
+          lignes: { select: { prestation: { select: { prixCents: true } } } },
+        },
         orderBy: { debut: "desc" },
       },
     },
@@ -56,7 +60,10 @@ export async function listerClientes(recherche = ""): Promise<LigneCliente[]> {
       creeLe: cliente.creeLe,
       nbHonores: honores.length,
       dernierRdv: cliente.rendezVous[0]?.debut ?? null,
-      totalCents: honores.reduce((somme, r) => somme + r.prestation.prixCents, 0),
+      totalCents: honores.reduce(
+        (somme, r) => somme + r.lignes.reduce((s, l) => s + l.prestation.prixCents, 0),
+        0
+      ),
     };
   });
 }

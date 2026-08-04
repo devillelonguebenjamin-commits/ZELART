@@ -35,7 +35,11 @@ npm run dev
 | `Disponibilite` | Fenêtres d'ouverture récurrentes — lundi à samedi, 9h et 14h (une cliente par fenêtre) |
 | `Indisponibilite` | Exceptions ponctuelles : congés, jours fériés… |
 | `RendezVous` | Créneau réservé, statut `EN_ATTENTE` par défaut (Zélia confirme à la main) |
+| `LignePrestation` | Prestations d'une demande : la cliente peut en cocher plusieurs, la dépose imposée s'y ajoute avec `automatique = true` |
 | `InspirationImage` | Photos d'inspiration jointes par la cliente à sa demande |
+| `ModelePressOn` | Catalogue des press-on : sets sur-mesure et collections déjà dessinées |
+| `CommandePressOn` | Commande d'un set : mode de remise, frais de port, statut de fabrication |
+| `ImagePressOn` | Photos jointes par la cliente à sa commande de press-on |
 
 Les créneaux libres sont **calculés à la volée** (`src/lib/creneaux.ts`) : fenêtres récurrentes,
 moins les indisponibilités et les rendez-vous actifs. Les horaires sont interprétés dans le
@@ -53,22 +57,63 @@ fuseau `Europe/Paris` quel que soit le fuseau du serveur.
 La première étape demande ce que la cliente porte à son arrivée, puis le catalogue est filtré
 (`src/lib/regles.ts`, revalidé côté serveur car le formulaire est contournable) :
 
+La cliente peut **cocher plusieurs prestations** dans une même demande ; le prix et la durée sont
+cumulés.
+
+**Une pose existante ne se recouvre pas** : elle est soit remplie, soit retirée. Dès lors que la
+sélection ne comporte ni remplissage ni dépose, la dépose correspondante est ajoutée d'office —
+une seule fois, quel que soit le nombre de poses cochées.
+
 | État à l'arrivée | Remplissage | Dépose |
 | --- | --- | --- |
-| Ongles nus | non proposé | non proposé |
-| Pose faite ailleurs | jamais — Zélia ne reprend pas le travail d'une autre | ajoutée d'office |
-| Pose Zelart, gainage ou Pop-it | proposé, dans la même technique | libre |
-| Pose Zelart, Gel X | jamais — les capsules se retirent | ajoutée d'office |
-| Pose Zelart, vernis semi-permanent | aucun remplissage au tarif | libre |
+| Ongles nus | non proposé | non proposée |
+| Pose faite ailleurs | jamais — Zélia ne reprend pas le travail d'une autre | ajoutée si nouvelle pose |
+| Pose Zelart, gainage ou Pop-it | proposé, dans la même technique | ajoutée si nouvelle pose |
+| Pose Zelart, Gel X | jamais — les capsules se retirent | ajoutée si nouvelle pose |
+| Pose Zelart, vernis semi-permanent | aucun remplissage au tarif | ajoutée si nouvelle pose |
 
-La dépose ajoutée d'office correspond à la technique déclarée, s'ajoute au prix affiché et à la
-durée du rendez-vous. Une dépose seule reste réservable et n'en déclenche pas une seconde.
+La dépose ajoutée correspond à la technique déclarée et s'ajoute au prix comme à la durée. Les
+déposes proposées à la carte sont elles aussi restreintes à cette technique — les tarifs diffèrent
+de l'une à l'autre — et une dépose seule n'en déclenche pas une seconde.
 
 La dernière étape comporte une section **inspiration** : la cliente décrit ses envies et joint
 jusqu'à 3 photos, que Zélia retrouve sur la demande dans son agenda. La route d'envoi
 `/api/inspirations/upload` est publique par nécessité — elle est donc bornée par le type MIME, un
 poids de 2 Mo et le nombre d'images ; les URL soumises avec le formulaire sont revalidées côté
 serveur pour n'accepter que celles de notre propre stockage.
+
+## Espace cliente (`/mon-espace`)
+
+Entièrement **facultatif** : aucune inscription, aucun mot de passe. La cliente saisit l'adresse
+utilisée lors de sa réservation et reçoit un lien de connexion valable 30 minutes et à usage
+unique (`JetonConnexion`). La session tient ensuite 60 jours dans un cookie signé.
+
+Elle y retrouve ses rendez-vous à venir avec le détail des prestations, l'historique de ses poses,
+son **code de parrainage** et la liste de celles venues grâce à elle, ainsi qu'un interrupteur pour
+recevoir ou non les offres — ce qui la rend autonome et décharge Zélia des désinscriptions.
+
+Le parrainage se saisit facultativement à la réservation (champ insensible à la casse) : le
+rattachement n'a lieu qu'une fois et jamais vers soi-même. La fiche cliente de l'espace gérante
+affiche la marraine et les filleules, à charge pour Zélia d'accorder la contrepartie de son choix.
+
+Pour ne pas révéler qui est cliente, la demande de lien répond toujours la même chose, que
+l'adresse existe ou non, et un envoi n'est possible qu'une fois par minute.
+
+### Roue de fidélité
+
+Une pose marquée `TERMINE` fait progresser la jauge de la cliente ; à chaque palier (réglable,
+3 par défaut) elle gagne un tour depuis son espace. Chaque gain produit un code à présenter au
+salon, que la gérante marque comme honoré depuis la fiche cliente.
+
+Le tirage a lieu **côté serveur** (`src/lib/roue.ts`), dans une transaction sérialisable qui
+revérifie la jauge : l'animation ne fait qu'afficher un résultat déjà décidé, et deux clics
+simultanés ne peuvent pas produire deux lots.
+
+Les lots vivent en base (`LotFidelite`) et se gèrent depuis `/admin/roue` : libellé, texte affiché
+sur le quartier, couleur, activation, et **chance exprimée en poids** — la part réelle est calculée
+sur le total des lots actifs, si bien qu'aucune saisie ne peut rendre la roue incohérente. La même
+page permet des tirages d'essai, sans gain enregistré ni jauge consommée. Un lot déjà gagné est
+désactivé plutôt que supprimé, pour ne pas rompre l'historique des récompenses.
 
 ## Espace gérante (`/admin`)
 
@@ -80,6 +125,8 @@ Protégé par la variable d'environnement `ADMIN_PASSWORD` (session par cookie s
   point-virgule et BOM UTF-8 pour Excel en français), fiche détaillée avec historique, notes
   privées, accord aux offres et suppression définitive.
 - **Prestations** : édition des prix, durées, visibilité.
+- **Press-on** : commandes reçues (chiffrage des frais d'envoi, envoi de la demande de règlement,
+  avancement de la fabrication, note interne) et catalogue des sets affichés sur `/press-on`.
 - **Congés** : blocage de périodes, immédiatement retirées des créneaux publics.
 - **Galerie** : upload de photos affichées sur l'accueil.
 
@@ -168,8 +215,23 @@ Alternative sans achat de domaine : basculer sur [Brevo](https://brevo.com) (`BR
 autorise l'envoi vers n'importe quel destinataire ; l'adresse expéditrice se valide en cliquant un
 lien reçu dans la boîte concernée.
 
+## Commandes de press-on (`/press-on`)
+
+La vente de press-on est une activité à part entière, distincte des rendez-vous : elle a donc son
+propre parcours, sans créneau ni agenda.
+
+1. La cliente choisit un set — sur-mesure (tarifé au niveau de nail art) ou modèle de collection —
+   décrit ses envies, joint des photos, indique la forme, la longueur et ses mesures.
+2. Elle choisit la remise **en main propre** ou **par la poste** ; l'adresse devient alors
+   obligatoire, les frais d'envoi restant à sa charge (cf. CGV).
+3. Zélia reçoit la commande dans `/admin/press-on`, chiffre les frais d'envoi le cas échéant, puis
+   envoie la demande de règlement (lien SumUp des réglages).
+4. Les press-on étant personnalisés, **le règlement précède la fabrication** : le parcours de statuts
+   suit cet ordre (demande → à régler → réglée → en fabrication → prête → remise). Le passage à
+   « prête » prévient la cliente par e-mail.
+
+La cliente suit l'avancement de sa commande depuis `/mon-espace`.
+
 ## Prochaines étapes envisagées
 
-- Commandes de press-on nails (sets personnalisés et collections).
-- Rappels automatiques avant le rendez-vous (e-mail/SMS).
-- Compression automatique des photos à l'envoi dans la galerie.
+- Tableau de bord des chiffres (chiffre d'affaires, prestations les plus demandées, panier moyen).

@@ -5,10 +5,26 @@ import { formatPrix, grouperParCategorie } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function Accueil() {
-  const [prestations, photos] = await Promise.all([
+  const [prestations, photos, realisations, pressOnMoinsCher] = await Promise.all([
     prisma.prestation.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
     prisma.photo.findMany({ orderBy: [{ ordre: "asc" }, { creeLe: "desc" }], take: 12 }),
+    prisma.realisation.findMany({
+      where: { publiee: true },
+      orderBy: { creeLe: "desc" },
+      take: 12,
+      select: { id: true, url: true },
+    }),
+    prisma.modelePressOn.findFirst({
+      where: { actif: true },
+      orderBy: { prixCents: "asc" },
+      select: { prixCents: true },
+    }),
   ]);
+  // La galerie réunit les photos ajoutées à la main et les réalisations publiées.
+  const visuels = [
+    ...photos.map((p) => ({ id: p.id, url: p.url, legende: p.legende })),
+    ...realisations.map((r) => ({ id: r.id, url: r.url, legende: null as string | null })),
+  ].slice(0, 16);
   const categories = grouperParCategorie(prestations);
 
   return (
@@ -76,18 +92,40 @@ export default async function Accueil() {
             </div>
           ))}
         </div>
-        <p className="mt-6 text-center text-sm text-foreground/60">
-          Envie d&rsquo;un set de press-on nails personnalisé ? Contactez directement Zélia par
-          e-mail ou Instagram.
-        </p>
+      </section>
+
+      {/* Press-on nails */}
+      <section className="py-10">
+        <div className="rounded-3xl border border-pink-100 bg-white p-8 sm:p-10">
+          <div className="flex flex-wrap items-baseline justify-between gap-4">
+            <h2 className="font-display text-3xl font-bold">Press-on nails 💅</h2>
+            {pressOnMoinsCher && (
+              <p className="text-sm font-medium text-pink-500">
+                {formatPrix(pressOnMoinsCher.prixCents, true)}
+              </p>
+            )}
+          </div>
+          <p className="mt-4 max-w-3xl leading-relaxed text-foreground/80">
+            Des faux ongles réutilisables, faits main et taillés à votre morphologie : vous les posez
+            vous-même en quelques minutes. Choisissez un set d&rsquo;une collection déjà dessinée, ou
+            faites-en créer un rien que pour vous. Remise en main propre à Saint-Nazaire ou envoi
+            postal.
+          </p>
+          <Link
+            href="/press-on"
+            className="mt-6 inline-block rounded-full border border-pink-300 px-8 py-3 font-medium text-pink-500 transition hover:bg-pink-50"
+          >
+            Voir les sets et commander
+          </Link>
+        </div>
       </section>
 
       {/* Galerie */}
-      {photos.length > 0 && (
+      {visuels.length > 0 && (
         <section id="galerie" className="scroll-mt-20 py-10">
           <h2 className="font-display text-center text-3xl font-bold">Mes réalisations 💅</h2>
           <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-            {photos.map((photo) => (
+            {visuels.map((photo) => (
               <figure
                 key={photo.id}
                 className="overflow-hidden rounded-2xl border border-pink-100 bg-white"

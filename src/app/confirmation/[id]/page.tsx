@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatHeure, formatJour } from "@/lib/creneaux";
-import { formatPrix } from "@/lib/format";
+import { formatPrix, totalTarifs } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -19,9 +19,14 @@ export default async function Confirmation({
   const { id } = await params;
   const rendezVous = await prisma.rendezVous.findUnique({
     where: { id },
-    include: { cliente: true, prestation: true },
+    include: {
+      cliente: true,
+      lignes: { include: { prestation: true }, orderBy: { ordre: "asc" } },
+    },
   });
   if (!rendezVous) notFound();
+
+  const total = totalTarifs(rendezVous.lignes.map((l) => l.prestation));
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
@@ -34,10 +39,19 @@ export default async function Confirmation({
 
         <div className="mt-8 rounded-2xl bg-pink-50 p-6 text-left">
           <dl className="space-y-3 text-sm">
-            <div className="flex justify-between gap-4">
-              <dt className="text-foreground/60">Prestation</dt>
-              <dd className="text-right font-medium">{rendezVous.prestation.nom}</dd>
-            </div>
+            {rendezVous.lignes.map((ligne) => (
+              <div key={ligne.id} className="flex justify-between gap-4">
+                <dt className="text-foreground/60">
+                  {ligne.automatique ? "Dépose" : "Prestation"}
+                </dt>
+                <dd className="text-right font-medium">
+                  {ligne.prestation.nom}
+                  <span className="ml-2 font-normal text-foreground/60">
+                    {formatPrix(ligne.prestation.prixCents, ligne.prestation.aPartirDe)}
+                  </span>
+                </dd>
+              </div>
+            ))}
             <div className="flex justify-between gap-4">
               <dt className="text-foreground/60">Date</dt>
               <dd className="text-right font-medium capitalize">{formatJour(rendezVous.debut)}</dd>
@@ -46,10 +60,10 @@ export default async function Confirmation({
               <dt className="text-foreground/60">Heure</dt>
               <dd className="text-right font-medium">{formatHeure(rendezVous.debut)}</dd>
             </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-foreground/60">Tarif</dt>
-              <dd className="text-right font-medium">
-                {formatPrix(rendezVous.prestation.prixCents, rendezVous.prestation.aPartirDe)}
+            <div className="flex justify-between gap-4 border-t border-pink-200 pt-3">
+              <dt className="font-semibold">Total</dt>
+              <dd className="text-right text-base font-bold text-pink-600">
+                {formatPrix(total.prixCents, total.aPartirDe)}
               </dd>
             </div>
             <div className="flex justify-between gap-4">
