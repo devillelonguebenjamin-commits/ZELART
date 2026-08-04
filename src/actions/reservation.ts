@@ -7,6 +7,7 @@ import { reservationSchema, urlImageValide } from "@/lib/validations";
 import { envoyerEmail } from "@/lib/email";
 import { envoyerDemandeAcompte, estNouvelleCliente } from "@/lib/acompte";
 import { urlSite } from "@/lib/site";
+import { nouveauCode } from "@/lib/cliente-auth";
 import { deposeNecessaire, prestationProposee, trouverDepose } from "@/lib/regles";
 import { formatPrix, totalDuree, totalTarifs } from "@/lib/format";
 
@@ -153,10 +154,26 @@ export async function creerReservation(
             nom: donnees.nom,
             email: donnees.email,
             telephone: donnees.telephone,
+            codeParrainage: nouveauCode(),
             consentementMarketing: accord,
             consentementLe: accord ? new Date() : null,
           },
         });
+
+        // Parrainage : rattachement une seule fois, et jamais à soi-même.
+        const code = String(formData.get("codeParrainage") ?? "").trim().toUpperCase();
+        if (code && !cliente.parraineParId) {
+          const marraine = await tx.cliente.findUnique({
+            where: { codeParrainage: code },
+            select: { id: true },
+          });
+          if (marraine && marraine.id !== cliente.id) {
+            await tx.cliente.update({
+              where: { id: cliente.id },
+              data: { parraineParId: marraine.id },
+            });
+          }
+        }
 
         const rendezVous = await tx.rendezVous.create({
           data: {

@@ -430,6 +430,18 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
           </label>
           <label className="block sm:col-span-2">
             <span className="text-sm font-medium">
+              Code de parrainage{" "}
+              <span className="text-foreground/50">(facultatif, si une cliente vous a recommandée)</span>
+            </span>
+            <input
+              name="codeParrainage"
+              placeholder="ZEL-XXXXX"
+              maxLength={20}
+              className="mt-1 w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 uppercase outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
+            />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="text-sm font-medium">
               Un message pour Zélia ?{" "}
               <span className="text-foreground/50">(allergies, précisions pratiques…)</span>
             </span>

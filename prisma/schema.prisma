@@ -22,10 +22,31 @@ model Cliente {
   desabonneLe           DateTime?
   jetonDesabonnement    String    @unique @default(cuid())
 
-  creeLe     DateTime        @default(now())
-  modifieLe  DateTime        @updatedAt
+  // Espace cliente (facultatif) : connexion par lien envoyé par e-mail,
+  // sans mot de passe à créer ni à retenir.
+  codeParrainage String  @unique
+  parraine       Cliente?  @relation("Parrainage", fields: [parraineParId], references: [id])
+  parraineParId  String?
+  filleules      Cliente[] @relation("Parrainage")
+
+  creeLe     DateTime         @default(now())
+  modifieLe  DateTime         @updatedAt
   rendezVous RendezVous[]
   envois     EnvoiCampagne[]
+  jetons     JetonConnexion[]
+}
+
+// Lien de connexion à usage unique et à durée limitée.
+model JetonConnexion {
+  id        String    @id @default(cuid())
+  jeton     String    @unique
+  cliente   Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String
+  expireLe  DateTime
+  utiliseLe DateTime?
+  creeLe    DateTime  @default(now())
+
+  @@index([clienteId])
 }
 
 // Campagne de fidélisation / parrainage envoyée aux clientes consentantes.

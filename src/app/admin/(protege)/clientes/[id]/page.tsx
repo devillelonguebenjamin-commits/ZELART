@@ -25,6 +25,8 @@ export default async function FicheCliente({
   const cliente = await prisma.cliente.findUnique({
     where: { id },
     include: {
+      parraine: { select: { id: true, prenom: true, nom: true } },
+      filleules: { select: { id: true, prenom: true, nom: true } },
       rendezVous: {
         include: { lignes: { include: { prestation: true }, orderBy: { ordre: "asc" } } },
         orderBy: { debut: "desc" },
@@ -47,6 +49,41 @@ export default async function FicheCliente({
           <a href={`mailto:${cliente.email}`} className="hover:underline">{cliente.email}</a>
         </p>
       </div>
+
+      <section className="rounded-2xl border border-pink-100 bg-white p-5">
+        <h2 className="font-semibold">Parrainage</h2>
+        <p className="mt-1 text-sm text-foreground/70">
+          Son code : <code className="font-semibold text-pink-600">{cliente.codeParrainage}</code>
+          {cliente.parraine && (
+            <>
+              {" · "}Parrainée par{" "}
+              <Link
+                href={`/admin/clientes/${cliente.parraine.id}`}
+                className="font-medium text-pink-600 hover:underline"
+              >
+                {cliente.parraine.prenom} {cliente.parraine.nom}
+              </Link>
+            </>
+          )}
+        </p>
+        {cliente.filleules.length > 0 && (
+          <p className="mt-2 text-sm text-foreground/70">
+            A fait venir {cliente.filleules.length} personne
+            {cliente.filleules.length > 1 ? "s" : ""} :{" "}
+            {cliente.filleules.map((f, i) => (
+              <span key={f.id}>
+                {i > 0 && ", "}
+                <Link
+                  href={`/admin/clientes/${f.id}`}
+                  className="font-medium text-pink-600 hover:underline"
+                >
+                  {f.prenom} {f.nom}
+                </Link>
+              </span>
+            ))}
+          </p>
+        )}
+      </section>
 
       <section className="rounded-2xl border border-pink-100 bg-white p-5">
         <h2 className="font-semibold">Offres et actualités</h2>

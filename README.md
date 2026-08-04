@@ -79,6 +79,23 @@ jusqu'à 3 photos, que Zélia retrouve sur la demande dans son agenda. La route 
 poids de 2 Mo et le nombre d'images ; les URL soumises avec le formulaire sont revalidées côté
 serveur pour n'accepter que celles de notre propre stockage.
 
+## Espace cliente (`/mon-espace`)
+
+Entièrement **facultatif** : aucune inscription, aucun mot de passe. La cliente saisit l'adresse
+utilisée lors de sa réservation et reçoit un lien de connexion valable 30 minutes et à usage
+unique (`JetonConnexion`). La session tient ensuite 60 jours dans un cookie signé.
+
+Elle y retrouve ses rendez-vous à venir avec le détail des prestations, l'historique de ses poses,
+son **code de parrainage** et la liste de celles venues grâce à elle, ainsi qu'un interrupteur pour
+recevoir ou non les offres — ce qui la rend autonome et décharge Zélia des désinscriptions.
+
+Le parrainage se saisit facultativement à la réservation (champ insensible à la casse) : le
+rattachement n'a lieu qu'une fois et jamais vers soi-même. La fiche cliente de l'espace gérante
+affiche la marraine et les filleules, à charge pour Zélia d'accorder la contrepartie de son choix.
+
+Pour ne pas révéler qui est cliente, la demande de lien répond toujours la même chose, que
+l'adresse existe ou non, et un envoi n'est possible qu'une fois par minute.
+
 ## Espace gérante (`/admin`)
 
 Protégé par la variable d'environnement `ADMIN_PASSWORD` (session par cookie signé, 30 jours) :
