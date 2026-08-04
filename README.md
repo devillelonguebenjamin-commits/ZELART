@@ -48,6 +48,22 @@ fuseau `Europe/Paris` quel que soit le fuseau du serveur.
 3. `/confirmation/[id]` — récapitulatif ; la demande reste **en attente** jusqu'à la confirmation
    par Zélia (acompte de 15 € via SumUp pour les nouvelles clientes, cf. CGV).
 
+### Règles selon l'état des ongles
+
+La première étape demande ce que la cliente porte à son arrivée, puis le catalogue est filtré
+(`src/lib/regles.ts`, revalidé côté serveur car le formulaire est contournable) :
+
+| État à l'arrivée | Remplissage | Dépose |
+| --- | --- | --- |
+| Ongles nus | non proposé | non proposé |
+| Pose faite ailleurs | jamais — Zélia ne reprend pas le travail d'une autre | ajoutée d'office |
+| Pose Zelart, gainage ou Pop-it | proposé, dans la même technique | libre |
+| Pose Zelart, Gel X | jamais — les capsules se retirent | ajoutée d'office |
+| Pose Zelart, vernis semi-permanent | aucun remplissage au tarif | libre |
+
+La dépose ajoutée d'office correspond à la technique déclarée, s'ajoute au prix affiché et à la
+durée du rendez-vous. Une dépose seule reste réservable et n'en déclenche pas une seconde.
+
 La dernière étape comporte une section **inspiration** : la cliente décrit ses envies et joint
 jusqu'à 3 photos, que Zélia retrouve sur la demande dans son agenda. La route d'envoi
 `/api/inspirations/upload` est publique par nécessité — elle est donc bornée par le type MIME, un
@@ -92,6 +108,20 @@ réservation n'est perdue, elles restent visibles dans l'agenda de `/admin`.
 La page `/admin/reglages` affiche l'état de cette configuration et permet d'envoyer un e-mail de
 test en affichant l'erreur exacte du service.
 
+## Acompte des nouvelles clientes
+
+Zélia colle dans `/admin/reglages` un **lien de paiement SumUp réutilisable** (créé depuis
+l'application SumUp : *Paiements par lien* → montant fixe → *Activer lien réutilisable*). Toute
+cliente sans autre rendez-vous actif reçoit alors automatiquement, à sa réservation, un e-mail
+contenant ce lien et le rappel des conditions.
+
+Le lien réutilisable est préféré à l'API SumUp : les `hosted_checkout_url` créés par l'API
+n'ont qu'une validité de 30 minutes, incompatible avec un lien envoyé par e-mail.
+
+L'agenda signale les nouvelles clientes, l'état de l'acompte (`acompteDemandeLe`,
+`acompteRegleLe`) et permet de renvoyer le lien ou de marquer l'acompte reçu. Sans lien
+configuré, rien n'est envoyé : la demande reste manuelle.
+
 ## Campagnes de fidélisation
 
 L'onglet **Campagnes** de l'espace gérante permet de composer un e-mail, de choisir un groupe de
@@ -117,17 +147,20 @@ Configuration actuelle (provisoire) : Resend sans domaine vérifié, ce qui impo
 expéditeur figé à `onboarding@resend.dev`, et envoi possible uniquement vers l'adresse du compte
 Resend. Les notifications ne peuvent donc pas encore partir vers la boîte de Zélia.
 
-Marche à suivre le jour de l'achat du domaine (ex. `zelart.fr`, ~10 €/an chez OVH, Gandi ou
-directement dans Vercel) :
+Marche à suivre le jour de l'achat du domaine (ex. `zelart.fr`, ~10 €/an chez OVH ou Gandi,
+~15 €/an directement dans Vercel — cette dernière option évite toute manipulation DNS) :
 
-1. **Brancher le domaine au site** — Vercel → Settings → Domains → *Add* → suivre les
-   enregistrements DNS indiqués (un `A` sur la racine, un `CNAME` sur `www`). Le certificat HTTPS
-   est automatique.
+1. **Brancher le domaine au site** — Vercel → Settings → Domains → *Add*. Vercel affiche alors les
+   enregistrements DNS **propres à ce projet** : les recopier tels quels chez le registrar (ne pas
+   réutiliser des valeurs trouvées ailleurs, elles varient d'un projet à l'autre). Le certificat
+   HTTPS est automatique une fois la propagation faite.
 2. **Vérifier le domaine chez Resend** — resend.com → *Domains* → *Add Domain* → ajouter les
    enregistrements DKIM/SPF fournis chez le registrar → attendre la validation.
 3. **Mettre à jour les variables Vercel** :
    - `EMAIL_FROM` = `Zelart Nails <contact@zelart.fr>`
    - `NOTIFY_EMAIL` = `Zelia.barreteaupro@outlook.fr`
+   - `SITE_URL` n'a pas à être renseignée : les liens des e-mails suivent automatiquement le
+     domaine de production (`src/lib/site.ts`).
 4. **Redéployer**, puis vérifier via `/admin/reglages` (test d'envoi vers l'adresse de Zélia) et
    par une réservation réelle de bout en bout.
 

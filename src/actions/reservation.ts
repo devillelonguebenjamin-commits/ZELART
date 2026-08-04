@@ -5,6 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { fenetrePourDebut, formatHeure, formatJour, PREAVIS_MS } from "@/lib/creneaux";
 import { reservationSchema, urlImageValide } from "@/lib/validations";
 import { envoyerEmail } from "@/lib/email";
+import { envoyerDemandeAcompte, estNouvelleCliente } from "@/lib/acompte";
+import { urlSite } from "@/lib/site";
+import { deposeImposee, prestationProposee, trouverDepose } from "@/lib/regles";
 
 export type EtatReservation = { erreur?: string };
 
@@ -18,6 +21,12 @@ export async function creerReservation(
   if (formData.get("majeure") !== "on") {
     return { erreur: "Vous devez certifier avoir 18 ans ou plus." };
   }
+  if (formData.get("consentementSante") !== "on") {
+    return {
+      erreur:
+        "Vous devez accepter les conditions relatives à votre santé et aux produits utilisés.",
+    };
+  }
 
   const analyse = reservationSchema.safeParse({
     prestationId: formData.get("prestationId"),
@@ -28,18 +37,37 @@ export async function creerReservation(
     telephone: formData.get("telephone"),
     noteCliente: formData.get("noteCliente") ?? undefined,
     inspiration: formData.get("inspiration") ?? undefined,
+    etatOngles: formData.get("etatOngles") ?? undefined,
+    typePoseActuel: formData.get("typePoseActuel") || null,
   });
   if (!analyse.success) {
     return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
   }
   const donnees = analyse.data;
 
-  const prestation = await prisma.prestation.findFirst({
-    where: { id: donnees.prestationId, active: true },
-  });
+  const { etatOngles, typePoseActuel } = donnees;
+  if (etatOngles !== "NATUREL" && !typePoseActuel) {
+    return { erreur: "Indiquez le type de pose que vous portez actuellement." };
+  }
+
+  const catalogue = await prisma.prestation.findMany({ where: { active: true } });
+  const prestation = catalogue.find((p) => p.id === donnees.prestationId);
   if (!prestation) {
     return { erreur: "Cette prestation n'est plus proposée." };
   }
+
+  // Le formulaire filtre déjà, mais il est contournable : on revalide ici.
+  if (!prestationProposee(prestation, etatOngles, typePoseActuel)) {
+    return {
+      erreur:
+        "Cette prestation ne correspond pas à l'état de vos ongles. Reprenez la première étape.",
+    };
+  }
+
+  const deposeRequise =
+    prestation.typeActe !== "DEPOSE" && deposeImposee(etatOngles, typePoseActuel)
+      ? trouverDepose(catalogue, typePoseActuel)
+      : null;
 
   const debut = new Date(donnees.debut);
   if (Number.isNaN(debut.getTime()) || debut.getTime() < Date.now() + PREAVIS_MS) {
@@ -51,7 +79,9 @@ export async function creerReservation(
     return { erreur: CRENEAU_INDISPONIBLE };
   }
 
-  const finRendezVous = new Date(debut.getTime() + prestation.dureeMin * 60_000);
+  // La dépose s'ajoute au temps de fauteuil.
+  const dureeTotale = prestation.dureeMin + (deposeRequise?.dureeMin ?? 0);
+  const finRendezVous = new Date(debut.getTime() + dureeTotale * 60_000);
 
   const imagesInspiration = formData
     .getAll("inspirationImages")
@@ -109,6 +139,10 @@ export async function creerReservation(
             fin: finRendezVous,
             noteCliente: donnees.noteCliente || null,
             inspiration: donnees.inspiration || null,
+            etatOngles,
+            typePoseActuel,
+            deposeId: deposeRequise?.id ?? null,
+            consentementSante: true,
             inspirations: { create: imagesInspiration.map((url) => ({ url })) },
           },
         });
@@ -124,6 +158,16 @@ export async function creerReservation(
     return { erreur: "Une erreur est survenue, merci de réessayer." };
   }
 
+  // Nouvelle cliente : envoi automatique du lien d'acompte, si Zélia l'a
+  // renseigné dans ses réglages.
+  const rendezVous = await prisma.rendezVous.findUnique({
+    where: { id: rendezVousId },
+    select: { clienteId: true },
+  });
+  if (rendezVous && (await estNouvelleCliente(rendezVous.clienteId, rendezVousId))) {
+    await envoyerDemandeAcompte(rendezVousId);
+  }
+
   // Notification à Zélia (sans effet si RESEND_API_KEY / NOTIFY_EMAIL absents)
   if (process.env.NOTIFY_EMAIL) {
     await envoyerEmail(
@@ -135,7 +179,7 @@ export async function creerReservation(
        <p>${donnees.prenom} ${donnees.nom}<br>
        ${donnees.telephone} · ${donnees.email}</p>
        ${donnees.noteCliente ? `<p>Message : ${donnees.noteCliente}</p>` : ""}
-       <p><a href="https://zelart.vercel.app/admin">Ouvrir l'espace gérante</a></p>`
+       <p><a href="${urlSite()}/admin">Ouvrir l'espace gérante</a></p>`
     );
   }
 

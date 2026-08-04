@@ -61,16 +61,43 @@ enum StatutCampagne {
 }
 
 model Prestation {
-  id          String       @id @default(cuid())
+  id          String  @id @default(cuid())
   nom         String
   categorie   String // "Vernis semi-permanent", "Gainage", "Pose Gel X", "Pose Pop-it"
   description String?
   dureeMin    Int // durée indicative en minutes
   prixCents   Int // 3500 = 35,00 €
-  aPartirDe   Boolean      @default(false) // prix "à partir de" (nail art niveau 3…)
-  active      Boolean      @default(true)
-  ordre       Int          @default(0)
-  rendezVous  RendezVous[]
+  aPartirDe   Boolean @default(false) // prix "à partir de" (nail art niveau 3…)
+  active      Boolean @default(true)
+  ordre       Int     @default(0)
+
+  // Nature de l'acte et technique concernée : pilotent les règles de
+  // réservation (une dépose ou un remplissage ne se proposent pas à tout le monde).
+  typeActe TypeActe @default(POSE)
+  typePose TypePose
+
+  rendezVous       RendezVous[]
+  rendezVousDepose RendezVous[] @relation("DeposeRendezVous")
+}
+
+enum TypeActe {
+  POSE
+  REMPLISSAGE
+  DEPOSE
+}
+
+enum TypePose {
+  VSP
+  GAINAGE
+  GEL_X
+  POP_IT
+}
+
+// Ce que la cliente a sur les ongles au moment de venir.
+enum EtatOngles {
+  NATUREL
+  POSE_ZELART
+  POSE_EXTERIEURE
 }
 
 // Créneaux d'ouverture récurrents : Zélia reçoit du lundi au samedi à 9h ou 14h.
@@ -114,9 +141,30 @@ model RendezVous {
   inspiration  String? // envies décrites par la cliente
   creeLe       DateTime         @default(now())
 
+  // État des ongles déclaré à la réservation, et dépose ajoutée d'office
+  // lorsque les règles l'imposent (pose extérieure, ou Gel X à retirer).
+  etatOngles      EtatOngles?
+  typePoseActuel  TypePose?
+  depose          Prestation? @relation("DeposeRendezVous", fields: [deposeId], references: [id])
+  deposeId        String?
+
+  // Case obligatoire : santé, allergies et droit de refus de la prestation
+  consentementSante Boolean @default(false)
+
+  // Acompte demandé aux nouvelles clientes (cf. CGV)
+  acompteDemandeLe DateTime?
+  acompteRegleLe   DateTime?
+
   inspirations InspirationImage[]
 
   @@index([debut])
+}
+
+// Réglages modifiables par la gérante sans redéploiement (lien d'acompte…).
+model Parametre {
+  cle       String   @id
+  valeur    String
+  modifieLe DateTime @updatedAt
 }
 
 // Photos d'inspiration jointes par la cliente à sa demande de rendez-vous.

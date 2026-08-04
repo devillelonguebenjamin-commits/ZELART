@@ -16,6 +16,10 @@ export const reservationSchema = z.object({
     .trim()
     .max(1000, "Votre inspiration ne doit pas dépasser 1000 caractères.")
     .optional(),
+  etatOngles: z.enum(["NATUREL", "POSE_ZELART", "POSE_EXTERIEURE"], {
+    message: "Indiquez dans quel état sont vos ongles.",
+  }),
+  typePoseActuel: z.enum(["VSP", "GAINAGE", "GEL_X", "POP_IT"]).nullable(),
 });
 
 // Les URL d'images sont produites par notre propre stockage : on refuse tout

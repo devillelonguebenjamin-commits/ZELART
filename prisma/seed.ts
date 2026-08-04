@@ -55,10 +55,28 @@ const disponibilites = [1, 2, 3, 4, 5, 6].flatMap((jourSemaine) => [
   { jourSemaine, heureDebut: "14:00", heureFin: "18:00" },
 ]);
 
+const TYPE_POSE: Record<string, "VSP" | "GAINAGE" | "GEL_X" | "POP_IT"> = {
+  "Vernis semi-permanent": "VSP",
+  Gainage: "GAINAGE",
+  "Pose Gel X": "GEL_X",
+  "Pose Pop-it": "POP_IT",
+};
+
+function typeActe(nom: string): "POSE" | "REMPLISSAGE" | "DEPOSE" {
+  if (nom.startsWith("Dépose")) return "DEPOSE";
+  if (nom.startsWith("Remplissage")) return "REMPLISSAGE";
+  return "POSE";
+}
+
 async function main() {
   if ((await prisma.prestation.count()) === 0) {
     await prisma.prestation.createMany({
-      data: prestations.map((p, i) => ({ ...p, ordre: i })),
+      data: prestations.map((p, i) => ({
+        ...p,
+        ordre: i,
+        typeActe: typeActe(p.nom),
+        typePose: TYPE_POSE[p.categorie],
+      })),
     });
     console.log(`${prestations.length} prestations créées`);
   } else {
