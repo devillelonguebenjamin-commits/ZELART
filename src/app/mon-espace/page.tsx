@@ -7,6 +7,8 @@ import { formatPrix, totalTarifs } from "@/lib/format";
 import { deconnexionCliente } from "@/actions/espace-cliente";
 import FormulaireLienConnexion from "@/components/FormulaireLienConnexion";
 import BoutonAccordOffres from "@/components/BoutonAccordOffres";
+import BoutonAnnulation from "@/components/BoutonAnnulation";
+import { annulationPossible, DELAI_ANNULATION_H } from "@/lib/annulation";
 import RoueFidelite from "@/components/RoueFidelite";
 import { reglagesRoue } from "@/lib/parametres";
 
@@ -142,6 +144,14 @@ export default async function MonEspace({
                     </span>
                   </li>
                 </ul>
+                {annulationPossible(rdv.debut) ? (
+                  <BoutonAnnulation rendezVousId={rdv.id} />
+                ) : (
+                  <p className="mt-3 text-xs text-foreground/50">
+                    À moins de {DELAI_ANNULATION_H} h du rendez-vous, prévenez Zélia par SMS au
+                    06 45 29 20 01.
+                  </p>
+                )}
               </div>
             );
           })}
