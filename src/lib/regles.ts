@@ -41,31 +41,37 @@ export function remplissageAutorise(
   return typeActuel === "GAINAGE" || typeActuel === "POP_IT";
 }
 
-// Une dépose s'impose d'office quand la pose vient d'ailleurs — Zélia ne
-// reprend pas le travail d'une autre — ainsi que pour les capsules Gel X et le
-// vernis semi-permanent, qui se retirent avant toute nouvelle pose.
-export function deposeImposee(
+export function aUnePose(etat: EtatOngles | null): boolean {
+  return etat === "POSE_ZELART" || etat === "POSE_EXTERIEURE";
+}
+
+// Une pose existante ne se recouvre pas : elle est soit remplie, soit retirée.
+// Choisir une nouvelle pose entraîne donc toujours une dépose ; seuls un
+// remplissage ou une dépose déjà choisie s'en dispensent.
+export function deposeNecessaire(
   etat: EtatOngles | null,
-  typeActuel: TypePose | null
+  typeActuel: TypePose | null,
+  typeActeChoisi: TypeActe | null
 ): boolean {
-  if (!typeActuel) return false;
-  if (etat === "POSE_EXTERIEURE") return true;
-  return etat === "POSE_ZELART" && (typeActuel === "GEL_X" || typeActuel === "VSP");
+  if (!aUnePose(etat) || !typeActuel || !typeActeChoisi) return false;
+  return typeActeChoisi === "POSE";
 }
 
 // Explication donnée à la cliente, adaptée à sa situation.
 export function motifDepose(
   etat: EtatOngles | null,
   typeActuel: TypePose | null
-): string | null {
-  if (!deposeImposee(etat, typeActuel)) return null;
+): string {
   if (etat === "POSE_EXTERIEURE") {
-    return "Zélia ne remplit pas une pose réalisée par une autre prothésiste : elle sera retirée avant la nouvelle.";
+    return "Zélia ne reprend pas une pose réalisée par une autre prothésiste : elle sera retirée avant la nouvelle.";
   }
   if (typeActuel === "GEL_X") {
     return "les capsules Gel X se retirent, elles ne se remplissent pas.";
   }
-  return "votre vernis semi-permanent est retiré avant la nouvelle pose.";
+  if (typeActuel === "VSP") {
+    return "votre vernis semi-permanent est retiré avant la nouvelle pose.";
+  }
+  return "votre pose actuelle est retirée avant d'en poser une nouvelle.";
 }
 
 // Ongles nus : ni dépose ni remplissage n'ont de sens.
@@ -77,8 +83,9 @@ export function prestationProposee(
   if (!etat) return true;
 
   if (prestation.typeActe === "DEPOSE") {
-    // Une dépose seule reste réservable si la cliente a bien quelque chose à retirer.
-    return etat !== "NATUREL";
+    // Une dépose seule reste réservable, mais seulement celle qui correspond à
+    // la technique portée : les tarifs diffèrent d'une dépose à l'autre.
+    return aUnePose(etat) && prestation.typePose === typeActuel;
   }
 
   if (prestation.typeActe === "REMPLISSAGE") {

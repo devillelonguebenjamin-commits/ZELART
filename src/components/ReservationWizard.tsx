@@ -5,10 +5,12 @@ import { creerReservation, type EtatReservation } from "@/actions/reservation";
 import type { Creneau } from "@/lib/creneaux";
 import { formatDuree, formatPrix } from "@/lib/format";
 import {
-  deposeImposee,
+  aUnePose,
+  deposeNecessaire,
   ETATS_ONGLES,
   motifDepose,
   prestationProposee,
+  remplissageAutorise,
   trouverDepose,
   TYPES_POSE,
 } from "@/lib/regles";
@@ -69,11 +71,13 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
 
   // Une prestation devenue incompatible (retour en arrière) cesse d'être retenue.
   const prestationChoisie = disponibles.find((p) => p.id === prestationId) ?? null;
-  const depose = deposeImposee(etatOngles, typePoseActuel)
+  const deposeAjoutee = deposeNecessaire(
+    etatOngles,
+    typePoseActuel,
+    prestationChoisie?.typeActe ?? null
+  )
     ? trouverDepose(prestations, typePoseActuel)
     : null;
-  // Une dépose seule ne se double pas d'une seconde dépose.
-  const deposeAjoutee = prestationChoisie?.typeActe === "DEPOSE" ? null : depose;
 
   const jours = useMemo(() => {
     const parJour = new Map<string, Creneau[]>();
@@ -173,12 +177,12 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
           </div>
         )}
 
-        {deposeAjoutee && (
+        {aUnePose(etatOngles) && typePoseActuel && (
           <p className="mt-5 rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900">
-            <strong>Une dépose sera nécessaire</strong> —{" "}
-            {motifDepose(etatOngles, typePoseActuel)} Elle est ajoutée automatiquement à votre
-            rendez-vous ({deposeAjoutee.nom} —{" "}
-            {formatPrix(deposeAjoutee.prixCents, deposeAjoutee.aPartirDe)}).
+            <strong>Votre pose actuelle doit être traitée.</strong>{" "}
+            {remplissageAutorise(etatOngles, typePoseActuel)
+              ? "À l'étape suivante, choisissez soit un remplissage, soit une nouvelle pose — dans ce dernier cas, la dépose est ajoutée automatiquement."
+              : `Une dépose est donc prévue : ${motifDepose(etatOngles, typePoseActuel)}`}
           </p>
         )}
 
@@ -202,10 +206,22 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
             Vos ongles étant nus, seules les nouvelles poses vous sont proposées.
           </p>
         )}
-        {deposeAjoutee && (
+        {aUnePose(etatOngles) && typePoseActuel && (
           <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            {deposeAjoutee.nom} ({formatPrix(deposeAjoutee.prixCents, deposeAjoutee.aPartirDe)}) sera
-            ajoutée automatiquement.
+            {deposeAjoutee ? (
+              <>
+                <strong>{deposeAjoutee.nom}</strong> (
+                {formatPrix(deposeAjoutee.prixCents, deposeAjoutee.aPartirDe)}) est ajoutée
+                automatiquement : {motifDepose(etatOngles, typePoseActuel)}
+              </>
+            ) : prestationChoisie ? (
+              <>Aucune dépose nécessaire pour cette prestation.</>
+            ) : (
+              <>
+                Vous portez une pose : choisissez un remplissage, une dépose seule, ou une nouvelle
+                pose — la dépose sera alors ajoutée automatiquement.
+              </>
+            )}
           </p>
         )}
 

@@ -53,16 +53,20 @@ fuseau `Europe/Paris` quel que soit le fuseau du serveur.
 La première étape demande ce que la cliente porte à son arrivée, puis le catalogue est filtré
 (`src/lib/regles.ts`, revalidé côté serveur car le formulaire est contournable) :
 
+**Une pose existante ne se recouvre pas** : elle est soit remplie, soit retirée. Toute nouvelle
+pose demandée sur une pose en place entraîne donc l'ajout automatique de la dépose correspondante.
+
 | État à l'arrivée | Remplissage | Dépose |
 | --- | --- | --- |
-| Ongles nus | non proposé | non proposé |
-| Pose faite ailleurs | jamais — Zélia ne reprend pas le travail d'une autre | ajoutée d'office |
-| Pose Zelart, gainage ou Pop-it | proposé, dans la même technique | libre |
-| Pose Zelart, Gel X | jamais — les capsules se retirent | ajoutée d'office |
-| Pose Zelart, vernis semi-permanent | aucun remplissage au tarif | ajoutée d'office |
+| Ongles nus | non proposé | non proposée |
+| Pose faite ailleurs | jamais — Zélia ne reprend pas le travail d'une autre | ajoutée si nouvelle pose |
+| Pose Zelart, gainage ou Pop-it | proposé, dans la même technique | ajoutée si nouvelle pose |
+| Pose Zelart, Gel X | jamais — les capsules se retirent | ajoutée si nouvelle pose |
+| Pose Zelart, vernis semi-permanent | aucun remplissage au tarif | ajoutée si nouvelle pose |
 
-La dépose ajoutée d'office correspond à la technique déclarée, s'ajoute au prix affiché et à la
-durée du rendez-vous. Une dépose seule reste réservable et n'en déclenche pas une seconde.
+La dépose ajoutée correspond à la technique déclarée et s'ajoute au prix comme à la durée. Les
+déposes proposées à la carte sont elles aussi restreintes à cette technique — les tarifs diffèrent
+de l'une à l'autre — et une dépose seule n'en déclenche pas une seconde.
 
 La dernière étape comporte une section **inspiration** : la cliente décrit ses envies et joint
 jusqu'à 3 photos, que Zélia retrouve sur la demande dans son agenda. La route d'envoi

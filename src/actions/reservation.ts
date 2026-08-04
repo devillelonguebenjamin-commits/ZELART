@@ -7,7 +7,7 @@ import { reservationSchema, urlImageValide } from "@/lib/validations";
 import { envoyerEmail } from "@/lib/email";
 import { envoyerDemandeAcompte, estNouvelleCliente } from "@/lib/acompte";
 import { urlSite } from "@/lib/site";
-import { deposeImposee, prestationProposee, trouverDepose } from "@/lib/regles";
+import { deposeNecessaire, prestationProposee, trouverDepose } from "@/lib/regles";
 import { formatPrix, totalRendezVous } from "@/lib/format";
 
 const LIBELLE_ETAT: Record<string, string> = {
@@ -78,10 +78,9 @@ export async function creerReservation(
     };
   }
 
-  const deposeRequise =
-    prestation.typeActe !== "DEPOSE" && deposeImposee(etatOngles, typePoseActuel)
-      ? trouverDepose(catalogue, typePoseActuel)
-      : null;
+  const deposeRequise = deposeNecessaire(etatOngles, typePoseActuel, prestation.typeActe)
+    ? trouverDepose(catalogue, typePoseActuel)
+    : null;
 
   const debut = new Date(donnees.debut);
   if (Number.isNaN(debut.getTime()) || debut.getTime() < Date.now() + PREAVIS_MS) {
