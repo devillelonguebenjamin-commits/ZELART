@@ -35,6 +35,7 @@ npm run dev
 | `Disponibilite` | Fenêtres d'ouverture récurrentes — lundi à samedi, 9h et 14h (une cliente par fenêtre) |
 | `Indisponibilite` | Exceptions ponctuelles : congés, jours fériés… |
 | `RendezVous` | Créneau réservé, statut `EN_ATTENTE` par défaut (Zélia confirme à la main) |
+| `LignePrestation` | Prestations d'une demande : la cliente peut en cocher plusieurs, la dépose imposée s'y ajoute avec `automatique = true` |
 | `InspirationImage` | Photos d'inspiration jointes par la cliente à sa demande |
 
 Les créneaux libres sont **calculés à la volée** (`src/lib/creneaux.ts`) : fenêtres récurrentes,
@@ -53,8 +54,12 @@ fuseau `Europe/Paris` quel que soit le fuseau du serveur.
 La première étape demande ce que la cliente porte à son arrivée, puis le catalogue est filtré
 (`src/lib/regles.ts`, revalidé côté serveur car le formulaire est contournable) :
 
-**Une pose existante ne se recouvre pas** : elle est soit remplie, soit retirée. Toute nouvelle
-pose demandée sur une pose en place entraîne donc l'ajout automatique de la dépose correspondante.
+La cliente peut **cocher plusieurs prestations** dans une même demande ; le prix et la durée sont
+cumulés.
+
+**Une pose existante ne se recouvre pas** : elle est soit remplie, soit retirée. Dès lors que la
+sélection ne comporte ni remplissage ni dépose, la dépose correspondante est ajoutée d'office —
+une seule fois, quel que soit le nombre de poses cochées.
 
 | État à l'arrivée | Remplissage | Dépose |
 | --- | --- | --- |

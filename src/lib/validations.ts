@@ -1,7 +1,10 @@
 import { z } from "zod";
 
 export const reservationSchema = z.object({
-  prestationId: z.string().min(1, "Choisissez une prestation."),
+  prestationIds: z
+    .array(z.string().min(1))
+    .min(1, "Choisissez au moins une prestation.")
+    .max(6, "Six prestations au maximum par rendez-vous."),
   debut: z.string().min(1, "Choisissez un créneau."),
   prenom: z.string().trim().min(1, "Indiquez votre prénom.").max(60, "Prénom trop long."),
   nom: z.string().trim().min(1, "Indiquez votre nom.").max(60, "Nom trop long."),

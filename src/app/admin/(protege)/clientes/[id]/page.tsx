@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatHeure, formatJour } from "@/lib/creneaux";
-import { formatPrix } from "@/lib/format";
+import { formatPrix, totalTarifs } from "@/lib/format";
 import { enregistrerNotesCliente } from "@/actions/admin";
 import { basculerConsentement, supprimerCliente } from "@/actions/clientes";
 
@@ -25,7 +25,10 @@ export default async function FicheCliente({
   const cliente = await prisma.cliente.findUnique({
     where: { id },
     include: {
-      rendezVous: { include: { prestation: true }, orderBy: { debut: "desc" } },
+      rendezVous: {
+        include: { lignes: { include: { prestation: true }, orderBy: { ordre: "asc" } } },
+        orderBy: { debut: "desc" },
+      },
     },
   });
   if (!cliente) notFound();
@@ -118,9 +121,12 @@ export default async function FicheCliente({
               <span className="capitalize">
                 {formatJour(rdv.debut)} · {formatHeure(rdv.debut)}
               </span>
-              <span>{rdv.prestation.nom}</span>
+              <span>{rdv.lignes.map((l) => l.prestation.nom).join(" + ")}</span>
               <span className="font-medium text-pink-600">
-                {formatPrix(rdv.prestation.prixCents, rdv.prestation.aPartirDe)}
+                {(() => {
+                  const t = totalTarifs(rdv.lignes.map((l) => l.prestation));
+                  return formatPrix(t.prixCents, t.aPartirDe);
+                })()}
               </span>
               <span className="text-foreground/60">{LIBELLES_STATUT[rdv.statut] ?? rdv.statut}</span>
             </div>

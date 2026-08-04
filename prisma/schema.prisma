@@ -76,8 +76,22 @@ model Prestation {
   typeActe TypeActe @default(POSE)
   typePose TypePose
 
-  rendezVous       RendezVous[]
-  rendezVousDepose RendezVous[] @relation("DeposeRendezVous")
+  lignes LignePrestation[]
+}
+
+// Une demande peut porter plusieurs prestations : la cliente en coche autant
+// qu'elle souhaite, et la dépose imposée par les règles s'y ajoute (automatique).
+model LignePrestation {
+  id           String     @id @default(cuid())
+  rendezVous   RendezVous @relation(fields: [rendezVousId], references: [id], onDelete: Cascade)
+  rendezVousId String
+  prestation   Prestation @relation(fields: [prestationId], references: [id])
+  prestationId String
+  automatique  Boolean    @default(false)
+  ordre        Int        @default(0)
+
+  @@unique([rendezVousId, prestationId])
+  @@index([rendezVousId])
 }
 
 enum TypeActe {
@@ -132,8 +146,7 @@ model RendezVous {
   id           String           @id @default(cuid())
   cliente      Cliente          @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   clienteId    String
-  prestation   Prestation       @relation(fields: [prestationId], references: [id])
-  prestationId String
+  lignes       LignePrestation[]
   debut        DateTime
   fin          DateTime // figé à la réservation, indépendant des évolutions de la prestation
   statut       StatutRendezVous @default(EN_ATTENTE)
@@ -143,10 +156,8 @@ model RendezVous {
 
   // État des ongles déclaré à la réservation, et dépose ajoutée d'office
   // lorsque les règles l'imposent (pose extérieure, ou Gel X à retirer).
-  etatOngles      EtatOngles?
-  typePoseActuel  TypePose?
-  depose          Prestation? @relation("DeposeRendezVous", fields: [deposeId], references: [id])
-  deposeId        String?
+  etatOngles     EtatOngles?
+  typePoseActuel TypePose?
 
   // Case obligatoire : santé, allergies et droit de refus de la prestation
   consentementSante Boolean @default(false)

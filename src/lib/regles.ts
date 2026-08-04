@@ -46,15 +46,15 @@ export function aUnePose(etat: EtatOngles | null): boolean {
 }
 
 // Une pose existante ne se recouvre pas : elle est soit remplie, soit retirée.
-// Choisir une nouvelle pose entraîne donc toujours une dépose ; seuls un
-// remplissage ou une dépose déjà choisie s'en dispensent.
+// Dès lors que la sélection ne comporte ni remplissage ni dépose, la dépose
+// correspondante est ajoutée d'office.
 export function deposeNecessaire(
   etat: EtatOngles | null,
   typeActuel: TypePose | null,
-  typeActeChoisi: TypeActe | null
+  typesActesChoisis: TypeActe[]
 ): boolean {
-  if (!aUnePose(etat) || !typeActuel || !typeActeChoisi) return false;
-  return typeActeChoisi === "POSE";
+  if (!aUnePose(etat) || !typeActuel || typesActesChoisis.length === 0) return false;
+  return !typesActesChoisis.some((t) => t === "DEPOSE" || t === "REMPLISSAGE");
 }
 
 // Explication donnée à la cliente, adaptée à sa situation.

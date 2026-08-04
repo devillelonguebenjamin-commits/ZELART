@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatHeure, formatJour } from "@/lib/creneaux";
-import { formatPrix, totalRendezVous } from "@/lib/format";
+import { formatPrix, totalTarifs } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +19,14 @@ export default async function Confirmation({
   const { id } = await params;
   const rendezVous = await prisma.rendezVous.findUnique({
     where: { id },
-    include: { cliente: true, prestation: true, depose: true },
+    include: {
+      cliente: true,
+      lignes: { include: { prestation: true }, orderBy: { ordre: "asc" } },
+    },
   });
   if (!rendezVous) notFound();
 
-  const total = totalRendezVous(rendezVous.prestation, rendezVous.depose);
+  const total = totalTarifs(rendezVous.lignes.map((l) => l.prestation));
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
@@ -36,26 +39,19 @@ export default async function Confirmation({
 
         <div className="mt-8 rounded-2xl bg-pink-50 p-6 text-left">
           <dl className="space-y-3 text-sm">
-            <div className="flex justify-between gap-4">
-              <dt className="text-foreground/60">Prestation</dt>
-              <dd className="text-right font-medium">
-                {rendezVous.prestation.nom}
-                <span className="ml-2 font-normal text-foreground/60">
-                  {formatPrix(rendezVous.prestation.prixCents, rendezVous.prestation.aPartirDe)}
-                </span>
-              </dd>
-            </div>
-            {rendezVous.depose && (
-              <div className="flex justify-between gap-4">
-                <dt className="text-foreground/60">Dépose</dt>
+            {rendezVous.lignes.map((ligne) => (
+              <div key={ligne.id} className="flex justify-between gap-4">
+                <dt className="text-foreground/60">
+                  {ligne.automatique ? "Dépose" : "Prestation"}
+                </dt>
                 <dd className="text-right font-medium">
-                  {rendezVous.depose.nom}
+                  {ligne.prestation.nom}
                   <span className="ml-2 font-normal text-foreground/60">
-                    {formatPrix(rendezVous.depose.prixCents, rendezVous.depose.aPartirDe)}
+                    {formatPrix(ligne.prestation.prixCents, ligne.prestation.aPartirDe)}
                   </span>
                 </dd>
               </div>
-            )}
+            ))}
             <div className="flex justify-between gap-4">
               <dt className="text-foreground/60">Date</dt>
               <dd className="text-right font-medium capitalize">{formatJour(rendezVous.debut)}</dd>

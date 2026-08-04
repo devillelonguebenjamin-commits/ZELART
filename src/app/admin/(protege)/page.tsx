@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatHeure, formatJour } from "@/lib/creneaux";
-import { formatPrix } from "@/lib/format";
+import { formatPrix, totalTarifs } from "@/lib/format";
 import { changerStatutRendezVous, marquerAcompteRegle, renvoyerLienAcompte } from "@/actions/admin";
 import { reglagesAcompte } from "@/lib/parametres";
 import type { Prisma } from "@/generated/prisma/client";
@@ -9,7 +9,11 @@ import type { Prisma } from "@/generated/prisma/client";
 export const dynamic = "force-dynamic";
 
 type RdvComplet = Prisma.RendezVousGetPayload<{
-  include: { cliente: true; prestation: true; inspirations: true; depose: true };
+  include: {
+    cliente: true;
+    inspirations: true;
+    lignes: { include: { prestation: true } };
+  };
 }>;
 
 const LIBELLE_ETAT: Record<string, string> = {
@@ -56,6 +60,7 @@ function CarteRdv({
   lienAcompteConfigure: boolean;
 }) {
   const badge = BADGES[rdv.statut] ?? BADGES.EN_ATTENTE;
+  const totalRdv = totalTarifs(rdv.lignes.map((l) => l.prestation));
   return (
     <div className="rounded-2xl border border-pink-100 bg-white px-5 py-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -73,21 +78,25 @@ function CarteRdv({
           </span>
         </span>
       </div>
-      <p className="mt-1 text-sm">
-        {rdv.prestation.nom} —{" "}
-        <span className="font-medium text-pink-600">
-          {formatPrix(rdv.prestation.prixCents, rdv.prestation.aPartirDe)}
-        </span>
-        {rdv.depose && (
-          <>
-            {" + "}
-            {rdv.depose.nom} —{" "}
+      <ul className="mt-1 text-sm">
+        {rdv.lignes.map((ligne) => (
+          <li key={ligne.id}>
+            {ligne.prestation.nom}
+            {ligne.automatique && <span className="text-foreground/50"> (dépose ajoutée)</span>} —{" "}
             <span className="font-medium text-pink-600">
-              {formatPrix(rdv.depose.prixCents, rdv.depose.aPartirDe)}
+              {formatPrix(ligne.prestation.prixCents, ligne.prestation.aPartirDe)}
             </span>
-          </>
+          </li>
+        ))}
+        {rdv.lignes.length > 1 && (
+          <li className="mt-0.5 font-semibold">
+            Total —{" "}
+            <span className="text-pink-600">
+              {formatPrix(totalRdv.prixCents, totalRdv.aPartirDe)}
+            </span>
+          </li>
         )}
-      </p>
+      </ul>
       {rdv.etatOngles && (
         <p className="mt-1 text-xs text-foreground/60">
           Ongles à l&rsquo;arrivée : {LIBELLE_ETAT[rdv.etatOngles]}
@@ -191,7 +200,11 @@ export default async function Agenda() {
   const [rdvs, acompte] = await Promise.all([
     prisma.rendezVous.findMany({
       where: { debut: { gte: ilYa14Jours } },
-      include: { cliente: true, prestation: true, inspirations: true, depose: true },
+      include: {
+        cliente: true,
+        inspirations: true,
+        lignes: { include: { prestation: true }, orderBy: { ordre: "asc" } },
+      },
       orderBy: { debut: "asc" },
     }),
     reglagesAcompte(),
