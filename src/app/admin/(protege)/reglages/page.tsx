@@ -2,7 +2,8 @@ import { expediteurConfigure, fournisseurEmail } from "@/lib/email";
 import { modeStockage, stockageConfigure } from "@/lib/blob";
 import TestEmailForm from "@/components/TestEmailForm";
 import ReglagesAcompteForm from "@/components/ReglagesAcompteForm";
-import { reglagesAcompte } from "@/lib/parametres";
+import { cleRelance, reglagesAcompte, reglagesRappels } from "@/lib/parametres";
+import ReglagesRappelsForm from "@/components/ReglagesRappelsForm";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,8 @@ function Ligne({
 }
 
 export default async function Reglages() {
-  const acompte = await reglagesAcompte();
+  const [acompte, rappels] = await Promise.all([reglagesAcompte(), reglagesRappels()]);
+  const planificationPrete = Boolean(process.env.CRON_SECRET);
   const fournisseur = fournisseurEmail();
   const notify = process.env.NOTIFY_EMAIL ?? "";
   const expediteur = expediteurConfigure();
@@ -76,6 +78,12 @@ export default async function Reglages() {
           valeur={expediteur}
           ok={Boolean(fournisseur) && !expediteurResendInvalide}
           aide="EMAIL_FROM"
+        />
+        <Ligne
+          label="Rappels automatiques"
+          valeur={rappels.actifs ? (planificationPrete ? "activés" : "activés, secret manquant") : "désactivés"}
+          ok={rappels.actifs && planificationPrete}
+          aide="CRON_SECRET — nécessaire à l'exécution quotidienne"
         />
         <Ligne
           label="Envoi automatique de l'acompte"
@@ -117,6 +125,25 @@ export default async function Reglages() {
           </p>
         </div>
       )}
+
+      <section className="rounded-2xl border border-pink-100 bg-white p-5">
+        <h2 className="font-semibold">Rappels et relances automatiques</h2>
+        <p className="mt-1 text-xs text-foreground/60">
+          Le rappel de la veille réduit les oublis ; la relance de repousse invite la cliente à
+          reprendre rendez-vous au bon moment, selon la technique qu&rsquo;elle porte.
+        </p>
+        <div className="mt-4">
+          <ReglagesRappelsForm
+            actifs={rappels.actifs}
+            delais={[
+              { cle: cleRelance("VSP"), libelle: "Vernis semi-permanent", jours: rappels.delais.VSP },
+              { cle: cleRelance("GAINAGE"), libelle: "Gainage", jours: rappels.delais.GAINAGE },
+              { cle: cleRelance("GEL_X"), libelle: "Pose Gel X", jours: rappels.delais.GEL_X },
+              { cle: cleRelance("POP_IT"), libelle: "Pose Pop-it", jours: rappels.delais.POP_IT },
+            ]}
+          />
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-pink-100 bg-white p-5">
         <h2 className="font-semibold">Acompte des nouvelles clientes</h2>

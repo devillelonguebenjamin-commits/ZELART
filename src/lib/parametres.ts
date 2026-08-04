@@ -1,9 +1,44 @@
 import { prisma } from "@/lib/prisma";
 import { POSES_PAR_TOUR_DEFAUT, type LotPublic } from "@/lib/roue";
+import type { TypePose } from "@/generated/prisma/client";
 
 export const CLE_LIEN_ACOMPTE = "lienAcompte";
 export const CLE_MONTANT_ACOMPTE = "montantAcompteCents";
 export const CLE_POSES_PAR_TOUR = "posesParTour";
+export const CLE_RAPPELS_ACTIFS = "rappelsActifs";
+
+// Délai avant relance, par technique : un vernis semi-permanent tient moins
+// longtemps qu'un gainage ou qu'une pose avec rallongement.
+export const DELAIS_RELANCE_DEFAUT: Record<TypePose, number> = {
+  VSP: 21,
+  GAINAGE: 24,
+  GEL_X: 24,
+  POP_IT: 28,
+};
+
+export type ReglagesRappels = {
+  actifs: boolean;
+  delais: Record<TypePose, number>;
+};
+
+export async function reglagesRappels(): Promise<ReglagesRappels> {
+  const techniques = Object.keys(DELAIS_RELANCE_DEFAUT) as TypePose[];
+  const cles = [CLE_RAPPELS_ACTIFS, ...techniques.map(cleRelance)];
+  const lignes = await prisma.parametre.findMany({ where: { cle: { in: cles } } });
+  const valeur = (cle: string) => lignes.find((l) => l.cle === cle)?.valeur;
+
+  const delais = { ...DELAIS_RELANCE_DEFAUT };
+  for (const technique of techniques) {
+    const jours = Number(valeur(cleRelance(technique)));
+    if (Number.isInteger(jours) && jours > 0) delais[technique] = jours;
+  }
+
+  return { actifs: valeur(CLE_RAPPELS_ACTIFS) === "1", delais };
+}
+
+export function cleRelance(technique: TypePose): string {
+  return `relance_${technique}`;
+}
 
 const MONTANT_PAR_DEFAUT = 1500; // 15 € (CGV)
 
