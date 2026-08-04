@@ -6,6 +6,20 @@ export function formatPrix(prixCents: number, aPartirDe = false): string {
   return `${aPartirDe ? "à partir de " : ""}${euros} €`;
 }
 
+type LigneTarif = { prixCents: number; aPartirDe: boolean };
+
+// Total d'un rendez-vous, dépose éventuelle comprise. Le « à partir de » se
+// propage : dès qu'une ligne est indicative, le total l'est aussi.
+export function totalRendezVous(
+  prestation: LigneTarif,
+  depose?: LigneTarif | null
+): LigneTarif {
+  return {
+    prixCents: prestation.prixCents + (depose?.prixCents ?? 0),
+    aPartirDe: prestation.aPartirDe || Boolean(depose?.aPartirDe),
+  };
+}
+
 export function formatDuree(dureeMin: number): string {
   const heures = Math.floor(dureeMin / 60);
   const minutes = dureeMin % 60;

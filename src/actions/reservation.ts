@@ -8,6 +8,20 @@ import { envoyerEmail } from "@/lib/email";
 import { envoyerDemandeAcompte, estNouvelleCliente } from "@/lib/acompte";
 import { urlSite } from "@/lib/site";
 import { deposeImposee, prestationProposee, trouverDepose } from "@/lib/regles";
+import { formatPrix, totalRendezVous } from "@/lib/format";
+
+const LIBELLE_ETAT: Record<string, string> = {
+  NATUREL: "ongles nus",
+  POSE_ZELART: "pose Zelart",
+  POSE_EXTERIEURE: "pose faite ailleurs",
+};
+
+const LIBELLE_POSE: Record<string, string> = {
+  VSP: "vernis semi-permanent",
+  GAINAGE: "gainage",
+  GEL_X: "Gel X",
+  POP_IT: "Pop-it",
+};
 
 export type EtatReservation = { erreur?: string };
 
@@ -169,13 +183,17 @@ export async function creerReservation(
   }
 
   // Notification à Zélia (sans effet si RESEND_API_KEY / NOTIFY_EMAIL absents)
+  const total = totalRendezVous(prestation, deposeRequise);
   if (process.env.NOTIFY_EMAIL) {
     await envoyerEmail(
       process.env.NOTIFY_EMAIL,
       `Nouvelle demande de RDV — ${donnees.prenom} ${donnees.nom}`,
       `<p>Nouvelle demande de rendez-vous à confirmer :</p>
-       <p><strong>${prestation.nom}</strong><br>
+       <p><strong>${prestation.nom}</strong> — ${formatPrix(prestation.prixCents, prestation.aPartirDe)}<br>
+       ${deposeRequise ? `<strong>${deposeRequise.nom}</strong> — ${formatPrix(deposeRequise.prixCents, deposeRequise.aPartirDe)}<br>` : ""}
+       <strong>Total : ${formatPrix(total.prixCents, total.aPartirDe)}</strong><br>
        ${formatJour(debut)} à ${formatHeure(debut)}</p>
+       <p>Ongles à l'arrivée : ${LIBELLE_ETAT[etatOngles]}${typePoseActuel ? ` (${LIBELLE_POSE[typePoseActuel]})` : ""}</p>
        <p>${donnees.prenom} ${donnees.nom}<br>
        ${donnees.telephone} · ${donnees.email}</p>
        ${donnees.noteCliente ? `<p>Message : ${donnees.noteCliente}</p>` : ""}
