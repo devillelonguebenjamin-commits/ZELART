@@ -7,6 +7,7 @@ import { formatDuree, formatPrix } from "@/lib/format";
 import {
   deposeImposee,
   ETATS_ONGLES,
+  motifDepose,
   prestationProposee,
   trouverDepose,
   TYPES_POSE,
@@ -175,10 +176,8 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
         {deposeAjoutee && (
           <p className="mt-5 rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900">
             <strong>Une dépose sera nécessaire</strong> —{" "}
-            {etatOngles === "POSE_EXTERIEURE"
-              ? "Zélia ne remplit pas une pose réalisée par une autre prothésiste : elle sera retirée avant la nouvelle."
-              : "les capsules Gel X se retirent, elles ne se remplissent pas."}{" "}
-            Elle est ajoutée automatiquement à votre rendez-vous ({deposeAjoutee.nom} —{" "}
+            {motifDepose(etatOngles, typePoseActuel)} Elle est ajoutée automatiquement à votre
+            rendez-vous ({deposeAjoutee.nom} —{" "}
             {formatPrix(deposeAjoutee.prixCents, deposeAjoutee.aPartirDe)}).
           </p>
         )}

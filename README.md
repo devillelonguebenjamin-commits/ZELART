@@ -59,7 +59,7 @@ La première étape demande ce que la cliente porte à son arrivée, puis le cat
 | Pose faite ailleurs | jamais — Zélia ne reprend pas le travail d'une autre | ajoutée d'office |
 | Pose Zelart, gainage ou Pop-it | proposé, dans la même technique | libre |
 | Pose Zelart, Gel X | jamais — les capsules se retirent | ajoutée d'office |
-| Pose Zelart, vernis semi-permanent | aucun remplissage au tarif | libre |
+| Pose Zelart, vernis semi-permanent | aucun remplissage au tarif | ajoutée d'office |
 
 La dépose ajoutée d'office correspond à la technique déclarée, s'ajoute au prix affiché et à la
 durée du rendez-vous. Une dépose seule reste réservable et n'en déclenche pas une seconde.

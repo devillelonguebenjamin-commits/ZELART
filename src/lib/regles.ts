@@ -42,14 +42,30 @@ export function remplissageAutorise(
 }
 
 // Une dépose s'impose d'office quand la pose vient d'ailleurs — Zélia ne
-// reprend pas le travail d'une autre — ou quand il s'agit de capsules Gel X.
+// reprend pas le travail d'une autre — ainsi que pour les capsules Gel X et le
+// vernis semi-permanent, qui se retirent avant toute nouvelle pose.
 export function deposeImposee(
   etat: EtatOngles | null,
   typeActuel: TypePose | null
 ): boolean {
   if (!typeActuel) return false;
   if (etat === "POSE_EXTERIEURE") return true;
-  return etat === "POSE_ZELART" && typeActuel === "GEL_X";
+  return etat === "POSE_ZELART" && (typeActuel === "GEL_X" || typeActuel === "VSP");
+}
+
+// Explication donnée à la cliente, adaptée à sa situation.
+export function motifDepose(
+  etat: EtatOngles | null,
+  typeActuel: TypePose | null
+): string | null {
+  if (!deposeImposee(etat, typeActuel)) return null;
+  if (etat === "POSE_EXTERIEURE") {
+    return "Zélia ne remplit pas une pose réalisée par une autre prothésiste : elle sera retirée avant la nouvelle.";
+  }
+  if (typeActuel === "GEL_X") {
+    return "les capsules Gel X se retirent, elles ne se remplissent pas.";
+  }
+  return "votre vernis semi-permanent est retiré avant la nouvelle pose.";
 }
 
 // Ongles nus : ni dépose ni remplissage n'ont de sens.
