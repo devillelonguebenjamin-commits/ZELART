@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { formatPrix, totalTarifs } from "@/lib/format";
+import { stockageConfigure } from "@/lib/blob";
+import FicheTechnique from "@/components/FicheTechnique";
 import { enregistrerNotesCliente } from "@/actions/admin";
 import {
   basculerConsentement,
@@ -33,12 +35,17 @@ export default async function FicheCliente({
       recompenses: { include: { lot: true }, orderBy: { gagneLe: "desc" } },
       filleules: { select: { id: true, prenom: true, nom: true } },
       rendezVous: {
-        include: { lignes: { include: { prestation: true }, orderBy: { ordre: "asc" } } },
+        include: {
+          lignes: { include: { prestation: true }, orderBy: { ordre: "asc" } },
+          realisations: { orderBy: { creeLe: "asc" } },
+        },
         orderBy: { debut: "desc" },
       },
     },
   });
   if (!cliente) notFound();
+
+  const stockagePret = stockageConfigure();
 
   return (
     <div className="space-y-8">
@@ -191,21 +198,35 @@ export default async function FicheCliente({
         </h2>
         <div className="mt-3 grid gap-2">
           {cliente.rendezVous.map((rdv) => (
-            <div
-              key={rdv.id}
-              className="flex flex-wrap items-baseline justify-between gap-2 rounded-2xl border border-pink-100 bg-white px-5 py-3 text-sm"
-            >
-              <span className="capitalize">
-                {formatJour(rdv.debut)} · {formatHeure(rdv.debut)}
-              </span>
-              <span>{rdv.lignes.map((l) => l.prestation.nom).join(" + ")}</span>
-              <span className="font-medium text-pink-600">
-                {(() => {
-                  const t = totalTarifs(rdv.lignes.map((l) => l.prestation));
-                  return formatPrix(t.prixCents, t.aPartirDe);
-                })()}
-              </span>
-              <span className="text-foreground/60">{LIBELLES_STATUT[rdv.statut] ?? rdv.statut}</span>
+            <div key={rdv.id} className="rounded-2xl border border-pink-100 bg-white px-5 py-3 text-sm">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="capitalize">
+                  {formatJour(rdv.debut)} · {formatHeure(rdv.debut)}
+                </span>
+                <span>{rdv.lignes.map((l) => l.prestation.nom).join(" + ")}</span>
+                <span className="font-medium text-pink-600">
+                  {(() => {
+                    const t = totalTarifs(rdv.lignes.map((l) => l.prestation));
+                    return formatPrix(t.prixCents, t.aPartirDe);
+                  })()}
+                </span>
+                <span className="text-foreground/60">
+                  {LIBELLES_STATUT[rdv.statut] ?? rdv.statut}
+                </span>
+              </div>
+              <FicheTechnique
+                rendezVousId={rdv.id}
+                forme={rdv.forme}
+                longueur={rdv.longueur}
+                produits={rdv.produits}
+                noteTechnique={rdv.noteTechnique}
+                realisations={rdv.realisations.map((r) => ({
+                  id: r.id,
+                  url: r.url,
+                  publiee: r.publiee,
+                }))}
+                stockagePret={stockagePret}
+              />
             </div>
           ))}
           {cliente.rendezVous.length === 0 && (

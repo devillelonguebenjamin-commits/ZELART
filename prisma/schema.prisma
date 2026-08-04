@@ -220,6 +220,14 @@ model RendezVous {
   rappelEnvoyeLe   DateTime?
   relanceEnvoyeeLe DateTime?
 
+  // Fiche technique remplie par Zélia après la pose : ce qu'elle a
+  // réellement fait, pour reproduire à l'identique et suivre les réactions.
+  forme       String?
+  longueur    String?
+  produits    String? // références de gels, couleurs, marques
+  noteTechnique String?
+  realisations Realisation[]
+
   inspirations InspirationImage[]
 
   @@index([debut])
@@ -230,6 +238,19 @@ model Parametre {
   cle       String   @id
   valeur    String
   modifieLe DateTime @updatedAt
+}
+
+// Photos de la pose réalisée, prises par Zélia. Peuvent alimenter la galerie
+// publique d'un clic.
+model Realisation {
+  id           String     @id @default(cuid())
+  url          String
+  rendezVous   RendezVous @relation(fields: [rendezVousId], references: [id], onDelete: Cascade)
+  rendezVousId String
+  publiee      Boolean    @default(false)
+  creeLe       DateTime   @default(now())
+
+  @@index([rendezVousId])
 }
 
 // Photos d'inspiration jointes par la cliente à sa demande de rendez-vous.

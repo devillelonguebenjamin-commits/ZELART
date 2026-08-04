@@ -5,10 +5,21 @@ import { formatPrix, grouperParCategorie } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function Accueil() {
-  const [prestations, photos] = await Promise.all([
+  const [prestations, photos, realisations] = await Promise.all([
     prisma.prestation.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
     prisma.photo.findMany({ orderBy: [{ ordre: "asc" }, { creeLe: "desc" }], take: 12 }),
+    prisma.realisation.findMany({
+      where: { publiee: true },
+      orderBy: { creeLe: "desc" },
+      take: 12,
+      select: { id: true, url: true },
+    }),
   ]);
+  // La galerie réunit les photos ajoutées à la main et les réalisations publiées.
+  const visuels = [
+    ...photos.map((p) => ({ id: p.id, url: p.url, legende: p.legende })),
+    ...realisations.map((r) => ({ id: r.id, url: r.url, legende: null as string | null })),
+  ].slice(0, 16);
   const categories = grouperParCategorie(prestations);
 
   return (
@@ -83,11 +94,11 @@ export default async function Accueil() {
       </section>
 
       {/* Galerie */}
-      {photos.length > 0 && (
+      {visuels.length > 0 && (
         <section id="galerie" className="scroll-mt-20 py-10">
           <h2 className="font-display text-center text-3xl font-bold">Mes réalisations 💅</h2>
           <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-            {photos.map((photo) => (
+            {visuels.map((photo) => (
               <figure
                 key={photo.id}
                 className="overflow-hidden rounded-2xl border border-pink-100 bg-white"
