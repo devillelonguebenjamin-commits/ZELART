@@ -48,6 +48,22 @@ fuseau `Europe/Paris` quel que soit le fuseau du serveur.
 3. `/confirmation/[id]` — récapitulatif ; la demande reste **en attente** jusqu'à la confirmation
    par Zélia (acompte de 15 € via SumUp pour les nouvelles clientes, cf. CGV).
 
+### Règles selon l'état des ongles
+
+La première étape demande ce que la cliente porte à son arrivée, puis le catalogue est filtré
+(`src/lib/regles.ts`, revalidé côté serveur car le formulaire est contournable) :
+
+| État à l'arrivée | Remplissage | Dépose |
+| --- | --- | --- |
+| Ongles nus | non proposé | non proposé |
+| Pose faite ailleurs | jamais — Zélia ne reprend pas le travail d'une autre | ajoutée d'office |
+| Pose Zelart, gainage ou Pop-it | proposé, dans la même technique | libre |
+| Pose Zelart, Gel X | jamais — les capsules se retirent | ajoutée d'office |
+| Pose Zelart, vernis semi-permanent | aucun remplissage au tarif | libre |
+
+La dépose ajoutée d'office correspond à la technique déclarée, s'ajoute au prix affiché et à la
+durée du rendez-vous. Une dépose seule reste réservable et n'en déclenche pas une seconde.
+
 La dernière étape comporte une section **inspiration** : la cliente décrit ses envies et joint
 jusqu'à 3 photos, que Zélia retrouve sur la demande dans son agenda. La route d'envoi
 `/api/inspirations/upload` est publique par nécessité — elle est donc bornée par le type MIME, un

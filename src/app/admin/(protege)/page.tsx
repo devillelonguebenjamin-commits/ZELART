@@ -9,8 +9,21 @@ import type { Prisma } from "@/generated/prisma/client";
 export const dynamic = "force-dynamic";
 
 type RdvComplet = Prisma.RendezVousGetPayload<{
-  include: { cliente: true; prestation: true; inspirations: true };
+  include: { cliente: true; prestation: true; inspirations: true; depose: true };
 }>;
+
+const LIBELLE_ETAT: Record<string, string> = {
+  NATUREL: "ongles nus",
+  POSE_ZELART: "pose Zelart",
+  POSE_EXTERIEURE: "pose faite ailleurs",
+};
+
+const LIBELLE_POSE: Record<string, string> = {
+  VSP: "vernis semi-permanent",
+  GAINAGE: "gainage",
+  GEL_X: "Gel X",
+  POP_IT: "Pop-it",
+};
 
 const BADGES: Record<string, { label: string; classes: string }> = {
   EN_ATTENTE: { label: "En attente", classes: "bg-amber-100 text-amber-800" },
@@ -65,7 +78,22 @@ function CarteRdv({
         <span className="font-medium text-pink-600">
           {formatPrix(rdv.prestation.prixCents, rdv.prestation.aPartirDe)}
         </span>
+        {rdv.depose && (
+          <>
+            {" + "}
+            {rdv.depose.nom} —{" "}
+            <span className="font-medium text-pink-600">
+              {formatPrix(rdv.depose.prixCents, rdv.depose.aPartirDe)}
+            </span>
+          </>
+        )}
       </p>
+      {rdv.etatOngles && (
+        <p className="mt-1 text-xs text-foreground/60">
+          Ongles à l&rsquo;arrivée : {LIBELLE_ETAT[rdv.etatOngles]}
+          {rdv.typePoseActuel ? ` (${LIBELLE_POSE[rdv.typePoseActuel]})` : ""}
+        </p>
+      )}
       <p className="mt-1 text-sm text-foreground/70">
         <Link href={`/admin/clientes/${rdv.cliente.id}`} className="font-medium text-pink-600 hover:underline">
           {rdv.cliente.prenom} {rdv.cliente.nom}
@@ -163,7 +191,7 @@ export default async function Agenda() {
   const [rdvs, acompte] = await Promise.all([
     prisma.rendezVous.findMany({
       where: { debut: { gte: ilYa14Jours } },
-      include: { cliente: true, prestation: true, inspirations: true },
+      include: { cliente: true, prestation: true, inspirations: true, depose: true },
       orderBy: { debut: "asc" },
     }),
     reglagesAcompte(),
