@@ -4,6 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { formatPrix, totalTarifs } from "@/lib/format";
 import { stockageConfigure } from "@/lib/blob";
+import {
+  COULEUR_STATUT,
+  LIBELLE_REMISE,
+  LIBELLE_STATUT,
+  totalCommande,
+} from "@/lib/press-on";
 import FicheTechnique from "@/components/FicheTechnique";
 import { enregistrerNotesCliente } from "@/actions/admin";
 import {
@@ -34,6 +40,7 @@ export default async function FicheCliente({
       parraine: { select: { id: true, prenom: true, nom: true } },
       recompenses: { include: { lot: true }, orderBy: { gagneLe: "desc" } },
       filleules: { select: { id: true, prenom: true, nom: true } },
+      commandes: { include: { modele: true }, orderBy: { creeLe: "desc" } },
       rendezVous: {
         include: {
           lignes: { include: { prestation: true }, orderBy: { ordre: "asc" } },
@@ -94,6 +101,38 @@ export default async function FicheCliente({
               </div>
             ))}
           </div>
+        </section>
+      )}
+
+      {cliente.commandes.length > 0 && (
+        <section className="rounded-2xl border border-pink-100 bg-white p-5">
+          <h2 className="font-semibold">Commandes de press-on</h2>
+          <ul className="mt-3 space-y-2 text-sm">
+            {cliente.commandes.map((commande) => {
+              const total = totalCommande(commande);
+              return (
+                <li key={commande.id}>
+                  <Link
+                    href={`/admin/press-on/${commande.id}`}
+                    className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-xl border border-pink-50 px-4 py-2 transition hover:border-pink-200"
+                  >
+                    <span className="font-medium">{commande.modele.nom}</span>
+                    <span className="text-xs text-foreground/60">
+                      {formatJour(commande.creeLe)} · {LIBELLE_REMISE[commande.modeRemise]}
+                    </span>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${COULEUR_STATUT[commande.statut]}`}
+                    >
+                      {LIBELLE_STATUT[commande.statut]}
+                    </span>
+                    <span className="font-medium text-pink-600">
+                      {formatPrix(total.prixCents, total.aPartirDe)}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </section>
       )}
 
@@ -240,9 +279,11 @@ export default async function FicheCliente({
       <section className="rounded-2xl border border-red-100 bg-red-50/50 p-5">
         <h2 className="font-semibold text-red-900">Effacer cette fiche</h2>
         <p className="mt-1 text-sm text-red-900/80">
-          Supprime définitivement {cliente.prenom} {cliente.nom}, ses coordonnées, ses notes et ses{" "}
-          {cliente.rendezVous.length} rendez-vous. Cette action est irréversible et répond aux
-          demandes de suppression de données.
+          Supprime définitivement {cliente.prenom} {cliente.nom}, ses coordonnées, ses notes, ses{" "}
+          {cliente.rendezVous.length} rendez-vous
+          {cliente.commandes.length > 0 &&
+            ` et ses ${cliente.commandes.length} commande${cliente.commandes.length > 1 ? "s" : ""} de press-on`}
+          . Cette action est irréversible et répond aux demandes de suppression de données.
         </p>
         <form action={supprimerCliente.bind(null, cliente.id)} className="mt-3">
           <button

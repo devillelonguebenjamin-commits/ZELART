@@ -50,6 +50,29 @@ export default function MentionsLegales() {
         </section>
 
         <section>
+          <h2 className="font-display text-xl font-bold text-foreground">Press-on nails</h2>
+          <p className="mt-2">
+            Tous les press-on sont réalisés sur-mesure après échange avec la cliente. La remise
+            s&rsquo;effectue en main propre, directement ou par un intermédiaire (proche,
+            connaissance). Un envoi par voie postale est possible à la demande : les frais de
+            livraison sont à la charge de la cliente et lui sont communiqués avant la validation de
+            la commande. La prestataire ne saurait être tenue responsable des retards, pertes ou
+            détériorations imputables aux services postaux.
+          </p>
+          <p className="mt-2">
+            Les press-on étant des produits personnalisés, le paiement intégral est exigé avant
+            toute fabrication. En cas de remise en main propre, le règlement peut être effectué au
+            moment de la remise. En cas d&rsquo;envoi postal, le règlement (produits et frais de
+            livraison inclus) doit être reçu avant toute fabrication et expédition ; à défaut, la
+            commande est annulée.
+          </p>
+          <p className="mt-2">
+            Les press-on étant personnalisés, aucun retour ni remboursement n&rsquo;est accepté. En
+            cas de défaut visible lors de la remise, un échange ou un ajustement peut être proposé.
+          </p>
+        </section>
+
+        <section>
           <h2 className="font-display text-xl font-bold text-foreground">Propriété intellectuelle</h2>
           <p className="mt-2">
             Les photographies de réalisations présentées sur ce site sont la propriété de Zélia

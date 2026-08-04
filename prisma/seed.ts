@@ -49,6 +49,33 @@ const prestations = [
   { categorie: "Pose Pop-it", nom: "Dépose Pop-it", prixCents: 3000, dureeMin: 45, description: "Entre 30 € et 35 € selon la longueur.", aPartirDe: true },
 ];
 
+// Catalogue press-on : sets sur-mesure tarifés au niveau de nail art, puis les
+// collections déjà dessinées (les prix sont ceux de l'ancien site).
+const DESC_SUR_MESURE = "Un set entièrement dessiné selon vos envies.";
+
+const modelesPressOn = [
+  { collection: "Sur-mesure", nom: "Set personnalisé — VSP simple", prixCents: 5000, surMesure: true, description: DESC_SUR_MESURE },
+  { collection: "Sur-mesure", nom: "Set personnalisé + nail art niveau 1", prixCents: 5500, surMesure: true, description: DESC_SUR_MESURE },
+  { collection: "Sur-mesure", nom: "Set personnalisé + nail art niveau 2", prixCents: 6000, surMesure: true, description: DESC_SUR_MESURE },
+  { collection: "Sur-mesure", nom: "Set personnalisé + nail art niveau 3", prixCents: 6500, surMesure: true, aPartirDe: true, description: DESC_SUR_MESURE },
+  // Collection Automne / Hiver
+  { collection: "Automne / Hiver", nom: "Gold brown", prixCents: 7500 },
+  { collection: "Automne / Hiver", nom: "Léor", prixCents: 7500 },
+  { collection: "Automne / Hiver", nom: "Cherry", prixCents: 6500 },
+  { collection: "Automne / Hiver", nom: "Mirror dot", prixCents: 6000 },
+  { collection: "Automne / Hiver", nom: "French dot", prixCents: 6000 },
+  // Capsule Halloween
+  { collection: "Capsule Halloween", nom: "Alice", prixCents: 8000 },
+  { collection: "Capsule Halloween", nom: "It", prixCents: 7500 },
+  { collection: "Capsule Halloween", nom: "Scream", prixCents: 6500 },
+  // Collection Printemps / Été
+  { collection: "Printemps / Été", nom: "Chromix", prixCents: 7500 },
+  { collection: "Printemps / Été", nom: "Blue Aura", prixCents: 7000 },
+  { collection: "Printemps / Été", nom: "Delicate", prixCents: 6500 },
+  { collection: "Printemps / Été", nom: "Sunny Berry", prixCents: 6000 },
+  { collection: "Printemps / Été", nom: "Daisy", prixCents: 5500 },
+];
+
 // Rendez-vous du lundi au samedi, à 9h ou 14h (une cliente par créneau)
 const disponibilites = [1, 2, 3, 4, 5, 6].flatMap((jourSemaine) => [
   { jourSemaine, heureDebut: "09:00", heureFin: "12:30" },
@@ -81,6 +108,15 @@ async function main() {
     console.log(`${prestations.length} prestations créées`);
   } else {
     console.log("Prestations déjà présentes, seed ignoré");
+  }
+
+  if ((await prisma.modelePressOn.count()) === 0) {
+    await prisma.modelePressOn.createMany({
+      data: modelesPressOn.map((m, i) => ({ ...m, ordre: i })),
+    });
+    console.log(`${modelesPressOn.length} modèles de press-on créés`);
+  } else {
+    console.log("Modèles de press-on déjà présents, seed ignoré");
   }
 
   if ((await prisma.disponibilite.count()) === 0) {

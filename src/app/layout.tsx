@@ -39,6 +39,9 @@ export default function RootLayout({
               <Link href="/#infos" className="hidden text-foreground/80 hover:text-pink-500 sm:block">
                 Infos pratiques
               </Link>
+              <Link href="/press-on" className="text-foreground/80 hover:text-pink-500">
+                Press-on
+              </Link>
               <Link href="/mon-espace" className="text-foreground/80 hover:text-pink-500">
                 Mon espace
               </Link>

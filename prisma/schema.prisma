@@ -35,6 +35,7 @@ model Cliente {
   envois      EnvoiCampagne[]
   jetons      JetonConnexion[]
   recompenses Recompense[]
+  commandes   CommandePressOn[]
 }
 
 // Lots de la roue, entièrement gérés depuis l'espace gérante.
@@ -262,6 +263,93 @@ model InspirationImage {
   creeLe       DateTime   @default(now())
 
   @@index([rendezVousId])
+}
+
+// Catalogue des press-on : les sets sur-mesure (tarifés par niveau de nail art)
+// et les collections déjà dessinées, prêtes à commander.
+model ModelePressOn {
+  id          String  @id @default(cuid())
+  nom         String
+  collection  String // "Sur-mesure", "Automne / Hiver", "Capsule Halloween", "Printemps / Été"
+  description String?
+  prixCents   Int
+  aPartirDe   Boolean @default(false)
+  // Un set sur-mesure est dessiné d'après les envies décrites par la cliente ;
+  // un modèle de collection existe déjà, seules les mesures changent.
+  surMesure   Boolean @default(false)
+  photoUrl    String?
+  actif       Boolean @default(true)
+  ordre       Int     @default(0)
+
+  commandes CommandePressOn[]
+}
+
+// Remise en main propre (ou par un proche) ou envoi postal aux frais de la
+// cliente, annoncés avant validation — cf. CGV.
+enum ModeRemise {
+  MAIN_PROPRE
+  POSTAL
+}
+
+// Les press-on étant personnalisés, le paiement intégral précède la
+// fabrication : le statut suit cette chronologie.
+enum StatutCommandePressOn {
+  DEMANDE
+  A_PAYER
+  PAYEE
+  EN_FABRICATION
+  PRETE
+  REMISE
+  ANNULEE
+}
+
+model CommandePressOn {
+  id        String        @id @default(cuid())
+  cliente   Cliente       @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String
+  modele    ModelePressOn @relation(fields: [modeleId], references: [id])
+  modeleId  String
+
+  // Prix figé à la commande : le catalogue peut évoluer ensuite.
+  prixCents      Int
+  aPartirDe      Boolean @default(false)
+  fraisPortCents Int? // chiffrés par Zélia pour un envoi postal
+
+  modeRemise ModeRemise
+  adresse    String? // uniquement pour l'envoi postal
+
+  // Sur-mesure : ce que la cliente veut. Mesures : indispensables pour tailler
+  // les capsules, quel que soit le modèle.
+  forme       String?
+  longueur    String?
+  mesures     String?
+  inspiration String?
+
+  statut StatutCommandePressOn @default(DEMANDE)
+  note   String? // note interne de Zélia
+
+  paiementDemandeLe DateTime?
+  paiementRecuLe    DateTime?
+  remiseLe          DateTime?
+
+  creeLe    DateTime @default(now())
+  modifieLe DateTime @updatedAt
+
+  images ImagePressOn[]
+
+  @@index([clienteId])
+  @@index([statut])
+}
+
+// Photos jointes par la cliente à sa commande de press-on.
+model ImagePressOn {
+  id         String          @id @default(cuid())
+  url        String
+  commande   CommandePressOn @relation(fields: [commandeId], references: [id], onDelete: Cascade)
+  commandeId String
+  creeLe     DateTime        @default(now())
+
+  @@index([commandeId])
 }
 
 // EN_ATTENTE par défaut : Zélia confirme chaque demande à la main

@@ -11,6 +11,13 @@ import BoutonAnnulation from "@/components/BoutonAnnulation";
 import { annulationPossible, DELAI_ANNULATION_H } from "@/lib/annulation";
 import RoueFidelite from "@/components/RoueFidelite";
 import { reglagesRoue } from "@/lib/parametres";
+import {
+  COULEUR_STATUT,
+  LIBELLE_REMISE,
+  LIBELLE_STATUT,
+  MESSAGE_CLIENTE,
+  totalCommande,
+} from "@/lib/press-on";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +88,7 @@ export default async function MonEspace({
       },
       filleules: { select: { id: true, prenom: true, creeLe: true } },
       recompenses: { include: { lot: true }, orderBy: { gagneLe: "desc" } },
+      commandes: { include: { modele: true }, orderBy: { creeLe: "desc" } },
     },
   });
   if (!cliente) return null;
@@ -199,6 +207,47 @@ export default async function MonEspace({
                 </span>
               </div>
             ))}
+          </div>
+        </section>
+      )}
+
+      {/* Commandes de press-on */}
+      {cliente.commandes.length > 0 && (
+        <section>
+          <h2 className="font-display text-xl font-bold">Mes press-on</h2>
+          <div className="mt-3 grid gap-2">
+            {cliente.commandes.map((commande) => {
+              const total = totalCommande(commande);
+              return (
+                <div
+                  key={commande.id}
+                  className="rounded-2xl border border-pink-100 bg-white px-5 py-4 text-sm"
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="font-semibold">{commande.modele.nom}</span>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${COULEUR_STATUT[commande.statut]}`}
+                    >
+                      {LIBELLE_STATUT[commande.statut]}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-foreground/70">
+                    {MESSAGE_CLIENTE[commande.statut]}
+                  </p>
+                  <p className="mt-2 flex flex-wrap justify-between gap-x-4 text-xs text-foreground/60">
+                    <span>
+                      {LIBELLE_REMISE[commande.modeRemise]}
+                      {commande.modeRemise === "POSTAL" && commande.fraisPortCents === null
+                        ? " — frais d'envoi à confirmer"
+                        : ""}
+                    </span>
+                    <span className="font-medium text-pink-600">
+                      {formatPrix(total.prixCents, total.aPartirDe)}
+                    </span>
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </section>
       )}

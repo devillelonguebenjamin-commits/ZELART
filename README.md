@@ -37,6 +37,9 @@ npm run dev
 | `RendezVous` | Créneau réservé, statut `EN_ATTENTE` par défaut (Zélia confirme à la main) |
 | `LignePrestation` | Prestations d'une demande : la cliente peut en cocher plusieurs, la dépose imposée s'y ajoute avec `automatique = true` |
 | `InspirationImage` | Photos d'inspiration jointes par la cliente à sa demande |
+| `ModelePressOn` | Catalogue des press-on : sets sur-mesure et collections déjà dessinées |
+| `CommandePressOn` | Commande d'un set : mode de remise, frais de port, statut de fabrication |
+| `ImagePressOn` | Photos jointes par la cliente à sa commande de press-on |
 
 Les créneaux libres sont **calculés à la volée** (`src/lib/creneaux.ts`) : fenêtres récurrentes,
 moins les indisponibilités et les rendez-vous actifs. Les horaires sont interprétés dans le
@@ -122,6 +125,8 @@ Protégé par la variable d'environnement `ADMIN_PASSWORD` (session par cookie s
   point-virgule et BOM UTF-8 pour Excel en français), fiche détaillée avec historique, notes
   privées, accord aux offres et suppression définitive.
 - **Prestations** : édition des prix, durées, visibilité.
+- **Press-on** : commandes reçues (chiffrage des frais d'envoi, envoi de la demande de règlement,
+  avancement de la fabrication, note interne) et catalogue des sets affichés sur `/press-on`.
 - **Congés** : blocage de périodes, immédiatement retirées des créneaux publics.
 - **Galerie** : upload de photos affichées sur l'accueil.
 
@@ -210,8 +215,23 @@ Alternative sans achat de domaine : basculer sur [Brevo](https://brevo.com) (`BR
 autorise l'envoi vers n'importe quel destinataire ; l'adresse expéditrice se valide en cliquant un
 lien reçu dans la boîte concernée.
 
+## Commandes de press-on (`/press-on`)
+
+La vente de press-on est une activité à part entière, distincte des rendez-vous : elle a donc son
+propre parcours, sans créneau ni agenda.
+
+1. La cliente choisit un set — sur-mesure (tarifé au niveau de nail art) ou modèle de collection —
+   décrit ses envies, joint des photos, indique la forme, la longueur et ses mesures.
+2. Elle choisit la remise **en main propre** ou **par la poste** ; l'adresse devient alors
+   obligatoire, les frais d'envoi restant à sa charge (cf. CGV).
+3. Zélia reçoit la commande dans `/admin/press-on`, chiffre les frais d'envoi le cas échéant, puis
+   envoie la demande de règlement (lien SumUp des réglages).
+4. Les press-on étant personnalisés, **le règlement précède la fabrication** : le parcours de statuts
+   suit cet ordre (demande → à régler → réglée → en fabrication → prête → remise). Le passage à
+   « prête » prévient la cliente par e-mail.
+
+La cliente suit l'avancement de sa commande depuis `/mon-espace`.
+
 ## Prochaines étapes envisagées
 
-- Commandes de press-on nails (sets personnalisés et collections).
-- Rappels automatiques avant le rendez-vous (e-mail/SMS).
-- Compression automatique des photos à l'envoi dans la galerie.
+- Tableau de bord des chiffres (chiffre d'affaires, prestations les plus demandées, panier moyen).
