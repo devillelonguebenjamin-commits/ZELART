@@ -4,7 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { formatPrix, totalTarifs } from "@/lib/format";
 import { enregistrerNotesCliente } from "@/actions/admin";
-import { basculerConsentement, supprimerCliente } from "@/actions/clientes";
+import {
+  basculerConsentement,
+  marquerRecompenseUtilisee,
+  supprimerCliente,
+} from "@/actions/clientes";
+import { lotParId } from "@/lib/roue";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +31,7 @@ export default async function FicheCliente({
     where: { id },
     include: {
       parraine: { select: { id: true, prenom: true, nom: true } },
+      recompenses: { orderBy: { gagneLe: "desc" } },
       filleules: { select: { id: true, prenom: true, nom: true } },
       rendezVous: {
         include: { lignes: { include: { prestation: true }, orderBy: { ordre: "asc" } } },
@@ -49,6 +55,41 @@ export default async function FicheCliente({
           <a href={`mailto:${cliente.email}`} className="hover:underline">{cliente.email}</a>
         </p>
       </div>
+
+      {cliente.recompenses.length > 0 && (
+        <section className="rounded-2xl border border-pink-100 bg-white p-5">
+          <h2 className="font-semibold">Récompenses gagnées à la roue</h2>
+          <p className="mt-1 text-xs text-foreground/60">
+            La cliente présente son code ; marquez la récompense comme utilisée une fois honorée.
+          </p>
+          <div className="mt-3 grid gap-2">
+            {cliente.recompenses.map((recompense) => (
+              <div
+                key={recompense.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-pink-50 px-4 py-2.5 text-sm"
+              >
+                <span className={recompense.utiliseLe ? "text-foreground/50 line-through" : "font-medium"}>
+                  {lotParId(recompense.lot).court}
+                </span>
+                <span className="font-mono text-xs">{recompense.code}</span>
+                <span className="text-xs text-foreground/60">
+                  {recompense.utiliseLe
+                    ? `utilisée le ${formatJour(recompense.utiliseLe)}`
+                    : `gagnée le ${formatJour(recompense.gagneLe)}`}
+                </span>
+                <form action={marquerRecompenseUtilisee.bind(null, recompense.id, !recompense.utiliseLe)}>
+                  <button
+                    type="submit"
+                    className="rounded-full border border-pink-300 bg-white px-3 py-1 text-xs font-medium text-pink-600 transition hover:bg-pink-100"
+                  >
+                    {recompense.utiliseLe ? "Annuler" : "Marquer utilisée"}
+                  </button>
+                </form>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="rounded-2xl border border-pink-100 bg-white p-5">
         <h2 className="font-semibold">Parrainage</h2>

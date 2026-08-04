@@ -91,6 +91,18 @@ export async function enregistrerCommentaire(
   revalidatePath(`/admin/clientes/${clienteId}`);
 }
 
+export async function marquerRecompenseUtilisee(
+  recompenseId: string,
+  utilisee: boolean
+): Promise<void> {
+  await exigerAdmin();
+  const recompense = await prisma.recompense.update({
+    where: { id: recompenseId },
+    data: { utiliseLe: utilisee ? new Date() : null },
+  });
+  revalidatePath(`/admin/clientes/${recompense.clienteId}`);
+}
+
 // Droit à l'effacement : supprime la cliente et tout son historique.
 export async function supprimerCliente(clienteId: string): Promise<void> {
   await exigerAdmin();

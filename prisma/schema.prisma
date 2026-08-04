@@ -32,8 +32,29 @@ model Cliente {
   creeLe     DateTime         @default(now())
   modifieLe  DateTime         @updatedAt
   rendezVous RendezVous[]
-  envois     EnvoiCampagne[]
-  jetons     JetonConnexion[]
+  envois      EnvoiCampagne[]
+  jetons      JetonConnexion[]
+  recompenses Recompense[]
+}
+
+// Lot gagné à la roue de fidélité, présenté au salon par la cliente.
+model Recompense {
+  id        String    @id @default(cuid())
+  cliente   Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String
+  lot       LotRoue
+  code      String    @unique
+  gagneLe   DateTime  @default(now())
+  utiliseLe DateTime?
+
+  @@index([clienteId])
+}
+
+enum LotRoue {
+  POSE_MOINS_50
+  PORTE_CLEF
+  MOINS_5
+  INAKA_10
 }
 
 // Lien de connexion à usage unique et à durée limitée.

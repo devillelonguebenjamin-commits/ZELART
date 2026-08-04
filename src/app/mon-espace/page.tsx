@@ -7,6 +7,8 @@ import { formatPrix, totalTarifs } from "@/lib/format";
 import { deconnexionCliente } from "@/actions/espace-cliente";
 import FormulaireLienConnexion from "@/components/FormulaireLienConnexion";
 import BoutonAccordOffres from "@/components/BoutonAccordOffres";
+import RoueFidelite from "@/components/RoueFidelite";
+import { lotParId } from "@/lib/roue";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +77,7 @@ export default async function MonEspace({
         orderBy: { debut: "desc" },
       },
       filleules: { select: { id: true, prenom: true, creeLe: true } },
+      recompenses: { orderBy: { gagneLe: "desc" } },
     },
   });
   if (!cliente) return null;
@@ -154,6 +157,38 @@ export default async function MonEspace({
           )}
         </div>
       </section>
+
+      <RoueFidelite
+        posesRealisees={realises.length}
+        toursJoues={cliente.recompenses.length}
+      />
+
+      {/* Récompenses gagnées */}
+      {cliente.recompenses.length > 0 && (
+        <section>
+          <h2 className="font-display text-xl font-bold">Mes récompenses</h2>
+          <div className="mt-3 grid gap-2">
+            {cliente.recompenses.map((recompense) => (
+              <div
+                key={recompense.id}
+                className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-2xl border px-5 py-3 text-sm ${
+                  recompense.utiliseLe
+                    ? "border-pink-100 bg-pink-50/50 text-foreground/50"
+                    : "border-pink-200 bg-white"
+                }`}
+              >
+                <span className="font-medium">{lotParId(recompense.lot).court}</span>
+                <span className="font-mono text-xs tracking-wider">{recompense.code}</span>
+                <span className="text-xs">
+                  {recompense.utiliseLe
+                    ? `utilisée le ${formatJour(recompense.utiliseLe)}`
+                    : `gagnée le ${formatJour(recompense.gagneLe)}`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Parrainage */}
       <section className="rounded-3xl bg-pink-50 p-6 sm:p-8">
