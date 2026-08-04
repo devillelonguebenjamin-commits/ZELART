@@ -1,80 +1,41 @@
 import { randomInt } from "crypto";
-import type { LotRoue } from "@/generated/prisma/client";
 
-export const POSES_PAR_TOUR = 3;
+export const POSES_PAR_TOUR_DEFAUT = 3;
 
-export type Lot = {
-  id: LotRoue;
+export type LotPublic = {
+  id: string;
   libelle: string;
-  court: string;
-  chance: number; // en pourcentage
-  couleur: string;
   texteSurRoue: string;
+  chance: number;
+  couleur: string;
   aRetirerAuSalon: boolean;
 };
 
-// L'ordre définit la disposition des quartiers sur la roue. Le dernier lot
-// prend « le reste » : sa chance est déduite des autres, ce qui garantit un
-// total de 100 % même si un pourcentage est ajusté plus tard.
-const LOTS_DECLARES: Lot[] = [
-  {
-    id: "POSE_MOINS_50",
-    libelle: "Votre prochaine pose à −50 %",
-    court: "−50 % sur la prochaine pose",
-    chance: 1,
-    couleur: "#be185d",
-    texteSurRoue: "−50 %",
-    aRetirerAuSalon: true,
-  },
-  {
-    id: "PORTE_CLEF",
-    libelle: "Un porte-clefs nail art offert",
-    court: "Porte-clefs nail art offert",
-    chance: 10,
-    couleur: "#ec4899",
-    texteSurRoue: "Porte-clefs",
-    aRetirerAuSalon: true,
-  },
-  {
-    id: "MOINS_5",
-    libelle: "−5 % sur votre prochaine pose",
-    court: "−5 % sur la prochaine pose",
-    chance: 30,
-    couleur: "#f9a8d4",
-    texteSurRoue: "−5 %",
-    aRetirerAuSalon: true,
-  },
-  {
-    id: "INAKA_10",
-    libelle: "−10 % sur le site INAKA",
-    court: "−10 % sur INAKA",
-    chance: 0, // remplacé ci-dessous par le complément à 100
-    couleur: "#fbcfe8",
-    texteSurRoue: "−10 % INAKA",
-    aRetirerAuSalon: false,
-  },
-];
+// Les chances sont des poids : la part réelle d'un lot est sa chance rapportée
+// au total. La roue reste donc cohérente même si Zélia ne tombe pas sur 100.
+export function totalChances(lots: { chance: number }[]): number {
+  return lots.reduce((somme, lot) => somme + Math.max(0, lot.chance), 0);
+}
 
-const CHANCES_FIXES = LOTS_DECLARES.slice(0, -1).reduce((s, l) => s + l.chance, 0);
-
-export const LOTS: Lot[] = LOTS_DECLARES.map((lot, i) =>
-  i === LOTS_DECLARES.length - 1 ? { ...lot, chance: 100 - CHANCES_FIXES } : lot
-);
-
-export function lotParId(id: LotRoue): Lot {
-  return LOTS.find((l) => l.id === id) ?? LOTS[LOTS.length - 1];
+export function partEffective(lot: { chance: number }, lots: { chance: number }[]): number {
+  const total = totalChances(lots);
+  if (total <= 0) return 0;
+  return (Math.max(0, lot.chance) / total) * 100;
 }
 
 // Tirage côté serveur uniquement : le navigateur ne fait qu'animer un
 // résultat déjà décidé, il ne peut donc pas l'influencer.
-export function tirerLot(): Lot {
-  const tirage = randomInt(0, 100); // 0 à 99
+export function tirerLot<T extends { chance: number }>(lots: T[]): T | null {
+  const total = totalChances(lots);
+  if (lots.length === 0 || total <= 0) return null;
+
+  const tirage = randomInt(0, total);
   let cumul = 0;
-  for (const lot of LOTS) {
-    cumul += lot.chance;
+  for (const lot of lots) {
+    cumul += Math.max(0, lot.chance);
     if (tirage < cumul) return lot;
   }
-  return LOTS[LOTS.length - 1];
+  return lots[lots.length - 1];
 }
 
 export function codeRecompense(): string {
@@ -83,11 +44,21 @@ export function codeRecompense(): string {
   return `GAIN-${tirage.join("")}`;
 }
 
-// Un tour est offert toutes les POSES_PAR_TOUR poses réalisées.
-export function toursDisponibles(posesRealisees: number, toursJoues: number): number {
-  return Math.max(0, Math.floor(posesRealisees / POSES_PAR_TOUR) - toursJoues);
+// Un tour est offert à chaque palier de poses réalisées.
+export function toursDisponibles(
+  posesRealisees: number,
+  toursJoues: number,
+  posesParTour: number
+): number {
+  if (posesParTour <= 0) return 0;
+  return Math.max(0, Math.floor(posesRealisees / posesParTour) - toursJoues);
 }
 
-export function progressionJauge(posesRealisees: number, toursJoues: number): number {
-  return posesRealisees - toursJoues * POSES_PAR_TOUR;
+export function progressionJauge(
+  posesRealisees: number,
+  toursJoues: number,
+  posesParTour: number
+): number {
+  if (posesParTour <= 0) return 0;
+  return Math.min(posesParTour, posesRealisees - toursJoues * posesParTour);
 }

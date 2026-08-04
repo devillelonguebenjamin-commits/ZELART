@@ -37,24 +37,32 @@ model Cliente {
   recompenses Recompense[]
 }
 
+// Lots de la roue, entièrement gérés depuis l'espace gérante.
+model LotFidelite {
+  id              String  @id @default(cuid())
+  libelle         String // texte complet annoncé à la gagnante
+  texteSurRoue    String // version courte affichée sur le quartier
+  chance          Int // poids du tirage ; la part effective est calculée sur le total
+  couleur         String  @default("#f9a8d4")
+  aRetirerAuSalon Boolean @default(true)
+  actif           Boolean @default(true)
+  ordre           Int     @default(0)
+
+  recompenses Recompense[]
+}
+
 // Lot gagné à la roue de fidélité, présenté au salon par la cliente.
 model Recompense {
-  id        String    @id @default(cuid())
-  cliente   Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  id        String      @id @default(cuid())
+  cliente   Cliente     @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   clienteId String
-  lot       LotRoue
-  code      String    @unique
-  gagneLe   DateTime  @default(now())
+  lot       LotFidelite @relation(fields: [lotId], references: [id])
+  lotId     String
+  code      String      @unique
+  gagneLe   DateTime    @default(now())
   utiliseLe DateTime?
 
   @@index([clienteId])
-}
-
-enum LotRoue {
-  POSE_MOINS_50
-  PORTE_CLEF
-  MOINS_5
-  INAKA_10
 }
 
 // Lien de connexion à usage unique et à durée limitée.

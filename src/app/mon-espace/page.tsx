@@ -8,7 +8,7 @@ import { deconnexionCliente } from "@/actions/espace-cliente";
 import FormulaireLienConnexion from "@/components/FormulaireLienConnexion";
 import BoutonAccordOffres from "@/components/BoutonAccordOffres";
 import RoueFidelite from "@/components/RoueFidelite";
-import { lotParId } from "@/lib/roue";
+import { reglagesRoue } from "@/lib/parametres";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +69,7 @@ export default async function MonEspace({
     );
   }
 
+  const roue = await reglagesRoue();
   const cliente = await prisma.cliente.findUnique({
     where: { id: clienteId },
     include: {
@@ -77,7 +78,7 @@ export default async function MonEspace({
         orderBy: { debut: "desc" },
       },
       filleules: { select: { id: true, prenom: true, creeLe: true } },
-      recompenses: { orderBy: { gagneLe: "desc" } },
+      recompenses: { include: { lot: true }, orderBy: { gagneLe: "desc" } },
     },
   });
   if (!cliente) return null;
@@ -159,6 +160,8 @@ export default async function MonEspace({
       </section>
 
       <RoueFidelite
+        lots={roue.lots}
+        posesParTour={roue.posesParTour}
         posesRealisees={realises.length}
         toursJoues={cliente.recompenses.length}
       />
@@ -177,7 +180,7 @@ export default async function MonEspace({
                     : "border-pink-200 bg-white"
                 }`}
               >
-                <span className="font-medium">{lotParId(recompense.lot).court}</span>
+                <span className="font-medium">{recompense.lot.libelle}</span>
                 <span className="font-mono text-xs tracking-wider">{recompense.code}</span>
                 <span className="text-xs">
                   {recompense.utiliseLe

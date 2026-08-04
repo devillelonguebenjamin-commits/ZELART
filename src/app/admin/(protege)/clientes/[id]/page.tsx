@@ -9,7 +9,6 @@ import {
   marquerRecompenseUtilisee,
   supprimerCliente,
 } from "@/actions/clientes";
-import { lotParId } from "@/lib/roue";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +30,7 @@ export default async function FicheCliente({
     where: { id },
     include: {
       parraine: { select: { id: true, prenom: true, nom: true } },
-      recompenses: { orderBy: { gagneLe: "desc" } },
+      recompenses: { include: { lot: true }, orderBy: { gagneLe: "desc" } },
       filleules: { select: { id: true, prenom: true, nom: true } },
       rendezVous: {
         include: { lignes: { include: { prestation: true }, orderBy: { ordre: "asc" } } },
@@ -69,7 +68,7 @@ export default async function FicheCliente({
                 className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-pink-50 px-4 py-2.5 text-sm"
               >
                 <span className={recompense.utiliseLe ? "text-foreground/50 line-through" : "font-medium"}>
-                  {lotParId(recompense.lot).court}
+                  {recompense.lot.libelle}
                 </span>
                 <span className="font-mono text-xs">{recompense.code}</span>
                 <span className="text-xs text-foreground/60">

@@ -96,6 +96,22 @@ affiche la marraine et les filleules, à charge pour Zélia d'accorder la contre
 Pour ne pas révéler qui est cliente, la demande de lien répond toujours la même chose, que
 l'adresse existe ou non, et un envoi n'est possible qu'une fois par minute.
 
+### Roue de fidélité
+
+Une pose marquée `TERMINE` fait progresser la jauge de la cliente ; à chaque palier (réglable,
+3 par défaut) elle gagne un tour depuis son espace. Chaque gain produit un code à présenter au
+salon, que la gérante marque comme honoré depuis la fiche cliente.
+
+Le tirage a lieu **côté serveur** (`src/lib/roue.ts`), dans une transaction sérialisable qui
+revérifie la jauge : l'animation ne fait qu'afficher un résultat déjà décidé, et deux clics
+simultanés ne peuvent pas produire deux lots.
+
+Les lots vivent en base (`LotFidelite`) et se gèrent depuis `/admin/roue` : libellé, texte affiché
+sur le quartier, couleur, activation, et **chance exprimée en poids** — la part réelle est calculée
+sur le total des lots actifs, si bien qu'aucune saisie ne peut rendre la roue incohérente. La même
+page permet des tirages d'essai, sans gain enregistré ni jauge consommée. Un lot déjà gagné est
+désactivé plutôt que supprimé, pour ne pas rompre l'historique des récompenses.
+
 ## Espace gérante (`/admin`)
 
 Protégé par la variable d'environnement `ADMIN_PASSWORD` (session par cookie signé, 30 jours) :

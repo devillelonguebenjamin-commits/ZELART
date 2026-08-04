@@ -12,6 +12,7 @@ const liens = [
   { href: "/admin/conges", label: "Congés" },
   { href: "/admin/galerie", label: "Galerie" },
   { href: "/admin/campagnes", label: "Campagnes" },
+  { href: "/admin/roue", label: "Roue" },
   { href: "/admin/reglages", label: "Réglages" },
 ];
 
