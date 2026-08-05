@@ -1,4 +1,9 @@
-import { expediteurConfigure, fournisseurEmail } from "@/lib/email";
+import {
+  analyserExpediteur,
+  expediteurConfigure,
+  fournisseurEmail,
+  verifierExpediteurBrevo,
+} from "@/lib/email";
 import { modeStockage, stockageConfigure } from "@/lib/blob";
 import TestEmailForm from "@/components/TestEmailForm";
 import ReglagesAcompteForm from "@/components/ReglagesAcompteForm";
@@ -39,7 +44,11 @@ function Ligne({
 }
 
 export default async function Reglages() {
-  const [acompte, rappels] = await Promise.all([reglagesAcompte(), reglagesRappels()]);
+  const [acompte, rappels, expediteurBrevo] = await Promise.all([
+    reglagesAcompte(),
+    reglagesRappels(),
+    verifierExpediteurBrevo(),
+  ]);
   const planificationPrete = Boolean(process.env.CRON_SECRET);
   const fournisseur = fournisseurEmail();
   const notify = process.env.NOTIFY_EMAIL ?? "";
@@ -75,9 +84,21 @@ export default async function Reglages() {
         />
         <Ligne
           label="Adresse expéditrice"
-          valeur={expediteur}
-          ok={Boolean(fournisseur) && !expediteurResendInvalide}
-          aide="EMAIL_FROM"
+          valeur={
+            fournisseur === "brevo" && process.env.EMAIL_FROM
+              ? analyserExpediteur(process.env.EMAIL_FROM).adresse
+              : expediteur
+          }
+          ok={
+            Boolean(fournisseur) &&
+            !expediteurResendInvalide &&
+            (!expediteurBrevo.verifiable || expediteurBrevo.valide)
+          }
+          aide={
+            expediteurBrevo.verifiable && !expediteurBrevo.valide
+              ? `Non vérifiée chez Brevo. Adresses validées : ${expediteurBrevo.connus.join(", ") || "aucune"}`
+              : "EMAIL_FROM"
+          }
         />
         <Ligne
           label="Rappels automatiques"
