@@ -219,6 +219,11 @@ Alternative sans achat de domaine : basculer sur [Brevo](https://brevo.com) (`BR
 autorise l'envoi vers n'importe quel destinataire ; l'adresse expéditrice se valide en cliquant un
 lien reçu dans la boîte concernée.
 
+`EMAIL_FROM` s'écrit indifféremment `zelia@exemple.fr` ou `Zelart Nails <zelia@exemple.fr>` : Brevo
+exige l'adresse et le nom séparément, la conversion est faite à l'envoi. L'onglet **Réglages**
+interroge la liste des expéditeurs validés chez Brevo et signale une adresse qui ne l'est pas
+encore, plutôt que de laisser surgir un refus au premier envoi réel.
+
 ## Commandes de press-on (`/press-on`)
 
 La vente de press-on est une activité à part entière, distincte des rendez-vous : elle a donc son
