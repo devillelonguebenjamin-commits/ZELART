@@ -1,5 +1,6 @@
 import {
   analyserExpediteur,
+  cleBrevoMalFormee,
   expediteurConfigure,
   fournisseurEmail,
   verifierExpediteurBrevo,
@@ -57,6 +58,8 @@ export default async function Reglages() {
   // Noms (jamais les valeurs) des variables liées au stockage, pour diagnostic
   const variablesBlob = Object.keys(process.env).filter((nom) => nom.includes("BLOB"));
 
+  const cleRefusee = !expediteurBrevo.verifiable && expediteurBrevo.cleRefusee === true;
+
   const expediteurResendInvalide =
     fournisseur === "resend" && Boolean(process.env.EMAIL_FROM) && !expediteur.includes("resend.dev");
 
@@ -72,9 +75,17 @@ export default async function Reglages() {
       <section className="overflow-hidden rounded-2xl border border-pink-100 bg-white">
         <Ligne
           label="Service d'envoi d'e-mails"
-          valeur={fournisseur ?? "aucun"}
-          ok={Boolean(fournisseur)}
-          aide="BREVO_API_KEY ou RESEND_API_KEY"
+          valeur={
+            fournisseur === "brevo" && cleRefusee ? "clé refusée par Brevo" : (fournisseur ?? "aucun")
+          }
+          ok={Boolean(fournisseur) && !cleRefusee}
+          aide={
+            cleRefusee
+              ? cleBrevoMalFormee()
+                ? "La clé ne commence pas par « xkeysib- » : c'est sans doute le mot de passe SMTP. Prenez la clé de l'onglet « API keys » de Brevo."
+                : "Brevo ne reconnaît pas cette clé. Régénérez-en une dans « API keys » et recollez-la dans BREVO_API_KEY."
+              : "BREVO_API_KEY ou RESEND_API_KEY"
+          }
         />
         <Ligne
           label="Adresse qui reçoit les demandes"
@@ -95,9 +106,11 @@ export default async function Reglages() {
             (!expediteurBrevo.verifiable || expediteurBrevo.valide)
           }
           aide={
-            expediteurBrevo.verifiable && !expediteurBrevo.valide
-              ? `Non vérifiée chez Brevo. Adresses validées : ${expediteurBrevo.connus.join(", ") || "aucune"}`
-              : "EMAIL_FROM"
+            !expediteurBrevo.verifiable
+              ? "EMAIL_FROM"
+              : expediteurBrevo.valide
+                ? "EMAIL_FROM — vérifiée chez Brevo"
+                : `Non vérifiée chez Brevo. Adresses validées : ${expediteurBrevo.connus.join(", ") || "aucune"}`
           }
         />
         <Ligne
