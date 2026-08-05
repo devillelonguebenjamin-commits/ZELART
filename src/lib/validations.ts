@@ -14,6 +14,10 @@ const telephone = z
   .trim()
   .regex(/^(\+33\s?|0)[1-9](?:[\s.-]?\d{2}){4}$/, "Numéro de téléphone invalide (format français attendu).");
 
+// Coordonnées que la cliente corrige elle-même depuis son espace.
+export const coordonneesSchema = z.object({ prenom, nom, telephone });
+export const emailSchema = email;
+
 export const reservationSchema = z.object({
   prestationIds: z
     .array(z.string().min(1))

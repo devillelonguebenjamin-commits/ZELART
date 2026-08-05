@@ -283,8 +283,8 @@ export default function FormulaireCommandePressOn({
             J&rsquo;ai lu et j&rsquo;accepte les conditions de vente des press-on : les sets étant
             personnalisés, le{" "}
             <strong>paiement intégral est demandé avant la fabrication</strong> et{" "}
-            <strong>aucun retour ni remboursement</strong> n&rsquo;est possible. En cas de défaut
-            visible à la remise, un échange ou un ajustement m&rsquo;est proposé.
+            <strong>aucun retour ni remboursement</strong>
+            {" n’est possible. En cas de défaut visible à la remise, un échange ou un ajustement m’est proposé."}
           </span>
         </label>
 

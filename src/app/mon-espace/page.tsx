@@ -7,6 +7,7 @@ import { formatPrix, totalTarifs } from "@/lib/format";
 import { deconnexionCliente } from "@/actions/espace-cliente";
 import FormulaireLienConnexion from "@/components/FormulaireLienConnexion";
 import BoutonAccordOffres from "@/components/BoutonAccordOffres";
+import MesInformations from "@/components/MesInformations";
 import BoutonAnnulation from "@/components/BoutonAnnulation";
 import { annulationPossible, DELAI_ANNULATION_H } from "@/lib/annulation";
 import RoueFidelite from "@/components/RoueFidelite";
@@ -35,13 +36,30 @@ const LIBELLES_STATUT: Record<string, { texte: string; classes: string }> = {
   NO_SHOW: { texte: "Non honoré", classes: "bg-red-100 text-red-700" },
 };
 
+const RETOURS_EMAIL: Record<string, { texte: string; classes: string }> = {
+  ok: {
+    texte: "Votre nouvelle adresse est confirmée : c'est elle qui reçoit désormais vos messages 🤍",
+    classes: "bg-emerald-50 text-emerald-800",
+  },
+  expire: {
+    texte:
+      "Ce lien de confirmation n'est plus valable — il expire au bout de 30 minutes et ne sert qu'une fois. Relancez la demande depuis « Mes informations ».",
+    classes: "bg-amber-50 text-amber-900",
+  },
+  occupee: {
+    texte:
+      "Cette adresse a été rattachée à une autre fiche entre-temps. Écrivez à Zélia pour qu'elle démêle la situation.",
+    classes: "bg-red-50 text-red-700",
+  },
+};
+
 export default async function MonEspace({
   searchParams,
 }: {
-  searchParams: Promise<{ lien?: string }>;
+  searchParams: Promise<{ lien?: string; email?: string }>;
 }) {
   const clienteId = await clienteConnectee();
-  const { lien } = await searchParams;
+  const { lien, email: retourEmail } = await searchParams;
 
   if (!clienteId) {
     return (
@@ -120,6 +138,15 @@ export default async function MonEspace({
           </button>
         </form>
       </div>
+
+      {retourEmail && RETOURS_EMAIL[retourEmail] && (
+        <p
+          role="status"
+          className={`rounded-2xl px-5 py-4 text-sm ${RETOURS_EMAIL[retourEmail].classes}`}
+        >
+          {RETOURS_EMAIL[retourEmail].texte}
+        </p>
+      )}
 
       {/* Rendez-vous à venir */}
       <section>
@@ -302,6 +329,14 @@ export default async function MonEspace({
         </div>
       </section>
 
+      {/* Informations personnelles */}
+      <MesInformations
+        prenom={cliente.prenom}
+        nom={cliente.nom}
+        telephone={cliente.telephone}
+        email={cliente.email}
+      />
+
       {/* Préférences */}
       <section className="rounded-2xl border border-pink-100 bg-white p-6">
         <h2 className="font-semibold">Offres et actualités</h2>
@@ -316,8 +351,8 @@ export default async function MonEspace({
           />
         </div>
         <p className="mt-4 text-xs text-foreground/60">
-          Vos coordonnées : {cliente.email} · {cliente.telephone}. Pour toute correction ou
-          suppression, écrivez à Zelia.barreteaupro@outlook.fr.
+          Vos coordonnées se corrigent depuis « Mes informations » ci-dessus. Pour la suppression de
+          vos données, écrivez à Zelia.barreteaupro@outlook.fr.
         </p>
       </section>
     </div>
