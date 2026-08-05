@@ -129,6 +129,10 @@ Protégé par la variable d'environnement `ADMIN_PASSWORD` (session par cookie s
   point-virgule et BOM UTF-8 pour Excel en français), fiche détaillée avec historique, notes
   privées, accord aux offres et suppression définitive.
 - **Prestations** : édition des prix, durées, visibilité.
+- **Réglages → Mes réseaux** : liens Instagram, TikTok et un lien libre (Linktree, Pinterest…),
+  saisis au choix sous forme de pseudo (`@zelart`) ou d'adresse complète. Ils apparaissent dans le
+  pied de page, dans un bloc de l'accueil et au bas de l'e-mail de confirmation ; un champ vide
+  n'affiche rien.
 - **Press-on** : commandes reçues (chiffrage des frais d'envoi, envoi de la demande de règlement,
   avancement de la fabrication, note interne) et catalogue des sets affichés sur `/press-on`.
 - **Congés** : blocage de périodes, immédiatement retirées des créneaux publics.

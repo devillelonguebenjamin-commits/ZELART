@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatPrix, grouperParCategorie } from "@/lib/format";
+import { reglagesReseaux } from "@/lib/parametres";
+import LiensReseaux from "@/components/LiensReseaux";
 
 export const dynamic = "force-dynamic";
 
 export default async function Accueil() {
-  const [prestations, photos, realisations, pressOnMoinsCher] = await Promise.all([
+  const [prestations, photos, realisations, pressOnMoinsCher, reseaux] = await Promise.all([
     prisma.prestation.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
     prisma.photo.findMany({ orderBy: [{ ordre: "asc" }, { creeLe: "desc" }], take: 12 }),
     prisma.realisation.findMany({
@@ -19,6 +21,7 @@ export default async function Accueil() {
       orderBy: { prixCents: "asc" },
       select: { prixCents: true },
     }),
+    reglagesReseaux(),
   ]);
   // La galerie réunit les photos ajoutées à la main et les réalisations publiées.
   const visuels = [
@@ -144,6 +147,22 @@ export default async function Accueil() {
                 )}
               </figure>
             ))}
+          </div>
+        </section>
+      )}
+
+      {/* Réseaux */}
+      {reseaux.length > 0 && (
+        <section className="py-10">
+          <div className="rounded-3xl border border-pink-100 bg-white p-8 text-center sm:p-10">
+            <h2 className="font-display text-3xl font-bold">On se retrouve ailleurs ? 💕</h2>
+            <p className="mx-auto mt-3 max-w-2xl leading-relaxed text-foreground/75">
+              Les nouvelles poses, les créations en cours et les créneaux qui se libèrent à la
+              dernière minute passent d&rsquo;abord par là.
+            </p>
+            <div className="mt-6 flex justify-center">
+              <LiensReseaux reseaux={reseaux} variante="boutons" />
+            </div>
           </div>
         </section>
       )}

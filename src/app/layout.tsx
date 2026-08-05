@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Playfair_Display } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
+import { reglagesReseaux } from "@/lib/parametres";
+import LiensReseaux from "@/components/LiensReseaux";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,11 +21,13 @@ export const metadata: Metadata = {
     "Zélia, prothésiste ongulaire et nail artist certifiée à Saint-Nazaire. Prenez rendez-vous en ligne : vernis semi-permanent, gainage, pose Gel X, pose Pop-it et nail art.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const reseaux = await reglagesReseaux();
+
   return (
     <html lang="fr" className={`${geistSans.variable} ${playfair.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
@@ -63,6 +67,11 @@ export default function RootLayout({
               <p className="font-display text-lg font-bold text-pink-500">Zelart Nails</p>
               <p className="mt-1">Zélia — prothésiste ongulaire &amp; nail artist certifiée</p>
               <p className="mt-1">SIRET 903 178 101 00015</p>
+              {reseaux.length > 0 && (
+                <div className="mt-4">
+                  <LiensReseaux reseaux={reseaux} />
+                </div>
+              )}
             </div>
             <div>
               <p className="font-semibold text-foreground/90">L&rsquo;institut</p>

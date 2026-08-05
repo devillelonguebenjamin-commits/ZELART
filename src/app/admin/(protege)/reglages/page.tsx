@@ -8,8 +8,18 @@ import {
 import { modeStockage, stockageConfigure } from "@/lib/blob";
 import TestEmailForm from "@/components/TestEmailForm";
 import ReglagesAcompteForm from "@/components/ReglagesAcompteForm";
-import { cleRelance, reglagesAcompte, reglagesRappels } from "@/lib/parametres";
+import {
+  CLE_AUTRE_RESEAU,
+  CLE_AUTRE_RESEAU_LIBELLE,
+  CLE_INSTAGRAM,
+  CLE_TIKTOK,
+  cleRelance,
+  reglagesAcompte,
+  reglagesRappels,
+} from "@/lib/parametres";
+import { prisma } from "@/lib/prisma";
 import ReglagesRappelsForm from "@/components/ReglagesRappelsForm";
+import ReglagesReseauxForm from "@/components/ReglagesReseauxForm";
 
 export const dynamic = "force-dynamic";
 
@@ -45,11 +55,17 @@ function Ligne({
 }
 
 export default async function Reglages() {
-  const [acompte, rappels, expediteurBrevo] = await Promise.all([
+  const [acompte, rappels, expediteurBrevo, parametresReseaux] = await Promise.all([
     reglagesAcompte(),
     reglagesRappels(),
     verifierExpediteurBrevo(),
+    prisma.parametre.findMany({
+      where: {
+        cle: { in: [CLE_INSTAGRAM, CLE_TIKTOK, CLE_AUTRE_RESEAU, CLE_AUTRE_RESEAU_LIBELLE] },
+      },
+    }),
   ]);
+  const reseau = (cle: string) => parametresReseaux.find((p) => p.cle === cle)?.valeur ?? "";
   const planificationPrete = Boolean(process.env.CRON_SECRET);
   const fournisseur = fournisseurEmail();
   const notify = process.env.NOTIFY_EMAIL ?? "";
@@ -195,6 +211,13 @@ export default async function Reglages() {
           />
         </div>
       </section>
+
+      <ReglagesReseauxForm
+        instagram={reseau(CLE_INSTAGRAM)}
+        tiktok={reseau(CLE_TIKTOK)}
+        autre={reseau(CLE_AUTRE_RESEAU)}
+        autreLibelle={reseau(CLE_AUTRE_RESEAU_LIBELLE)}
+      />
 
       <section className="rounded-2xl border border-pink-100 bg-white p-5">
         <h2 className="font-semibold">Tester l&rsquo;envoi</h2>

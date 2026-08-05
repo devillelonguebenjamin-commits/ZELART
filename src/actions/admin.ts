@@ -12,7 +12,13 @@ import { dateParis, formatHeure, formatJour } from "@/lib/creneaux";
 import { envoyerDemandeAcompte } from "@/lib/acompte";
 import { formatPrix, totalTarifs } from "@/lib/format";
 import {
+  CLE_AUTRE_RESEAU,
+  CLE_AUTRE_RESEAU_LIBELLE,
+  CLE_INSTAGRAM,
   CLE_LIEN_ACOMPTE,
+  CLE_TIKTOK,
+  normaliserLienReseau,
+  reseauxPourEmail,
   CLE_MONTANT_ACOMPTE,
   enregistrerParametre,
   lienSumUpValide,
@@ -75,7 +81,8 @@ export async function changerStatutRendezVous(
        <strong>Total : ${formatPrix(total.prixCents, total.aPartirDe)}</strong></p>
        <p>${formatJour(rendezVous.debut)} à ${formatHeure(rendezVous.debut)}<br>
        L'Atelier du Regard — 108 avenue de la République, 44600 Saint-Nazaire</p>
-       <p>À très vite,<br>Zélia ✨</p>`
+       <p>À très vite,<br>Zélia ✨</p>
+       ${await reseauxPourEmail()}`
     );
   }
 
@@ -201,6 +208,58 @@ export async function enregistrerReglagesAcompte(
     message: lien
       ? "Réglages enregistrés — le lien partira automatiquement aux nouvelles clientes."
       : "Lien retiré : plus aucun envoi automatique d'acompte.",
+  };
+}
+
+export type EtatReseaux = { ok?: boolean; message?: string };
+
+export async function enregistrerReseaux(
+  _etatPrecedent: EtatReseaux,
+  formData: FormData
+): Promise<EtatReseaux> {
+  await exigerAdmin();
+
+  const champs = [
+    { cle: CLE_INSTAGRAM, nom: "instagram", plateforme: "instagram" as const, libelle: "Instagram" },
+    { cle: CLE_TIKTOK, nom: "tiktok", plateforme: "tiktok" as const, libelle: "TikTok" },
+    { cle: CLE_AUTRE_RESEAU, nom: "autre", plateforme: "libre" as const, libelle: "Autre lien" },
+  ];
+
+  const aEnregistrer: { cle: string; valeur: string }[] = [];
+  for (const champ of champs) {
+    const saisie = String(formData.get(champ.nom) ?? "");
+    const lien = normaliserLienReseau(saisie, champ.plateforme);
+    if (lien === null) {
+      return {
+        ok: false,
+        message:
+          champ.plateforme === "libre"
+            ? "Le lien libre doit être une adresse complète commençant par https://."
+            : `${champ.libelle} : indiquez un pseudo (@zelart) ou une adresse complète.`,
+      };
+    }
+    aEnregistrer.push({ cle: champ.cle, valeur: lien });
+  }
+
+  aEnregistrer.push({
+    cle: CLE_AUTRE_RESEAU_LIBELLE,
+    valeur: String(formData.get("autreLibelle") ?? "").trim().slice(0, 30),
+  });
+
+  for (const { cle, valeur } of aEnregistrer) {
+    await enregistrerParametre(cle, valeur);
+  }
+
+  // Ces liens apparaissent dans le pied de page, donc sur toutes les pages.
+  revalidatePath("/", "layout");
+
+  const actifs = aEnregistrer.filter((p) => p.cle !== CLE_AUTRE_RESEAU_LIBELLE && p.valeur).length;
+  return {
+    ok: true,
+    message:
+      actifs > 0
+        ? `Enregistré — ${actifs} lien${actifs > 1 ? "s" : ""} affiché${actifs > 1 ? "s" : ""} sur le site.`
+        : "Enregistré — aucun réseau n'est affiché pour le moment.",
   };
 }
 
