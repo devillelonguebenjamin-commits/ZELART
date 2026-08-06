@@ -126,6 +126,73 @@ function lireCache(brut: string | undefined): FicheAvis | null {
 
 export type Candidat = { placeId: string; nom: string; adresse: string; nombre: number | null };
 
+// Le réflexe naturel est de coller le lien de la page Google plutôt que de
+// retaper le nom. On accepte donc les deux, et l'identifiant d'établissement
+// quand il est là — les liens de recherche Google ne le contiennent pas, mais
+// ceux de Maps parfois oui.
+export function normaliserRechercheAvis(
+  saisie: string
+): { placeId: string } | { requete: string } | null {
+  const propre = saisie.trim();
+  if (!propre) return null;
+
+  const identifiant = propre.match(/\b(ChIJ[A-Za-z0-9_-]{8,})\b/);
+  if (identifiant) return { placeId: identifiant[1] };
+
+  if (/^https?:\/\//i.test(propre)) {
+    try {
+      const url = new URL(propre);
+      const place = url.searchParams.get("place_id");
+      if (place) return { placeId: place };
+      const recherche = url.searchParams.get("q") ?? url.searchParams.get("query");
+      if (recherche?.trim()) return { requete: recherche.trim() };
+      // Adresse de la forme /maps/place/Nom+Du+Salon/…
+      const segment = url.pathname.split("/").filter(Boolean).at(2);
+      if (segment) return { requete: decodeURIComponent(segment).replace(/\+/g, " ") };
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  return { requete: propre };
+}
+
+// Saint-Nazaire : une recherche sur « ZELART » seul ramènerait des
+// établissements du monde entier. Le salon ne bouge pas, on oriente donc
+// Google vers sa région.
+const BIAIS_SAINT_NAZAIRE = {
+  circle: { center: { latitude: 47.2735, longitude: -2.2138 }, radius: 30000 },
+};
+
+const CHAMPS_FICHE = "id,displayName,formattedAddress,userRatingCount";
+
+/** Détaille un établissement dont on connaît déjà l'identifiant. */
+export async function detaillerEtablissement(placeId: string): Promise<Candidat> {
+  const cle = cleGoogle();
+  if (!cle) throw new Error("Aucune clé d'API Google n'est configurée sur le site.");
+
+  const reponse = await fetch(
+    `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?languageCode=fr`,
+    { headers: { "X-Goog-Api-Key": cle, "X-Goog-FieldMask": CHAMPS_FICHE }, cache: "no-store" }
+  );
+  if (!reponse.ok) {
+    throw new Error(`Google a répondu ${reponse.status} : ${(await reponse.text()).slice(0, 200)}`);
+  }
+  const place = (await reponse.json()) as {
+    id?: string;
+    displayName?: { text?: string };
+    formattedAddress?: string;
+    userRatingCount?: number;
+  };
+  return {
+    placeId: place.id ?? placeId,
+    nom: place.displayName?.text ?? "Sans nom",
+    adresse: place.formattedAddress ?? "",
+    nombre: place.userRatingCount ?? null,
+  };
+}
+
 /**
  * Retrouve l'établissement à partir de son nom, pour épargner à Zélia la chasse
  * au « Place ID » dans la console Google.
@@ -141,7 +208,12 @@ export async function chercherEtablissement(requete: string): Promise<Candidat[]
       "X-Goog-Api-Key": cle,
       "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.userRatingCount",
     },
-    body: JSON.stringify({ textQuery: requete, languageCode: "fr", maxResultCount: 5 }),
+    body: JSON.stringify({
+      textQuery: requete,
+      languageCode: "fr",
+      maxResultCount: 5,
+      locationBias: BIAIS_SAINT_NAZAIRE,
+    }),
     cache: "no-store",
   });
   if (!reponse.ok) {

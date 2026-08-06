@@ -67,11 +67,12 @@ export default function ReglagesAvisForm({
               {etablissement ? "Changer d’établissement" : "Votre établissement sur Google"}
             </span>
             <span className="mt-0.5 block text-xs text-foreground/60">
-              Le nom tel qu&rsquo;il apparaît sur Google Maps, avec la ville.
+              Le nom tel qu&rsquo;il apparaît sur Google — ou collez simplement le lien de votre
+              page Google, on s&rsquo;occupe du reste.
             </span>
             <input
               name="requete"
-              placeholder="Zelart Nails Saint-Nazaire"
+              placeholder="Zelart Saint-Nazaire, ou https://www.google.com/…"
               className="mt-1 w-full rounded-xl border border-pink-200 px-3 py-2 outline-none focus:border-pink-500"
             />
           </label>
