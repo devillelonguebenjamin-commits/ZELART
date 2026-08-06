@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { creerReservation, type EtatReservation } from "@/actions/reservation";
 import ListeAttenteForm from "@/components/ListeAttenteForm";
+import InfoPrestation from "@/components/InfoPrestation";
 import type { Creneau } from "@/lib/creneaux";
 import { formatDuree, formatPrix, totalDuree, totalTarifs } from "@/lib/format";
 import {
@@ -250,7 +251,17 @@ export default function ReservationWizard({
         <div className="mt-6 space-y-6">
           {categories.map(([categorie, items]) => (
             <fieldset key={categorie}>
-              <legend className="font-display text-lg font-bold text-pink-500">{categorie}</legend>
+              {/* La définition vit sur les prestations : on prend la première
+                  renseignée de la catégorie, toutes n'en portant pas. */}
+              <legend className="flex flex-wrap items-center gap-2">
+                <span className="font-display text-lg font-bold text-pink-500">{categorie}</span>
+                {(() => {
+                  const definition = items.find((p) => p.description)?.description;
+                  return definition ? (
+                    <InfoPrestation titre={categorie} definition={definition} />
+                  ) : null;
+                })()}
+              </legend>
               <div className="mt-3 grid gap-2">
                 {items.map((p) => (
                   <label
