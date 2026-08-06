@@ -22,6 +22,16 @@ model Cliente {
   desabonneLe           DateTime?
   jetonDesabonnement    String    @unique @default(cuid())
 
+  // Blocage manuel : la réservation en ligne et la commande de press-on lui
+  // sont refusées. Le numéro compte autant que l'adresse — changer d'e-mail
+  // ne doit pas suffire à repasser.
+  bloqueeLe    DateTime?
+  motifBlocage String?
+
+  // Message de reconquête après une longue absence, envoyé une seule fois par
+  // période d'absence : la date est comparée à la dernière venue.
+  reconqueteEnvoyeeLe DateTime?
+
   // Espace cliente (facultatif) : connexion par lien envoyé par e-mail,
   // sans mot de passe à créer ni à retenir.
   codeParrainage String  @unique

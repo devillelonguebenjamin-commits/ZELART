@@ -6,6 +6,7 @@ import { fenetrePourDebut, formatHeure, formatJour, PREAVIS_MS } from "@/lib/cre
 import { reservationSchema, urlImageValide } from "@/lib/validations";
 import { envoyerEmail } from "@/lib/email";
 import { envoyerDemandeAcompte, estNouvelleCliente } from "@/lib/acompte";
+import { clienteBloquee, MESSAGE_BLOCAGE } from "@/lib/blocage";
 import { urlSite } from "@/lib/site";
 import { nouveauCode } from "@/lib/cliente-auth";
 import { deposeNecessaire, prestationProposee, trouverDepose } from "@/lib/regles";
@@ -63,6 +64,10 @@ export async function creerReservation(
   const { etatOngles, typePoseActuel } = donnees;
   if (etatOngles !== "NATUREL" && !typePoseActuel) {
     return { erreur: "Indiquez le type de pose que vous portez actuellement." };
+  }
+
+  if (await clienteBloquee(donnees.email, donnees.telephone)) {
+    return { erreur: MESSAGE_BLOCAGE };
   }
 
   const catalogue = await prisma.prestation.findMany({ where: { active: true } });

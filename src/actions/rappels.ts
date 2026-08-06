@@ -59,12 +59,18 @@ export async function lancerRappelsMaintenant(): Promise<EtatRappels> {
   }
 
   revalidatePath("/admin");
-  const echecs = bilan.rappels.echecs + bilan.relances.echecs + bilan.avis.echecs + bilan.acompte.echecs;
+  const echecs =
+    bilan.rappels.echecs +
+    bilan.relances.echecs +
+    bilan.avis.echecs +
+    bilan.acompte.echecs +
+    bilan.reconquete.echecs;
   return {
     ok: echecs === 0,
     message:
       `${bilan.rappels.envoyes} rappel(s), ${bilan.relances.envoyees} relance(s) de repousse, ` +
-      `${bilan.avis.envoyees} demande(s) d'avis et ${bilan.acompte.envoyees} relance(s) d'acompte envoyé(s).` +
+      `${bilan.avis.envoyees} demande(s) d'avis, ${bilan.acompte.envoyees} relance(s) d'acompte ` +
+      `et ${bilan.reconquete.envoyees} message(s) de reconquête envoyé(s).` +
       (echecs > 0 ? ` ${echecs} envoi(s) en échec — vérifiez le service d'e-mails.` : ""),
   };
 }

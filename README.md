@@ -335,13 +335,41 @@ rendez-vous pour ne jamais partir deux fois :
 | Relance de repousse | Délai propre à la technique posée | `relanceEnvoyeeLe` |
 | Demande d'avis Google | 3 jours après une pose terminée | `demandeAvisEnvoyeeLe` |
 | Relance d'acompte | 24 h après l'envoi du lien, si non réglé | `acompteRelanceEnvoyeeLe` |
+| Reconquête | 90 jours sans venir | `Cliente.reconqueteEnvoyeeLe` |
 
-Les trois premiers dépendent du réglage *Activer les envois automatiques*. **La relance
-d'acompte, non** : comme l'envoi initial du lien, elle s'active dès qu'un lien SumUp est
-configuré — c'est le fonctionnement attendu de l'acompte, pas un rappel de confort.
+Tous dépendent du réglage *Activer les envois automatiques*, **sauf la relance d'acompte** :
+comme l'envoi initial du lien, elle s'active dès qu'un lien SumUp est configuré — c'est le
+fonctionnement attendu de l'acompte, pas un rappel de confort.
+
+La tâche tournant à 7 h, le rappel de rendez-vous part la veille au matin, soit 24 à 32 h
+avant selon l'heure du créneau.
 
 La demande d'avis n'est envoyée **qu'une fois par cliente**, jamais à chaque visite, et
-seulement si un établissement Google est connecté. Une cliente désinscrite n'en reçoit pas.
+seulement si un établissement Google est connecté.
+
+La reconquête vise les clientes dont la dernière pose honorée remonte à plus de 90 jours et
+qui n'ont aucun rendez-vous à venir. Le témoin étant porté par la fiche cliente et non par un
+rendez-vous, il est comparé à la dernière venue : une cliente qui revient puis s'éclipse de
+nouveau pourra le recevoir une seconde fois, sans jamais être relancée deux fois pour la même
+absence.
+
+Ni la reconquête ni la demande d'avis ne partent à une cliente désinscrite ; la reconquête
+épargne en plus les clientes bloquées.
+
+## Blocage de clientes (`/admin/bouffonnes`)
+
+Une cliente bloquée depuis cet onglet ne peut plus ni réserver ni commander de press-on. Le
+contrôle porte sur **l'adresse e-mail et sur le numéro de téléphone** : la fiche étant unique
+par e-mail, réserver avec une autre adresse créerait une fiche neuve et contournerait le
+blocage. Les numéros sont comparés après normalisation, `+33` et `0` désignant le même abonné.
+
+Le message affiché ne dit jamais « vous êtes bloquée » : il renvoie vers Zélia par SMS. Rien
+ne sert d'humilier quelqu'un sur une page publique, et un refus explicite invite surtout à
+recommencer avec d'autres coordonnées.
+
+Bloquer **n'annule pas** les rendez-vous déjà pris : ce serait irréversible, et Zélia peut
+vouloir honorer celui de la semaine avant de fermer la porte. Ils sont signalés dans l'onglet,
+à elle de les annuler depuis l'agenda.
 
 ## Liste d'attente
 

@@ -13,11 +13,13 @@ export type BilanRappels = {
   relances: { envoyees: number; echecs: number };
   avis: { envoyees: number; echecs: number };
   acompte: { envoyees: number; echecs: number };
+  reconquete: { envoyees: number; echecs: number };
 };
 
 const JOUR_MS = 24 * 60 * 60 * 1000;
 const DELAI_AVIS_JOURS = 3;
 const DELAI_RELANCE_ACOMPTE_MS = JOUR_MS; // 24 h, comme demandé
+const DELAI_RECONQUETE_JOURS = 90; // ~3 mois sans venir
 
 const LIBELLE_TECHNIQUE: Record<TypePose, string> = {
   VSP: "vernis semi-permanent",
@@ -302,6 +304,88 @@ async function envoyerRelancesAcompte(): Promise<{ envoyees: number; echecs: num
   return { envoyees, echecs };
 }
 
+// --- Reconquête après une longue absence -----------------------------------
+
+async function envoyerReconquetes(): Promise<{ envoyees: number; echecs: number }> {
+  const maintenant = new Date();
+  const seuil = new Date(maintenant.getTime() - DELAI_RECONQUETE_JOURS * JOUR_MS);
+
+  // Dernière venue honorée, cliente par cliente.
+  const dernieresVenues = await prisma.rendezVous.groupBy({
+    by: ["clienteId"],
+    where: { statut: "TERMINE" },
+    _max: { debut: true },
+  });
+
+  const absentes = dernieresVenues.filter(
+    (v) => v._max.debut !== null && v._max.debut < seuil
+  );
+  if (absentes.length === 0) return { envoyees: 0, echecs: 0 };
+
+  const clientes = await prisma.cliente.findMany({
+    where: { id: { in: absentes.map((v) => v.clienteId) }, desabonneLe: null, bloqueeLe: null },
+  });
+  const derniereVenue = new Map(absentes.map((v) => [v.clienteId, v._max.debut!]));
+
+  // Un rendez-vous déjà pris rend le message absurde.
+  const rdvAVenir = await prisma.rendezVous.groupBy({
+    by: ["clienteId"],
+    where: {
+      clienteId: { in: clientes.map((c) => c.id) },
+      statut: { not: "ANNULE" },
+      debut: { gt: maintenant },
+    },
+    _count: { _all: true },
+  });
+  const aDejaRdv = new Set(rdvAVenir.map((r) => r.clienteId));
+
+  let envoyees = 0;
+  let echecs = 0;
+
+  for (const cliente of clientes) {
+    if (aDejaRdv.has(cliente.id)) continue;
+
+    // Envoyé une seule fois par absence : si la cliente revient puis
+    // s'éclipse de nouveau, elle pourra le recevoir une nouvelle fois.
+    const venue = derniereVenue.get(cliente.id)!;
+    if (cliente.reconqueteEnvoyeeLe && cliente.reconqueteEnvoyeeLe > venue) continue;
+
+    const mois = Math.floor((maintenant.getTime() - venue.getTime()) / (30 * JOUR_MS));
+
+    const resultat = await envoyerEmail(
+      cliente.email,
+      "Vos ongles me manquent 🌸",
+      enveloppe(
+        `<p>Bonjour ${cliente.prenom},</p>
+         <p>Cela fait ${mois} mois que je ne vous ai pas vue — le salon n'est plus tout à fait le
+         même sans vous !</p>
+         <p>Si l'envie vous reprend, votre créneau vous attend : nouvelles couleurs, nouveaux
+         designs, et toujours le même moment rien que pour vous.</p>
+         <p style="margin:24px 0">
+           <a href="${urlSite()}/reserver" style="background:#ec4899;color:#fff;text-decoration:none;padding:12px 24px;border-radius:999px;display:inline-block;font-weight:600">
+             Reprendre rendez-vous
+           </a>
+         </p>
+         <p>Et si c'est simplement que le moment n'est pas venu, aucun souci — je serai là 🤍</p>`,
+        `Vous recevez ce message en tant que cliente de Zelart Nails.<br>
+         <a href="${urlSite()}/desabonnement/${cliente.jetonDesabonnement}" style="color:#8a6274">Ne plus recevoir ces messages</a>`
+      )
+    );
+
+    if (resultat.ok) {
+      await prisma.cliente.update({
+        where: { id: cliente.id },
+        data: { reconqueteEnvoyeeLe: new Date() },
+      });
+      envoyees++;
+    } else {
+      echecs++;
+    }
+  }
+
+  return { envoyees, echecs };
+}
+
 export async function executerRappels(): Promise<BilanRappels> {
   const { actifs, delais } = await reglagesRappels();
 
@@ -318,11 +402,13 @@ export async function executerRappels(): Promise<BilanRappels> {
       relances: { envoyees: 0, echecs: 0 },
       avis: { envoyees: 0, echecs: 0 },
       acompte,
+      reconquete: { envoyees: 0, echecs: 0 },
     };
   }
 
   const rappels = await envoyerRappels();
   const relances = await envoyerRelances(delais);
   const avis = await envoyerDemandesAvis();
-  return { actifs: true, rappels, relances, avis, acompte };
+  const reconquete = await envoyerReconquetes();
+  return { actifs: true, rappels, relances, avis, acompte, reconquete };
 }
