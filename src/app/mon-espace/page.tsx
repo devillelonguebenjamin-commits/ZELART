@@ -180,7 +180,11 @@ export default async function MonEspace({
                     {formatJour(rdv.debut)} · {formatHeure(rdv.debut)}
                   </p>
                   <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statut.classes}`}>
-                    {statut.texte}
+                    {/* Un horaire proposé n'attend pas la même chose qu'une
+                        demande ordinaire : Zélia doit d'abord dire si elle peut. */}
+                    {rdv.creneauPropose && rdv.statut === "EN_ATTENTE"
+                      ? "Horaire proposé, en attente de réponse"
+                      : statut.texte}
                   </span>
                 </div>
                 <ul className="mt-2 space-y-0.5 text-sm text-foreground/80">

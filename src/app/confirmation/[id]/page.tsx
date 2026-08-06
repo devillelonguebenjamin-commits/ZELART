@@ -75,7 +75,9 @@ export default async function Confirmation({
                 <dt className="text-foreground/60">Statut</dt>
                 <dd className="text-right">
                   <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                    En attente de confirmation
+                    {rendezVous.creneauPropose
+                      ? "Horaire proposé, en attente de réponse"
+                      : "En attente de confirmation"}
                   </span>
                 </dd>
               </div>
@@ -83,6 +85,13 @@ export default async function Confirmation({
           </div>
 
           <div className="mt-8 space-y-3 text-left text-sm leading-relaxed text-foreground/75">
+            {rendezVous.creneauPropose && (
+              <p className="rounded-2xl bg-sky-50 px-5 py-4 font-medium text-sky-900">
+                ⏳ Cet horaire sort des créneaux habituels : Zélia vous dira si elle peut le
+                prendre. Tant qu&rsquo;elle n&rsquo;a pas répondu, le rendez-vous n&rsquo;est pas
+                acquis.
+              </p>
+            )}
             <p>
               📱 Zélia va vous envoyer un <strong>message de confirmation</strong> au numéro indiqué
               (elle ne répond pas aux appels).

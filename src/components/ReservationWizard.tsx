@@ -4,6 +4,7 @@ import { useActionState, useMemo, useState } from "react";
 import { creerReservation, type EtatReservation } from "@/actions/reservation";
 import ListeAttenteForm from "@/components/ListeAttenteForm";
 import InfoPrestation from "@/components/InfoPrestation";
+import PropositionCreneau from "@/components/PropositionCreneau";
 import type { Creneau } from "@/lib/creneaux";
 import { formatDuree, formatPrix, totalDuree, totalTarifs } from "@/lib/format";
 import {
@@ -52,6 +53,10 @@ export default function ReservationWizard({
   const [typePoseActuel, setTypePoseActuel] = useState<TypePose | null>(null);
   const [choisies, setChoisies] = useState<string[]>([]);
   const [creneauChoisi, setCreneauChoisi] = useState<Creneau | null>(null);
+  // Proposition libre : exclusive du créneau choisi dans la liste.
+  const [dateProposee, setDateProposee] = useState("");
+  const [modePropose, setModePropose] = useState(false);
+  const creneauDefini = modePropose ? dateProposee !== "" : creneauChoisi !== null;
   const [etat, formAction, enCours] = useActionState<EtatReservation, FormData>(
     creerReservation,
     {}
@@ -136,7 +141,9 @@ export default function ReservationWizard({
       {prestationsChoisies.map((p) => (
         <input key={p.id} type="hidden" name="prestationIds" value={p.id} />
       ))}
-      <input type="hidden" name="debut" value={creneauChoisi?.debut ?? ""} />
+      <input type="hidden" name="debut" value={modePropose ? "" : (creneauChoisi?.debut ?? "")} />
+      <input type="hidden" name="creneauPropose" value={modePropose ? "on" : ""} />
+      <input type="hidden" name="dateProposee" value={modePropose ? dateProposee : ""} />
 
       {/* Étape 1 : état des ongles */}
       <section hidden={etape !== 0}>
@@ -344,7 +351,11 @@ export default function ReservationWizard({
                     <button
                       key={c.debut}
                       type="button"
-                      onClick={() => setCreneauChoisi(c)}
+                      onClick={() => {
+                        setCreneauChoisi(c);
+                        setModePropose(false);
+                        setDateProposee("");
+                      }}
                       className={`rounded-full px-5 py-2 text-sm font-medium transition ${
                         creneauChoisi?.debut === c.debut
                           ? "bg-pink-500 text-white"
@@ -360,8 +371,19 @@ export default function ReservationWizard({
           </div>
         )}
 
-        <div className="mt-6">
-          <ListeAttenteForm ouvert={jours.length === 0} />
+        <div className="mt-6 space-y-4">
+          <PropositionCreneau
+            actif={modePropose}
+            valeur={dateProposee}
+            onActiver={(actif) => {
+              setModePropose(actif);
+              // Les deux chemins s'excluent : activer l'un oublie l'autre.
+              if (actif) setCreneauChoisi(null);
+              else setDateProposee("");
+            }}
+            onChange={setDateProposee}
+          />
+          <ListeAttenteForm ouvert={jours.length === 0 && !modePropose} />
         </div>
         <div className="mt-8 flex justify-between">
           <button
@@ -373,7 +395,7 @@ export default function ReservationWizard({
           </button>
           <button
             type="button"
-            disabled={!creneauChoisi}
+            disabled={!creneauDefini}
             onClick={() => setEtape(3)}
             className="rounded-full bg-pink-500 px-8 py-3 font-medium text-white shadow-sm transition hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-40"
           >
@@ -391,7 +413,7 @@ export default function ReservationWizard({
             enregistrée sur votre fiche.
           </p>
         )}
-        {lignes.length > 0 && creneauChoisi && (
+        {lignes.length > 0 && creneauDefini && (
           <div className="mt-3 rounded-2xl bg-pink-50 px-5 py-4 text-sm text-foreground/80">
             <ul className="space-y-1">
               {lignes.map((ligne) => (
@@ -412,9 +434,16 @@ export default function ReservationWizard({
               <span>Total · environ {formatDuree(totalDuree(lignes))}</span>
               <span className="text-pink-600">{formatPrix(total.prixCents, total.aPartirDe)}</span>
             </p>
-            <p className="mt-2 capitalize text-foreground/70">
-              {creneauChoisi.jourLabel} à {creneauChoisi.heureLabel}
-            </p>
+            {creneauChoisi ? (
+              <p className="mt-2 capitalize text-foreground/70">
+                {creneauChoisi.jourLabel} à {creneauChoisi.heureLabel}
+              </p>
+            ) : (
+              <p className="mt-2 text-foreground/70">
+                Horaire proposé :{" "}
+                <strong>{dateProposee.replace("T", " à ")}</strong> — à confirmer par Zélia.
+              </p>
+            )}
           </div>
         )}
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -551,7 +580,7 @@ export default function ReservationWizard({
           </button>
           <button
             type="submit"
-            disabled={enCours || prestationsChoisies.length === 0 || !creneauChoisi}
+            disabled={enCours || prestationsChoisies.length === 0 || !creneauDefini}
             className="rounded-full bg-pink-500 px-8 py-3 font-medium text-white shadow-sm transition hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {enCours ? "Envoi en cours…" : "Envoyer ma demande ✨"}

@@ -1,11 +1,14 @@
 import { prisma } from "@/lib/prisma";
 
+import { HORIZON_PROPOSITION_JOURS, PREAVIS_MS } from "@/lib/creneaux-bornes";
+
 const PARIS_TZ = "Europe/Paris";
 
 // Fenêtre de réservation proposée aux clientes
 const HORIZON_JOURS = 28;
-// Préavis minimum : laisse à Zélia le temps de confirmer et d'encaisser l'acompte
-export const PREAVIS_MS = 24 * 60 * 60 * 1000;
+
+// Réexportées pour que les appelants n'aient qu'une porte d'entrée.
+export { HORIZON_PROPOSITION_JOURS, PREAVIS_MS };
 
 const JOUR_MS = 24 * 60 * 60 * 1000;
 
@@ -208,6 +211,35 @@ export async function creneauxOuverts(debutPeriode: Date, finPeriode: Date): Pro
   }
 
   return ouverts;
+}
+
+// Créneau proposé par la cliente : il ne correspond à aucune fenêtre
+// d'ouverture, on ne peut donc pas s'appuyer sur le calendrier récurrent. Deux
+// bornes tout de même — le préavis, et un horizon au-delà duquel une demande
+// n'a plus de sens.
+/** Interprète « 2026-08-20T14:30 » comme une heure murale parisienne. */
+export function creneauProposeDepuisSaisie(saisie: string): Date | null {
+  const m = saisie.trim().match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+  if (!m) return null;
+
+  const [, annee, mois, jour, heure, minute] = m.map(Number) as unknown as number[];
+  if (mois < 1 || mois > 12 || jour < 1 || jour > 31 || heure > 23 || minute > 59) return null;
+
+  const date = dateParis(annee, mois, jour, heure, minute);
+  // Une date inexistante (31 février) serait ramenée ailleurs par le calcul :
+  // on vérifie qu'elle retombe bien sur ce qui a été saisi.
+  const relu = partiesParis(date);
+  if (relu.annee !== annee || relu.mois !== mois || relu.jour !== jour) return null;
+
+  return date;
+}
+
+export function propositionDansLesBornes(debut: Date): boolean {
+  const maintenant = Date.now();
+  return (
+    debut.getTime() >= maintenant + PREAVIS_MS &&
+    debut.getTime() <= maintenant + HORIZON_PROPOSITION_JOURS * JOUR_MS
+  );
 }
 
 // Retrouve la fenêtre d'ouverture dont `debut` est l'heure de départ.

@@ -23,7 +23,9 @@ export const reservationSchema = z.object({
     .array(z.string().min(1))
     .min(1, "Choisissez au moins une prestation.")
     .max(6, "Six prestations au maximum par rendez-vous."),
-  debut: z.string().min(1, "Choisissez un créneau."),
+  // Vide quand la cliente propose son propre horaire : la présence est
+  // contrôlée dans l'action, qui seule connaît le chemin emprunté.
+  debut: z.string(),
   prenom,
   nom,
   email,

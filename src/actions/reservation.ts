@@ -2,7 +2,15 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { fenetrePourDebut, formatHeure, formatJour, PREAVIS_MS } from "@/lib/creneaux";
+import {
+  creneauProposeDepuisSaisie,
+  fenetrePourDebut,
+  formatHeure,
+  formatJour,
+  HORIZON_PROPOSITION_JOURS,
+  PREAVIS_MS,
+  propositionDansLesBornes,
+} from "@/lib/creneaux";
 import { reservationSchema, urlImageValide } from "@/lib/validations";
 import { envoyerEmail } from "@/lib/email";
 import { envoyerDemandeAcompte, estNouvelleCliente } from "@/lib/acompte";
@@ -103,17 +111,41 @@ export async function creerReservation(
       : []),
   ];
 
-  const debut = new Date(donnees.debut);
-  if (Number.isNaN(debut.getTime()) || debut.getTime() < Date.now() + PREAVIS_MS) {
-    return { erreur: CRENEAU_INDISPONIBLE };
-  }
-
-  const fenetre = await fenetrePourDebut(debut);
-  if (!fenetre) {
-    return { erreur: CRENEAU_INDISPONIBLE };
-  }
-
+  // Deux chemins possibles : un créneau ouvert choisi dans la liste, ou une
+  // proposition libre de la cliente quand aucun ne lui convient.
+  const propose = formData.get("creneauPropose") === "on";
   const dureeTotale = totalDuree(lignes.map((l) => l.prestation));
+
+  let debut: Date;
+  let fenetre: { debut: Date; fin: Date };
+
+  if (propose) {
+    const souhaite = creneauProposeDepuisSaisie(String(formData.get("dateProposee") ?? ""));
+    if (!souhaite) {
+      return { erreur: "Indiquez la date et l'heure que vous souhaitez proposer." };
+    }
+    if (!propositionDansLesBornes(souhaite)) {
+      return {
+        erreur: `Proposez un horaire situé entre 24 h et ${HORIZON_PROPOSITION_JOURS} jours à partir de maintenant.`,
+      };
+    }
+    debut = souhaite;
+    // Aucune fenêtre d'ouverture ne correspond : la durée des prestations
+    // délimite le créneau, et c'est elle qui sert au contrôle de chevauchement.
+    fenetre = { debut, fin: new Date(debut.getTime() + dureeTotale * 60_000) };
+  } else {
+    if (!donnees.debut) return { erreur: "Choisissez un créneau." };
+    debut = new Date(donnees.debut);
+    if (Number.isNaN(debut.getTime()) || debut.getTime() < Date.now() + PREAVIS_MS) {
+      return { erreur: CRENEAU_INDISPONIBLE };
+    }
+    const ouverte = await fenetrePourDebut(debut);
+    if (!ouverte) {
+      return { erreur: CRENEAU_INDISPONIBLE };
+    }
+    fenetre = ouverte;
+  }
+
   const finRendezVous = new Date(debut.getTime() + dureeTotale * 60_000);
 
   const imagesInspiration = formData
@@ -204,6 +236,7 @@ export async function creerReservation(
             etatOngles,
             typePoseActuel,
             consentementSante: true,
+            creneauPropose: propose,
             remiseFilleule: marrainee && dejaVenue === 0,
             lignes: {
               create: lignes.map((ligne, ordre) => ({
@@ -230,11 +263,15 @@ export async function creerReservation(
 
   // Nouvelle cliente : envoi automatique du lien d'acompte, si Zélia l'a
   // renseigné dans ses réglages.
+  //
+  // Sauf sur un horaire proposé : réclamer un acompte pour une heure que Zélia
+  // n'a pas encore acceptée reviendrait à faire payer un rendez-vous qui peut
+  // ne pas avoir lieu. La demande part à l'acceptation.
   const rendezVous = await prisma.rendezVous.findUnique({
     where: { id: rendezVousId },
     select: { clienteId: true },
   });
-  if (rendezVous && (await estNouvelleCliente(rendezVous.clienteId, rendezVousId))) {
+  if (!propose && rendezVous && (await estNouvelleCliente(rendezVous.clienteId, rendezVousId))) {
     await envoyerDemandeAcompte(rendezVousId);
   }
 
@@ -243,8 +280,9 @@ export async function creerReservation(
   if (process.env.NOTIFY_EMAIL) {
     await envoyerEmail(
       process.env.NOTIFY_EMAIL,
-      `Nouvelle demande de RDV — ${donnees.prenom} ${donnees.nom}`,
+      `${propose ? "Créneau proposé" : "Nouvelle demande de RDV"} — ${donnees.prenom} ${donnees.nom}`,
       `<p>Nouvelle demande de rendez-vous à confirmer :</p>
+       ${propose ? "<p><strong>⚠ Horaire proposé par la cliente</strong>, hors de vos créneaux habituels — à accepter ou refuser.</p>" : ""}
        <p>${lignes
          .map(
            (l) =>

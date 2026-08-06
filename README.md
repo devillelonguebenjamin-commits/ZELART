@@ -48,7 +48,9 @@ fuseau `Europe/Paris` quel que soit le fuseau du serveur.
 ## Parcours de réservation
 
 1. `/` — page d'accueil publique : présentation, prestations & tarifs, infos pratiques.
-2. `/reserver` — tunnel en 3 étapes : prestation → créneau → coordonnées.
+2. `/reserver` — tunnel en 4 étapes : état des ongles → prestation → créneau → coordonnées.
+   Faute de créneau convenable, la cliente peut s'inscrire en liste d'attente ou proposer son
+   propre horaire.
 3. `/confirmation/[id]` — récapitulatif ; la demande reste **en attente** jusqu'à la confirmation
    par Zélia (acompte de 15 € via SumUp pour les nouvelles clientes, cf. CGV).
 
@@ -168,7 +170,8 @@ test en affichant l'erreur exacte du service.
 Zélia colle dans `/admin/reglages` un **lien de paiement SumUp réutilisable** (créé depuis
 l'application SumUp : *Paiements par lien* → montant fixe → *Activer lien réutilisable*). Toute
 cliente sans autre rendez-vous actif reçoit alors automatiquement, à sa réservation, un e-mail
-contenant ce lien et le rappel des conditions.
+contenant ce lien et le rappel des conditions — sauf sur un horaire proposé, où la demande
+attend l'accord de Zélia (cf. *Horaire proposé par la cliente*).
 
 Le lien réutilisable est préféré à l'API SumUp : les `hosted_checkout_url` créés par l'API
 n'ont qu'une validité de 30 minutes, incompatible avec un lien envoyé par e-mail.
@@ -423,6 +426,30 @@ Bloquer **n'annule pas** les rendez-vous déjà pris : ce serait irréversible, 
 vouloir honorer celui de la semaine avant de fermer la porte. Ils sont signalés dans l'onglet,
 à elle de les annuler depuis l'agenda.
 
+## Horaire proposé par la cliente
+
+Quand aucun créneau ne convient, la cliente a deux issues plutôt qu'une : s'inscrire en liste
+d'attente, ou **proposer elle-même une date et une heure** (`PropositionCreneau`). Une
+proposition ne correspond à aucune fenêtre d'ouverture : le calendrier récurrent ne peut donc
+pas la valider, et c'est la durée des prestations qui délimite le créneau et sert au contrôle
+de chevauchement. Deux bornes tout de même, annoncées par le champ (`min`/`max`) **et**
+revérifiées côté serveur, seul contrôle qui compte : au moins 24 h de préavis, au plus
+90 jours (`src/lib/creneaux-bornes.ts`).
+
+Ces bornes vivent à part de `creneaux.ts`, qui importe Prisma : un composant client important
+ce module entraînerait Prisma tout entier dans le bundle du navigateur.
+
+Le rendez-vous est créé en attente avec `creneauPropose = true`. Zélia le repère à son badge
+*Horaire proposé* dans l'agenda et répond par **Accepter l'horaire** ou **Refuser l'horaire** —
+deux boutons dédiés, là où une demande ordinaire garde *Confirmer* / *Annuler*. Le refus
+n'est pas une annulation ordinaire : il envoie un e-mail à la cliente, qui a demandé une heure
+et attend une réponse, alors qu'une annulation muette suffit pour un créneau qu'elle avait
+choisi elle-même dans la liste.
+
+L'acompte suit la même logique : il n'est **pas** réclamé à la réservation d'un horaire
+proposé — faire payer un rendez-vous que Zélia peut refuser n'aurait pas de sens — mais à
+l'acceptation.
+
 ## Liste d'attente
 
 Quand aucun créneau ne convient, la cliente laisse ses coordonnées à l'étape *Créneau*. À
@@ -431,7 +458,8 @@ monde est prévenu d'un coup : pas de date à faire correspondre, la première �
 le créneau. Chacune n'est prévenue **qu'une fois** ; à elle de se réinscrire si l'annonce ne
 débouche sur rien, plutôt que d'être relancée à chaque annulation suivante.
 
-Le bloc s'affiche replié tant qu'il reste des créneaux, et déplié quand il n'y en a plus.
+Le bloc s'affiche replié tant qu'il reste des créneaux, et déplié quand il n'y en a plus — sauf
+si la cliente est en train de proposer un horaire, les deux chemins s'excluant.
 
 > **Attention en cas de modification** : ce bloc vit à l'intérieur du `<form>` du parcours de
 > réservation. Il n'a donc volontairement ni `<form>` à lui — imbriqué, il serait supprimé au

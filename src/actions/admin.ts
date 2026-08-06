@@ -9,7 +9,7 @@ import { exigerAdmin, fermerSessionAdmin, ouvrirSessionAdmin } from "@/lib/auth"
 import { envoyerEmail } from "@/lib/email";
 import { z } from "zod";
 import { dateParis, formatHeure, formatJour } from "@/lib/creneaux";
-import { envoyerDemandeAcompte } from "@/lib/acompte";
+import { envoyerDemandeAcompte, estNouvelleCliente } from "@/lib/acompte";
 import { formatPrix, totalTarifs } from "@/lib/format";
 import {
   CLE_AUTRE_RESEAU,
@@ -78,6 +78,16 @@ export async function changerStatutRendezVous(
   });
 
   if (statut === "CONFIRME") {
+    // L'acompte d'un horaire proposé n'a pas été demandé à la réservation : le
+    // rendez-vous n'existait qu'à l'état de souhait. Il l'est maintenant.
+    if (
+      rendezVous.creneauPropose &&
+      !rendezVous.acompteDemandeLe &&
+      (await estNouvelleCliente(rendezVous.clienteId, rendezVous.id))
+    ) {
+      await envoyerDemandeAcompte(rendezVous.id);
+    }
+
     const total = totalTarifs(rendezVous.lignes.map((l) => l.prestation));
     await envoyerEmail(
       rendezVous.cliente.email,
@@ -109,6 +119,36 @@ export async function changerStatutRendezVous(
   if (statut === "TERMINE") {
     await recompenserMarraine(rendezVous.clienteId);
   }
+
+  revalidatePath("/admin");
+}
+
+// Refus d'un horaire proposé par la cliente. L'annulation ordinaire ne dit rien
+// à personne — acceptable pour un créneau que la cliente a choisi elle-même dans
+// la liste, mais pas ici : elle a demandé une heure et attend une réponse.
+export async function refuserCreneauPropose(id: string): Promise<void> {
+  await exigerAdmin();
+
+  const rendezVous = await prisma.rendezVous.findUnique({
+    where: { id },
+    include: { cliente: true },
+  });
+  if (!rendezVous || !rendezVous.creneauPropose) return;
+
+  await prisma.rendezVous.update({ where: { id }, data: { statut: "ANNULE" } });
+
+  await envoyerEmail(
+    rendezVous.cliente.email,
+    "Votre proposition d'horaire chez Zelart Nails",
+    `<p>Bonjour ${rendezVous.cliente.prenom},</p>
+     <p>Merci d'avoir proposé le <strong>${formatJour(rendezVous.debut)} à ${formatHeure(rendezVous.debut)}</strong>.
+     Malheureusement je ne suis pas disponible à ce moment-là.</p>
+     <p>Vous pouvez choisir un autre créneau, ou vous inscrire en liste d'attente pour être
+     prévenue dès qu'une place se libère :</p>
+     <p><a href="${urlSite()}/reserver">Voir mes disponibilités</a></p>
+     <p>À très vite,<br>Zélia ✨</p>
+     ${await reseauxPourEmail()}`
+  );
 
   revalidatePath("/admin");
 }
