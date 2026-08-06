@@ -7,6 +7,8 @@ import Vagues, { TraitVagues } from "@/components/Vagues";
 import Carrousel from "@/components/Carrousel";
 import AvisGoogle from "@/components/AvisGoogle";
 import { avisGoogle } from "@/lib/avis";
+import { jsonLdSecurise } from "@/lib/json-ld";
+import { urlSite } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -35,8 +37,43 @@ export default async function Accueil() {
   ].slice(0, 16);
   const categories = grouperParCategorie(prestations);
 
+  // Repris par Google pour un encart enrichi dans les résultats de recherche
+  // (adresse, téléphone, et note moyenne dès que les avis sont connectés).
+  const donneesStructurees = {
+    "@context": "https://schema.org",
+    "@type": "NailSalon",
+    name: "Zelart Nails",
+    description:
+      "Prothésiste ongulaire et nail artist certifiée à Saint-Nazaire : vernis semi-permanent, gainage, pose Gel X, pose Pop-it, nail art et press-on nails, sur rendez-vous.",
+    url: urlSite(),
+    telephone: "+33645292001",
+    priceRange: "€€",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "108 avenue de la République",
+      addressLocality: "Saint-Nazaire",
+      postalCode: "44600",
+      addressCountry: "FR",
+    },
+    ...(visuels[0] ? { image: visuels[0].url } : {}),
+    ...(avis?.note
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: avis.note,
+            reviewCount: avis.nombre ?? avis.avis.length,
+          },
+        }
+      : {}),
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdSecurise(donneesStructurees) }}
+      />
+
       {/* Héro */}
       <section className="relative isolate overflow-hidden">
         <Vagues />

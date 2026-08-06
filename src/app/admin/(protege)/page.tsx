@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { formatPrix, totalTarifs } from "@/lib/format";
 import { changerStatutRendezVous, marquerAcompteRegle, renvoyerLienAcompte } from "@/actions/admin";
+import { supprimerListeAttente } from "@/actions/liste-attente";
 import { reglagesAcompte } from "@/lib/parametres";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -197,7 +198,7 @@ export default async function Agenda() {
   const maintenant = new Date();
   const ilYa14Jours = new Date(maintenant.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-  const [rdvs, acompte] = await Promise.all([
+  const [rdvs, acompte, listeAttente] = await Promise.all([
     prisma.rendezVous.findMany({
       where: { debut: { gte: ilYa14Jours } },
       include: {
@@ -208,6 +209,7 @@ export default async function Agenda() {
       orderBy: { debut: "asc" },
     }),
     reglagesAcompte(),
+    prisma.listeAttente.findMany({ where: { notifieeLe: null }, orderBy: { creeLe: "asc" } }),
   ]);
 
   // Une cliente est nouvelle si elle n'a aucun autre rendez-vous actif.
@@ -250,6 +252,64 @@ export default async function Agenda() {
                 nouvelle={estNouvelle(rdv)}
                 lienAcompteConfigure={Boolean(acompte.lien)}
               />)
+          )}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="font-display text-2xl font-bold">
+          Liste d&rsquo;attente{" "}
+          {listeAttente.length > 0 && (
+            <span className="ml-1 rounded-full bg-pink-100 px-3 py-1 text-sm font-semibold text-pink-800 align-middle">
+              {listeAttente.length}
+            </span>
+          )}
+        </h2>
+        <p className="mt-1 text-sm text-foreground/60">
+          Prévenues automatiquement par e-mail dès qu&rsquo;un rendez-vous est annulé.
+        </p>
+        <div className="mt-4 grid gap-3">
+          {listeAttente.length === 0 ? (
+            <p className="rounded-2xl bg-pink-50 px-5 py-4 text-sm text-foreground/70">
+              Personne en attente pour le moment.
+            </p>
+          ) : (
+            listeAttente.map((personne) => (
+              <div
+                key={personne.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-pink-100 bg-white px-5 py-3"
+              >
+                <div className="text-sm">
+                  <p className="font-medium">
+                    {personne.prenom} ·{" "}
+                    <a href={`mailto:${personne.email}`} className="hover:underline">
+                      {personne.email}
+                    </a>
+                    {personne.telephone && (
+                      <>
+                        {" "}
+                        ·{" "}
+                        <a href={`tel:${personne.telephone}`} className="hover:underline">
+                          {personne.telephone}
+                        </a>
+                      </>
+                    )}
+                  </p>
+                  {personne.note && <p className="mt-0.5 text-foreground/70">{personne.note}</p>}
+                  <p className="mt-0.5 text-xs text-foreground/50">
+                    Depuis le {formatJour(personne.creeLe)}
+                  </p>
+                </div>
+                <form action={supprimerListeAttente.bind(null, personne.id)}>
+                  <button
+                    type="submit"
+                    className="rounded-full border border-pink-200 px-3 py-1 text-xs font-medium text-pink-600 transition hover:bg-pink-50"
+                  >
+                    Retirer
+                  </button>
+                </form>
+              </div>
+            ))
           )}
         </div>
       </section>

@@ -236,12 +236,14 @@ model RendezVous {
   consentementSante Boolean @default(false)
 
   // Acompte demandé aux nouvelles clientes (cf. CGV)
-  acompteDemandeLe DateTime?
-  acompteRegleLe   DateTime?
+  acompteDemandeLe        DateTime?
+  acompteRegleLe          DateTime?
+  acompteRelanceEnvoyeeLe DateTime? // relance à 24h si toujours pas réglé
 
   // Horodatages des envois automatiques, pour ne jamais écrire deux fois
-  rappelEnvoyeLe   DateTime?
-  relanceEnvoyeeLe DateTime?
+  rappelEnvoyeLe        DateTime?
+  relanceEnvoyeeLe      DateTime?
+  demandeAvisEnvoyeeLe  DateTime? // invitation à laisser un avis Google, une fois la pose faite
 
   // Fiche technique remplie par Zélia après la pose : ce qu'elle a
   // réellement fait, pour reproduire à l'identique et suivre les réactions.
@@ -254,6 +256,21 @@ model RendezVous {
   inspirations InspirationImage[]
 
   @@index([debut])
+}
+
+// Cliente intéressée par un jour complet : prévenue dès qu'une annulation
+// libère un créneau. Pas de date précise à faire correspondre — l'annonce
+// part à tout le monde, au premier arrivé de reprendre le créneau.
+model ListeAttente {
+  id         String    @id @default(cuid())
+  prenom     String
+  email      String
+  telephone  String?
+  note       String? // jour souhaité, prestation envisagée…
+  creeLe     DateTime  @default(now())
+  notifieeLe DateTime? // avertie une fois ; à elle de rejoindre la liste si besoin
+
+  @@index([notifieeLe])
 }
 
 // Réglages modifiables par la gérante sans redéploiement (lien d'acompte…).

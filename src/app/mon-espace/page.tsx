@@ -189,6 +189,12 @@ export default async function MonEspace({
                     </span>
                   </li>
                 </ul>
+                <a
+                  href={`/api/calendrier/${rdv.id}`}
+                  className="mt-2 inline-block text-xs font-medium text-pink-600 hover:underline"
+                >
+                  📅 Ajouter à mon calendrier
+                </a>
                 {annulationPossible(rdv.debut) ? (
                   <BoutonAnnulation rendezVousId={rdv.id} />
                 ) : (

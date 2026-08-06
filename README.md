@@ -323,6 +323,68 @@ que de vider la section.
 Sans clé ou sans établissement connecté, la section n'apparaît pas et Réglages indique ce qui
 manque.
 
+## Envois automatiques quotidiens
+
+La planification Vercel (`vercel.json`) appelle `/api/taches/rappels` chaque matin à 7 h,
+protégée par `CRON_SECRET`. Quatre envois y sont regroupés, chacun horodaté sur le
+rendez-vous pour ne jamais partir deux fois :
+
+| Envoi | Déclencheur | Champ témoin |
+| --- | --- | --- |
+| Rappel de rendez-vous | La veille d'un rendez-vous confirmé | `rappelEnvoyeLe` |
+| Relance de repousse | Délai propre à la technique posée | `relanceEnvoyeeLe` |
+| Demande d'avis Google | 3 jours après une pose terminée | `demandeAvisEnvoyeeLe` |
+| Relance d'acompte | 24 h après l'envoi du lien, si non réglé | `acompteRelanceEnvoyeeLe` |
+
+Les trois premiers dépendent du réglage *Activer les envois automatiques*. **La relance
+d'acompte, non** : comme l'envoi initial du lien, elle s'active dès qu'un lien SumUp est
+configuré — c'est le fonctionnement attendu de l'acompte, pas un rappel de confort.
+
+La demande d'avis n'est envoyée **qu'une fois par cliente**, jamais à chaque visite, et
+seulement si un établissement Google est connecté. Une cliente désinscrite n'en reçoit pas.
+
+## Liste d'attente
+
+Quand aucun créneau ne convient, la cliente laisse ses coordonnées à l'étape *Créneau*. À
+chaque annulation — par la cliente depuis son espace, ou par Zélia depuis l'agenda — tout le
+monde est prévenu d'un coup : pas de date à faire correspondre, la première à réserver garde
+le créneau. Chacune n'est prévenue **qu'une fois** ; à elle de se réinscrire si l'annonce ne
+débouche sur rien, plutôt que d'être relancée à chaque annulation suivante.
+
+Le bloc s'affiche replié tant qu'il reste des créneaux, et déplié quand il n'y en a plus.
+
+> **Attention en cas de modification** : ce bloc vit à l'intérieur du `<form>` du parcours de
+> réservation. Il n'a donc volontairement ni `<form>` à lui — imbriqué, il serait supprimé au
+> parsage et son bouton enverrait la demande de rendez-vous — ni attribut `name` sur ses
+> champs, qui entreraient en collision avec les `prenom`/`email` de la réservation. Les
+> valeurs sont repérées par `data-champ`, invisible des formulaires.
+
+## Référencement
+
+`sitemap.ts` et `robots.ts` produisent `/sitemap.xml` et `/robots.txt` depuis l'adresse réelle
+du site. Seules les pages publiques et stables sont listées ; les pages personnelles
+(confirmation, espace cliente, désinscription) sont explicitement exclues de l'indexation —
+leurs URL portent un jeton à usage unique qu'un robot consommerait pour rien.
+
+L'accueil émet un bloc JSON-LD `NailSalon` (adresse, téléphone, horaires de prise de
+rendez-vous), enrichi de la note moyenne dès que les avis Google sont connectés. Les valeurs
+passent par `jsonLdSecurise()`, qui échappe les chevrons : un avis contenant `</script>`
+casserait sinon la page.
+
+## Ajout au calendrier
+
+`/api/calendrier/[id]` sert un fichier `.ics` (RFC 5545) ouvert par Google Agenda, Apple
+Calendrier ou Outlook. Le lien figure sur la page de confirmation, dans l'espace cliente et
+dans les e-mails de confirmation et de rappel.
+
+Un lien plutôt qu'une pièce jointe : Brevo et Resend ont des API de pièces jointes
+différentes, et un lien fonctionne aussi depuis le site. L'identifiant du rendez-vous suffit à
+y accéder, comme pour la page de confirmation.
+
 ## Prochaines étapes envisagées
 
-- Envoi de SMS en complément des e-mails (rappels et campagnes).
+- Envoi de SMS en complément des e-mails (rappels et campagnes) — payant, contrairement à
+  l'e-mail : suppose de choisir un fournisseur et d'accepter un coût par message.
+- Encaissement réellement automatique de l'acompte (webhook SumUp ou Stripe), pour se passer
+  du pointage manuel « Acompte reçu ».
+- Nom de domaine propre (cf. section dédiée plus haut).

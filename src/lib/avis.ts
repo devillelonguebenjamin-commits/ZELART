@@ -115,6 +115,15 @@ export async function avisGoogle(): Promise<FicheAvis | null> {
   }
 }
 
+// Lien direct vers le formulaire d'avis Google, sans passer par l'API : un
+// simple lien Google Maps, qui fonctionne même si la clé d'API venait à
+// manquer. `null` tant qu'aucun établissement n'est connecté.
+export async function lienDemandeAvis(): Promise<string | null> {
+  const reglage = await prisma.parametre.findUnique({ where: { cle: CLE_PLACE_ID } });
+  if (!reglage?.valeur) return null;
+  return `https://search.google.com/local/writereview?placeid=${encodeURIComponent(reglage.valeur)}`;
+}
+
 function lireCache(brut: string | undefined): FicheAvis | null {
   if (!brut) return null;
   try {

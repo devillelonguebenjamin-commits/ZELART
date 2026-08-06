@@ -71,6 +71,13 @@ export const commandePressOnSchema = z
     path: ["adresse"],
   });
 
+export const listeAttenteSchema = z.object({
+  prenom,
+  email,
+  telephone: telephone.optional(),
+  note: z.string().trim().max(300, "300 caractères maximum.").optional(),
+});
+
 // Les URL d'images sont produites par notre propre stockage : on refuse tout
 // autre hôte, le formulaire étant public.
 export function urlImageValide(url: string): boolean {
