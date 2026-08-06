@@ -47,6 +47,35 @@ model Cliente {
   recompenses Recompense[]
   commandes   CommandePressOn[]
   changementsEmail ChangementEmail[]
+  avantages   AvantageParrainage[]
+}
+
+// Programme « Squad ». Le palier lui-même n'est pas stocké : il se recalcule à
+// partir des filleules réellement venues, ce qui évite qu'une valeur figée
+// diverge de la réalité. Seuls les avantages accordés sont conservés, car ils
+// se consomment.
+enum TypeAvantage {
+  BESTIE_REMISE // −15 % sur la prochaine prestation (1 filleule)
+  SQUAD_MANUCURE // une manucure offerte (3 filleules)
+  ICONE_CHOIX // nail art niveau 2 ou press-on, au choix (5 filleules)
+  DIVA_POSE_ANNUELLE // une pose offerte par année de statut Ambassadrice (10 filleules)
+}
+
+model AvantageParrainage {
+  id        String       @id @default(cuid())
+  cliente   Cliente      @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String
+  type      TypeAvantage
+  // Vide pour les avantages gagnés une fois pour toutes ; l'année pour la pose
+  // annuelle des Ambassadrices, qui se renouvelle tant que le statut tient.
+  periode   String       @default("")
+  code      String       @unique
+  gagneLe   DateTime     @default(now())
+  utiliseLe DateTime?
+
+  // Un même avantage ne peut être accordé deux fois pour la même période.
+  @@unique([clienteId, type, periode])
+  @@index([clienteId])
 }
 
 // Changement d'adresse e-mail demandé depuis l'espace cliente. L'adresse
@@ -244,6 +273,11 @@ model RendezVous {
 
   // Case obligatoire : santé, allergies et droit de refus de la prestation
   consentementSante Boolean @default(false)
+
+  // −15 % accordés à une filleule sur sa première prestation. Figé ici plutôt
+  // que recalculé : l'offre est acquise au moment de la demande, même si la
+  // situation de la cliente change ensuite.
+  remiseFilleule Boolean @default(false)
 
   // Acompte demandé aux nouvelles clientes (cf. CGV)
   acompteDemandeLe        DateTime?

@@ -4,6 +4,7 @@ import { formatHeure, formatJour } from "@/lib/creneaux";
 import { formatPrix, totalTarifs } from "@/lib/format";
 import { reglagesAcompte, reglagesRappels } from "@/lib/parametres";
 import { lienDemandeAvis } from "@/lib/avis";
+import { attribuerAvantages } from "@/lib/parrainage";
 import { urlSite } from "@/lib/site";
 import type { TypePose } from "@/generated/prisma/client";
 
@@ -14,6 +15,7 @@ export type BilanRappels = {
   avis: { envoyees: number; echecs: number };
   acompte: { envoyees: number; echecs: number };
   reconquete: { envoyees: number; echecs: number };
+  avantagesParrainage: number;
 };
 
 const JOUR_MS = 24 * 60 * 60 * 1000;
@@ -304,6 +306,25 @@ async function envoyerRelancesAcompte(): Promise<{ envoyees: number; echecs: num
   return { envoyees, echecs };
 }
 
+// --- Renouvellement du statut Ambassadrice ---------------------------------
+
+// La pose offerte des Ambassadrices se renouvelle au changement d'année : rien
+// ne se produit alors côté rendez-vous, donc personne ne déclencherait
+// l'attribution sans ce passage quotidien.
+async function renouvelerAvantagesParrainage(): Promise<number> {
+  const marraines = await prisma.cliente.groupBy({
+    by: ["parraineParId"],
+    where: { parraineParId: { not: null }, rendezVous: { some: { statut: "TERMINE" } } },
+    _count: { _all: true },
+  });
+
+  let accordes = 0;
+  for (const marraine of marraines) {
+    accordes += (await attribuerAvantages(marraine.parraineParId!)).length;
+  }
+  return accordes;
+}
+
 // --- Reconquête après une longue absence -----------------------------------
 
 async function envoyerReconquetes(): Promise<{ envoyees: number; echecs: number }> {
@@ -403,6 +424,7 @@ export async function executerRappels(): Promise<BilanRappels> {
       avis: { envoyees: 0, echecs: 0 },
       acompte,
       reconquete: { envoyees: 0, echecs: 0 },
+      avantagesParrainage: 0,
     };
   }
 
@@ -410,5 +432,6 @@ export async function executerRappels(): Promise<BilanRappels> {
   const relances = await envoyerRelances(delais);
   const avis = await envoyerDemandesAvis();
   const reconquete = await envoyerReconquetes();
-  return { actifs: true, rappels, relances, avis, acompte, reconquete };
+  const avantagesParrainage = await renouvelerAvantagesParrainage();
+  return { actifs: true, rappels, relances, avis, acompte, reconquete, avantagesParrainage };
 }

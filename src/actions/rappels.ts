@@ -70,7 +70,8 @@ export async function lancerRappelsMaintenant(): Promise<EtatRappels> {
     message:
       `${bilan.rappels.envoyes} rappel(s), ${bilan.relances.envoyees} relance(s) de repousse, ` +
       `${bilan.avis.envoyees} demande(s) d'avis, ${bilan.acompte.envoyees} relance(s) d'acompte ` +
-      `et ${bilan.reconquete.envoyees} message(s) de reconquête envoyé(s).` +
+      `et ${bilan.reconquete.envoyees} message(s) de reconquête envoyé(s). ` +
+      `${bilan.avantagesParrainage} avantage(s) de parrainage accordé(s).` +
       (echecs > 0 ? ` ${echecs} envoi(s) en échec — vérifiez le service d'e-mails.` : ""),
   };
 }

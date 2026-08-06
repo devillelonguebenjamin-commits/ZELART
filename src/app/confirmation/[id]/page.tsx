@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { formatPrix, totalTarifs } from "@/lib/format";
 import Vagues from "@/components/Vagues";
+import { REMISE_FILLEULE_POURCENT } from "@/lib/parrainage";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +92,13 @@ export default async function Confirmation({
               vous sera demandé via un lien de paiement SumUp pour valider la réservation — il sera
               déduit du montant final.
             </p>
+            {rendezVous.remiseFilleule && (
+              <p className="rounded-2xl bg-pink-50 px-5 py-4 font-medium text-pink-800">
+                💕 Bienvenue dans la squad ! Vous bénéficiez de{" "}
+                <strong>−{REMISE_FILLEULE_POURCENT} %</strong> sur cette première prestation, déduits
+                par Zélia au moment du règlement.
+              </p>
+            )}
             <p>🌸 Le règlement se fait sur place, en espèces ou par carte bancaire.</p>
           </div>
 

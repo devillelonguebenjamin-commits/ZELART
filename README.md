@@ -356,6 +356,41 @@ absence.
 Ni la reconquête ni la demande d'avis ne partent à une cliente désinscrite ; la reconquête
 épargne en plus les clientes bloquées.
 
+## Programme de parrainage « Squad »
+
+La filleule saisit le code de sa marraine à sa première réservation : elle obtient **−15 % sur
+sa première prestation**, cumulables avec les autres offres. La marraine gravit des paliers.
+
+| Palier | Filleules venues | Avantage |
+| --- | --- | --- |
+| Bestie 💕 | 1 | −15 % sur une prestation |
+| Squad 🌟 | 3 | Une manucure offerte |
+| Icône 👑 | 5 | Un nail art niveau 2 ou un set de press-on, au choix |
+| DIVA 💎 | 10 | Statut Ambassadrice : une pose offerte par an, dépose offerte |
+
+**Une filleule ne compte que lorsqu'elle est venue** (rendez-vous passé en *Terminé*). Sans
+cette règle, trois inscriptions jamais honorées offriraient une manucure.
+
+Le palier n'est **jamais stocké** : il se recalcule à chaque lecture depuis les filleules
+venues, si bien qu'un rendez-vous repassé en annulé ajuste le décompte tout seul. Seuls les
+avantages accordés sont conservés, puisqu'ils se consomment.
+
+L'attribution se déclenche au passage d'un rendez-vous en *Terminé*, et à nouveau chaque matin
+pour renouveler la pose annuelle des Ambassadrices — un changement d'année ne touche aucun
+rendez-vous et ne déclencherait rien sans ce passage. Elle est **idempotente** : la contrainte
+d'unicité `(cliente, type, période)` garantit qu'un avantage n'est jamais accordé deux fois,
+même si les deux déclencheurs se croisent. Tous les paliers franchis sont attribués, pas
+seulement le dernier : trois filleules d'un coup rapportent Bestie *et* Squad.
+
+**Maintien du statut Ambassadrice** — sans filleule venue depuis douze mois, le statut redescend
+à Icône jusqu'à réactivation. Les avantages déjà gagnés restent acquis ; seuls la pose annuelle
+et la dépose offerte sont suspendues. C'est pourquoi la dépose n'est **jamais annoncée « à
+vie »** aux clientes : promettre puis reprendre serait pire que de ne rien promettre.
+
+Le site n'encaisse pas : les remises sont **affichées** à la cliente et **rappelées à Zélia** sur
+la carte du rendez-vous, sous « À déduire à l'encaissement », avec un bouton *Utilisé* qui
+consomme l'avantage — sans quoi le même code pourrait resservir à chaque venue.
+
 ## Blocage de clientes (`/admin/bouffonnes`)
 
 Une cliente bloquée depuis cet onglet ne peut plus ni réserver ni commander de press-on. Le

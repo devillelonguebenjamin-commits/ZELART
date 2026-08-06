@@ -4,6 +4,9 @@ import { formatHeure, formatJour } from "@/lib/creneaux";
 import { formatPrix, totalTarifs } from "@/lib/format";
 import { changerStatutRendezVous, marquerAcompteRegle, renvoyerLienAcompte } from "@/actions/admin";
 import { supprimerListeAttente } from "@/actions/liste-attente";
+import { marquerAvantageUtilise } from "@/actions/avantages";
+import { LIBELLE_AVANTAGE, REMISE_FILLEULE_POURCENT } from "@/lib/parrainage";
+import type { TypeAvantage } from "@/generated/prisma/client";
 import { reglagesAcompte } from "@/lib/parametres";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -51,14 +54,18 @@ function BoutonStatut({ id, statut, label }: { id: string; statut: string; label
   );
 }
 
+type AvantageEnAttente = { id: string; type: TypeAvantage; code: string };
+
 function CarteRdv({
   rdv,
   nouvelle,
   lienAcompteConfigure,
+  avantages,
 }: {
   rdv: RdvComplet;
   nouvelle: boolean;
   lienAcompteConfigure: boolean;
+  avantages: AvantageEnAttente[];
 }) {
   const badge = BADGES[rdv.statut] ?? BADGES.EN_ATTENTE;
   const totalRdv = totalTarifs(rdv.lignes.map((l) => l.prestation));
@@ -172,6 +179,37 @@ function CarteRdv({
         </div>
       )}
 
+      {(rdv.remiseFilleule || avantages.length > 0) && rdv.statut !== "ANNULE" && (
+        <div className="mt-2 rounded-xl bg-pink-50 px-4 py-3 text-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-pink-500">
+            À déduire à l&rsquo;encaissement
+          </p>
+          {rdv.remiseFilleule && (
+            <p className="mt-1 font-medium text-pink-800">
+              💕 −{REMISE_FILLEULE_POURCENT} % — première prestation d&rsquo;une filleule
+            </p>
+          )}
+          {avantages.map((avantage) => (
+            <div key={avantage.id} className="mt-1 flex flex-wrap items-center gap-2">
+              <span className="font-medium text-pink-800">
+                🎁 {LIBELLE_AVANTAGE[avantage.type]}
+              </span>
+              <code className="rounded bg-white px-2 py-0.5 text-xs text-pink-700">
+                {avantage.code}
+              </code>
+              <form action={marquerAvantageUtilise.bind(null, avantage.id, true)}>
+                <button
+                  type="submit"
+                  className="rounded-full border border-pink-300 bg-white px-3 py-1 text-xs font-medium text-pink-700 transition hover:bg-pink-100"
+                >
+                  Utilisé
+                </button>
+              </form>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="mt-3 flex flex-wrap gap-2">
         {rdv.statut === "EN_ATTENTE" && (
           <>
@@ -198,7 +236,7 @@ export default async function Agenda() {
   const maintenant = new Date();
   const ilYa14Jours = new Date(maintenant.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-  const [rdvs, acompte, listeAttente] = await Promise.all([
+  const [rdvs, acompte, listeAttente, avantagesEnAttente] = await Promise.all([
     prisma.rendezVous.findMany({
       where: { debut: { gte: ilYa14Jours } },
       include: {
@@ -210,7 +248,19 @@ export default async function Agenda() {
     }),
     reglagesAcompte(),
     prisma.listeAttente.findMany({ where: { notifieeLe: null }, orderBy: { creeLe: "asc" } }),
+    prisma.avantageParrainage.findMany({
+      where: { utiliseLe: null },
+      select: { id: true, clienteId: true, type: true, code: true },
+    }),
   ]);
+  // Regroupés par cliente : chaque carte de rendez-vous rappelle ce qui reste
+  // à appliquer, sinon Zélia devrait ouvrir la fiche pour le savoir.
+  const avantagesParCliente = new Map<string, typeof avantagesEnAttente>();
+  for (const avantage of avantagesEnAttente) {
+    const liste = avantagesParCliente.get(avantage.clienteId) ?? [];
+    liste.push(avantage);
+    avantagesParCliente.set(avantage.clienteId, liste);
+  }
 
   // Une cliente est nouvelle si elle n'a aucun autre rendez-vous actif.
   const comptes = await prisma.rendezVous.groupBy({
@@ -251,6 +301,7 @@ export default async function Agenda() {
                 rdv={rdv}
                 nouvelle={estNouvelle(rdv)}
                 lienAcompteConfigure={Boolean(acompte.lien)}
+                avantages={avantagesParCliente.get(rdv.clienteId) ?? []}
               />)
           )}
         </div>
@@ -327,6 +378,7 @@ export default async function Agenda() {
                 rdv={rdv}
                 nouvelle={estNouvelle(rdv)}
                 lienAcompteConfigure={Boolean(acompte.lien)}
+                avantages={avantagesParCliente.get(rdv.clienteId) ?? []}
               />)
           )}
         </div>
@@ -345,6 +397,7 @@ export default async function Agenda() {
                 rdv={rdv}
                 nouvelle={estNouvelle(rdv)}
                 lienAcompteConfigure={Boolean(acompte.lien)}
+                avantages={avantagesParCliente.get(rdv.clienteId) ?? []}
               />)
           )}
         </div>
