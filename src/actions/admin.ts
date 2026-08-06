@@ -27,6 +27,8 @@ import {
   CLE_ETABLISSEMENT,
   CLE_PLACE_ID,
   chercherEtablissement,
+  detaillerEtablissement,
+  normaliserRechercheAvis,
   oublierCacheAvis,
   type Candidat,
 } from "@/lib/avis";
@@ -307,13 +309,19 @@ export async function gererAvisGoogle(
     return { ok: true, message: "Établissement connecté — les avis apparaissent sur l'accueil." };
   }
 
-  const requete = String(formData.get("requete") ?? "").trim();
-  if (requete.length < 3) {
-    return { ok: false, message: "Indiquez le nom de l'établissement, et si possible sa ville." };
+  const cible = normaliserRechercheAvis(String(formData.get("requete") ?? ""));
+  if (!cible) {
+    return {
+      ok: false,
+      message: "Indiquez le nom de l'établissement, ou collez le lien de sa page Google.",
+    };
   }
 
   try {
-    const candidats = await chercherEtablissement(requete);
+    const candidats =
+      "placeId" in cible
+        ? [await detaillerEtablissement(cible.placeId)]
+        : await chercherEtablissement(cible.requete);
     if (candidats.length === 0) {
       return {
         ok: false,

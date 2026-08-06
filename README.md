@@ -305,8 +305,14 @@ galerie. Deux limites tiennent à la plateforme, pas au site :
 **Mise en place.** Créer une clé d'API Places (New) dans la console Google Cloud (facturation
 activée, quota mensuel offert largement suffisant ici) et la poser dans `GOOGLE_PLACES_API_KEY`
 sur Vercel. Zélia connecte ensuite son établissement depuis **Réglages → Avis Google** : elle
-tape le nom de sa fiche, choisit dans la liste, c'est fini. Le `placeId` est conservé en base,
-personne n'a besoin d'aller le chercher dans la console.
+tape le nom de sa fiche — ou colle le lien de sa page Google, dont le champ extrait ce qu'il
+faut — choisit dans la liste, c'est fini. Le `placeId` est conservé en base, personne n'a besoin
+d'aller le chercher dans la console.
+
+Les liens de *recherche* Google ne contiennent pas d'identifiant d'établissement, seulement le
+terme recherché : c'est donc lui qui sert de requête, orientée vers la région de Saint-Nazaire
+pour qu'un nom aussi court que « ZELART » ne ramène pas des salons du monde entier. Les liens
+Maps et les identifiants `ChIJ…` sont reconnus directement.
 
 **Cache.** `fetch` n'est pas mis en cache par défaut en Next 16 sans `cacheComponents`, et un
 cache en mémoire ne survivrait pas d'une instance à l'autre. Les avis sont donc stockés en base
