@@ -268,6 +268,30 @@ Pour l'ajuster : `SCENES` décrit chaque scène (hauteur, rubans, dégradé de f
 l'opacité globale se règle sur le `<svg>`. Les rubans restent opaques entre eux — les rendre
 translucides un par un ferait ressortir chaque croisement en rose plus soutenu.
 
+## Carrousel de la galerie
+
+`src/components/CarrouselGalerie.tsx` remplace l'ancienne grille de vignettes. Le défilement
+reste natif — donc fluide au doigt, au pavé tactile, à la molette et au clavier — et le
+composant n'ajoute que ce que le navigateur ne fait pas seul :
+
+- **flèches** et **indicateur de position** (largeur et place calquées sur une barre de
+  défilement), affichés seulement s'il y a de quoi défiler ;
+- **glissement à la souris**, que le défilement natif ne propose pas. L'accrochage est
+  suspendu pendant la prise puis rétabli, ce qui repose la vignette la plus proche en place.
+  Les images sont `draggable={false}`, sans quoi le navigateur lance son propre
+  glisser-déposer ;
+- **défilement automatique** en aller-retour toutes les 4,5 s, suspendu au survol, au focus
+  et quand l'onglet passe à l'arrière-plan, arrêté net dès la première manipulation, et
+  pilotable par le bouton pause.
+
+La mise en avant de la vignette centrée (échelle et opacité) est en CSS pur, calée sur le
+défilement via `animation-timeline: view(x)` : elle tourne hors du fil principal, et les
+navigateurs qui l'ignorent affichent simplement des vignettes toutes égales.
+
+`prefers-reduced-motion: reduce` désactive le défilement automatique, l'animation de
+glissement et la mise en avant. La préférence est lue par `useSyncExternalStore` : le rendu
+serveur suppose l'animation permise et l'hydratation rétablit la vérité.
+
 ## Prochaines étapes envisagées
 
 - Envoi de SMS en complément des e-mails (rappels et campagnes).
