@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCreneauxDisponibles } from "@/lib/creneaux";
 import { stockageConfigure } from "@/lib/blob";
 import ReservationWizard from "@/components/ReservationWizard";
+import { clienteConnectee } from "@/lib/cliente-auth";
 import Vagues from "@/components/Vagues";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,15 @@ export const metadata: Metadata = {
 };
 
 export default async function Reserver() {
+  // Une cliente déjà connectée n'a pas à retaper ce que le site sait d'elle.
+  const clienteId = await clienteConnectee();
+  const connue = clienteId
+    ? await prisma.cliente.findUnique({
+        where: { id: clienteId },
+        select: { prenom: true, nom: true, email: true, telephone: true },
+      })
+    : null;
+
   const [prestations, creneaux] = await Promise.all([
     prisma.prestation.findMany({
       where: { active: true },
@@ -51,6 +61,7 @@ export default async function Reserver() {
           prestations={prestations}
           creneaux={creneaux}
           envoiImagesActif={stockageConfigure()}
+          cliente={connue}
         />
       </div>
     </>

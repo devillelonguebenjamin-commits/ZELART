@@ -289,6 +289,11 @@ model RendezVous {
   relanceEnvoyeeLe      DateTime?
   demandeAvisEnvoyeeLe  DateTime? // invitation à laisser un avis Google, une fois la pose faite
 
+  // Mot laissé au moment de valider la venue. Distinct de la fiche technique :
+  // celle-ci décrit la pose pour la reproduire, celui-ci raconte la visite —
+  // ponctualité, envies exprimées, ce qu'il faudra retenir la prochaine fois.
+  commentaireVisite String?
+
   // Fiche technique remplie par Zélia après la pose : ce qu'elle a
   // réellement fait, pour reproduire à l'identique et suivre les réactions.
   forme       String?

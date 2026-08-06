@@ -6,6 +6,7 @@ import { changerStatutRendezVous, marquerAcompteRegle, renvoyerLienAcompte } fro
 import { supprimerListeAttente } from "@/actions/liste-attente";
 import { marquerAvantageUtilise } from "@/actions/avantages";
 import { LIBELLE_AVANTAGE, REMISE_FILLEULE_POURCENT } from "@/lib/parrainage";
+import ValidationVenue from "@/components/ValidationVenue";
 import type { TypeAvantage } from "@/generated/prisma/client";
 import { reglagesAcompte } from "@/lib/parametres";
 import type { Prisma } from "@/generated/prisma/client";
@@ -14,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 type RdvComplet = Prisma.RendezVousGetPayload<{
   include: {
-    cliente: true;
+    cliente: { include: { parraine: { select: { prenom: true } } } };
     inspirations: true;
     lignes: { include: { prestation: true } };
   };
@@ -217,9 +218,20 @@ function CarteRdv({
             <BoutonStatut id={rdv.id} statut="ANNULE" label="✕ Annuler" />
           </>
         )}
+        {/* Position unique, quel que soit le statut : la validation fait passer
+            le rendez-vous de « confirmé » à « terminé », et un composant qui
+            changerait de branche serait démonté puis remonté — le message
+            annonçant le palier débloqué disparaîtrait avant d'être lu. */}
+        {(rdv.statut === "CONFIRME" || rdv.statut === "TERMINE") && (
+          <ValidationVenue
+            rendezVousId={rdv.id}
+            prenomMarraine={rdv.cliente.parraine?.prenom}
+            dejaValide={rdv.statut === "TERMINE"}
+            commentaire={rdv.commentaireVisite}
+          />
+        )}
         {rdv.statut === "CONFIRME" && (
           <>
-            <BoutonStatut id={rdv.id} statut="TERMINE" label="Terminé" />
             <BoutonStatut id={rdv.id} statut="NO_SHOW" label="Absente" />
             <BoutonStatut id={rdv.id} statut="ANNULE" label="✕ Annuler" />
           </>
@@ -240,7 +252,7 @@ export default async function Agenda() {
     prisma.rendezVous.findMany({
       where: { debut: { gte: ilYa14Jours } },
       include: {
-        cliente: true,
+        cliente: { include: { parraine: { select: { prenom: true } } } },
         inspirations: true,
         lignes: { include: { prestation: true }, orderBy: { ordre: "asc" } },
       },
@@ -272,8 +284,13 @@ export default async function Agenda() {
   const estNouvelle = (rdv: RdvComplet) =>
     rdv.statut !== "ANNULE" && (nbParCliente.get(rdv.clienteId) ?? 0) <= 1;
 
+  // La date seule décide de la section, jamais le statut — deux raisons :
+  // un rendez-vous validé avant son heure de fin resterait sinon introuvable,
+  // et un rendez-vous futur annulé par erreur le devenait déjà, son bouton
+  // « Réactiver » étant alors hors d'atteinte. Chaque rendez-vous apparaît
+  // ainsi exactement une fois, son badge disant où il en est.
   const enAttente = rdvs.filter((r) => r.statut === "EN_ATTENTE" && r.fin >= maintenant);
-  const aVenir = rdvs.filter((r) => r.statut === "CONFIRME" && r.fin >= maintenant);
+  const aVenir = rdvs.filter((r) => r.statut !== "EN_ATTENTE" && r.fin >= maintenant);
   const passes = rdvs.filter((r) => r.fin < maintenant).reverse();
 
   return (
@@ -366,7 +383,7 @@ export default async function Agenda() {
       </section>
 
       <section>
-        <h2 className="font-display text-2xl font-bold">Rendez-vous confirmés à venir</h2>
+        <h2 className="font-display text-2xl font-bold">Rendez-vous à venir</h2>
         <div className="mt-4 grid gap-3">
           {aVenir.length === 0 ? (
             <p className="rounded-2xl bg-pink-50 px-5 py-4 text-sm text-foreground/70">

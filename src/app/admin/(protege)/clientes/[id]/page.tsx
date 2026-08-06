@@ -253,6 +253,11 @@ export default async function FicheCliente({
                   {LIBELLES_STATUT[rdv.statut] ?? rdv.statut}
                 </span>
               </div>
+              {rdv.commentaireVisite && (
+                <p className="mt-2 rounded-xl bg-pink-50 px-4 py-2 whitespace-pre-line text-foreground/80">
+                  🗒️ {rdv.commentaireVisite}
+                </p>
+              )}
               <FicheTechnique
                 rendezVousId={rdv.id}
                 forme={rdv.forme}
