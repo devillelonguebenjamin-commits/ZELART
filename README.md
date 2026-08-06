@@ -245,6 +245,29 @@ propre parcours, sans créneau ni agenda.
 
 La cliente suit l'avancement de sa commande depuis `/mon-espace`.
 
+## Direction artistique
+
+Le motif de la marque — de larges rubans roses qui ondulent — est dessiné en SVG dans
+`src/components/Vagues.tsx`, jamais en image : rien à télécharger, net sur tous les écrans,
+teinte pilotée par les classes Tailwind. Trois échelles, une seule signature :
+
+| Composant | Où | Rôle |
+| --- | --- | --- |
+| `<Vagues variante="hero" />` | accueil, pages de confirmation | grand fond de page |
+| `<Vagues variante="bandeau" />` | en-têtes de `/reserver`, `/press-on`, `/mon-espace` | bandeau plat |
+| `<Vagues variante="bloc" />` | encart « L'institut » | angle d'une carte |
+| `<CreteVagues />` | haut du pied de page | séparation ondulée |
+| `<TraitVagues />` | sous les titres de section | petit trait |
+
+Le fond s'attend à un parent `relative isolate overflow-hidden` : `isolate` crée le contexte
+d'empilement sans lequel le `-z-10` du motif l'enverrait derrière la page entière, et
+`overflow-hidden` le recadre. Le motif est `aria-hidden`, non cliquable, et masqué à
+l'impression.
+
+Pour l'ajuster : `SCENES` décrit chaque scène (hauteur, rubans, dégradé de fondu), et
+l'opacité globale se règle sur le `<svg>`. Les rubans restent opaques entre eux — les rendre
+translucides un par un ferait ressortir chaque croisement en rose plus soutenu.
+
 ## Prochaines étapes envisagées
 
 - Envoi de SMS en complément des e-mails (rappels et campagnes).

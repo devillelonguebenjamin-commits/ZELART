@@ -4,6 +4,7 @@ import Link from "next/link";
 import "./globals.css";
 import { reglagesReseaux } from "@/lib/parametres";
 import LiensReseaux from "@/components/LiensReseaux";
+import { CreteVagues } from "@/components/Vagues";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,28 +33,52 @@ export default async function RootLayout({
     <html lang="fr" className={`${geistSans.variable} ${playfair.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <header className="sticky top-0 z-10 border-b border-pink-100 bg-white/85 backdrop-blur">
-          <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-            <Link href="/" className="font-display text-2xl font-bold text-pink-500">
-              Zelart <span className="text-base font-normal tracking-widest text-pink-300">Nails</span>
+          {/* Cinq entrées ne tiennent pas sur la largeur d'un téléphone. Plutôt
+              que de laisser « Press-on » se couper en deux ou la barre déborder
+              latéralement, on interdit la coupure au sein d'un lien et on
+              autorise le passage à la ligne entre eux. */}
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-3 gap-y-2 px-4 py-3 sm:justify-between sm:gap-x-4 sm:px-6 lg:flex-nowrap">
+            <Link
+              href="/"
+              className="font-display whitespace-nowrap text-xl font-bold text-pink-500 sm:text-2xl"
+            >
+              Zelart{" "}
+              <span className="text-sm font-normal tracking-widest text-pink-300 sm:text-base">
+                Nails
+              </span>
             </Link>
-            <nav className="flex items-center gap-4 text-sm sm:gap-6">
-              <Link href="/#prestations" className="hidden text-foreground/80 hover:text-pink-500 sm:block">
+            <nav className="flex items-center gap-3 text-sm sm:gap-6">
+              <Link
+                href="/#prestations"
+                className="hidden whitespace-nowrap text-foreground/80 hover:text-pink-500 lg:block"
+              >
                 Prestations &amp; tarifs
               </Link>
-              <Link href="/#infos" className="hidden text-foreground/80 hover:text-pink-500 sm:block">
+              <Link
+                href="/#infos"
+                className="hidden whitespace-nowrap text-foreground/80 hover:text-pink-500 lg:block"
+              >
                 Infos pratiques
               </Link>
-              <Link href="/press-on" className="text-foreground/80 hover:text-pink-500">
+              <Link
+                href="/press-on"
+                className="whitespace-nowrap text-foreground/80 hover:text-pink-500"
+              >
                 Press-on
               </Link>
-              <Link href="/mon-espace" className="text-foreground/80 hover:text-pink-500">
+              <Link
+                href="/mon-espace"
+                className="whitespace-nowrap text-foreground/80 hover:text-pink-500"
+              >
                 Mon espace
               </Link>
               <Link
                 href="/reserver"
-                className="rounded-full bg-pink-500 px-4 py-2 font-medium text-white shadow-sm transition hover:bg-pink-600"
+                className="whitespace-nowrap rounded-full bg-pink-500 px-4 py-2 font-medium text-white shadow-sm transition hover:bg-pink-600"
               >
-                Prendre rendez-vous
+                {/* Le libellé complet ne tient pas sur un téléphone. */}
+                <span className="sm:hidden">Réserver</span>
+                <span className="hidden sm:inline">Prendre rendez-vous</span>
               </Link>
             </nav>
           </div>
@@ -61,8 +86,10 @@ export default async function RootLayout({
 
         <main className="flex-1">{children}</main>
 
-        <footer className="mt-16 border-t border-pink-100 bg-white/60">
-          <div className="mx-auto grid max-w-5xl gap-6 px-4 py-8 text-sm text-foreground/70 sm:grid-cols-3 sm:px-6">
+        {/* La vague tient lieu de séparation : un filet droit en plus ferait double. */}
+        <footer className="mt-16 bg-white/60">
+          <CreteVagues />
+          <div className="mx-auto grid max-w-5xl gap-6 px-4 pb-8 text-sm text-foreground/70 sm:grid-cols-3 sm:px-6">
             <div>
               <p className="font-display text-lg font-bold text-pink-500">Zelart Nails</p>
               <p className="mt-1">Zélia — prothésiste ongulaire &amp; nail artist certifiée</p>

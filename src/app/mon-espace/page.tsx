@@ -11,6 +11,7 @@ import MesInformations from "@/components/MesInformations";
 import BoutonAnnulation from "@/components/BoutonAnnulation";
 import { annulationPossible, DELAI_ANNULATION_H } from "@/lib/annulation";
 import RoueFidelite from "@/components/RoueFidelite";
+import Vagues from "@/components/Vagues";
 import { reglagesRoue } from "@/lib/parametres";
 import {
   COULEUR_STATUT,
@@ -63,36 +64,45 @@ export default async function MonEspace({
 
   if (!clienteId) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-16 sm:px-6">
-        <h1 className="font-display text-3xl font-bold">Mon espace ✨</h1>
-        <p className="mt-3 text-foreground/70">
-          Retrouvez vos rendez-vous, l&rsquo;historique de vos poses et votre code de parrainage.
-        </p>
-
-        {lien === "expire" && (
-          <p className="mt-6 rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900">
-            Ce lien de connexion n&rsquo;est plus valable — les liens expirent au bout de 30 minutes
-            et ne servent qu&rsquo;une fois. Demandez-en un nouveau ci-dessous, c&rsquo;est immédiat.
-          </p>
-        )}
-
-        <div className="mt-8 rounded-3xl border border-pink-100 bg-white p-6 shadow-sm">
-          <p className="text-sm text-foreground/70">
-            Pas de mot de passe à créer : indiquez l&rsquo;adresse utilisée lors de votre
-            réservation, vous recevrez un lien pour vous connecter.
-          </p>
-          <div className="mt-4">
-            <FormulaireLienConnexion />
+      <>
+        <section className="relative isolate overflow-hidden">
+          <Vagues variante="bandeau" />
+          <div className="mx-auto max-w-lg px-4 py-14 text-center sm:px-6">
+            <h1 className="font-display text-3xl font-bold">Mon espace ✨</h1>
+            <p className="mt-3 text-foreground/70">
+              Retrouvez vos rendez-vous, l&rsquo;historique de vos poses et votre code de
+              parrainage.
+            </p>
           </div>
-        </div>
+        </section>
 
-        <p className="mt-6 text-center text-sm text-foreground/60">
-          Pas encore venue chez Zelart ?{" "}
-          <Link href="/reserver" className="font-medium text-pink-600 hover:underline">
-            Prendre un premier rendez-vous
-          </Link>
-        </p>
-      </div>
+        <div className="mx-auto max-w-lg px-4 pb-16 sm:px-6">
+          {lien === "expire" && (
+            <p className="mb-6 rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900">
+              Ce lien de connexion n&rsquo;est plus valable — les liens expirent au bout de 30
+              minutes et ne servent qu&rsquo;une fois. Demandez-en un nouveau ci-dessous, c&rsquo;est
+              immédiat.
+            </p>
+          )}
+
+          <div className="rounded-3xl border border-pink-100 bg-white p-6 shadow-sm">
+            <p className="text-sm text-foreground/70">
+              Pas de mot de passe à créer : indiquez l&rsquo;adresse utilisée lors de votre
+              réservation, vous recevrez un lien pour vous connecter.
+            </p>
+            <div className="mt-4">
+              <FormulaireLienConnexion />
+            </div>
+          </div>
+
+          <p className="mt-6 text-center text-sm text-foreground/60">
+            Pas encore venue chez Zelart ?{" "}
+            <Link href="/reserver" className="font-medium text-pink-600 hover:underline">
+              Prendre un premier rendez-vous
+            </Link>
+          </p>
+        </div>
+      </>
     );
   }
 
