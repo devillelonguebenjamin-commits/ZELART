@@ -20,6 +20,8 @@ import {
 import { prisma } from "@/lib/prisma";
 import ReglagesRappelsForm from "@/components/ReglagesRappelsForm";
 import ReglagesReseauxForm from "@/components/ReglagesReseauxForm";
+import ReglagesAvisForm from "@/components/ReglagesAvisForm";
+import { CLE_ETABLISSEMENT, cleGoogle } from "@/lib/avis";
 
 export const dynamic = "force-dynamic";
 
@@ -61,11 +63,21 @@ export default async function Reglages() {
     verifierExpediteurBrevo(),
     prisma.parametre.findMany({
       where: {
-        cle: { in: [CLE_INSTAGRAM, CLE_TIKTOK, CLE_AUTRE_RESEAU, CLE_AUTRE_RESEAU_LIBELLE] },
+        cle: {
+          in: [
+            CLE_INSTAGRAM,
+            CLE_TIKTOK,
+            CLE_AUTRE_RESEAU,
+            CLE_AUTRE_RESEAU_LIBELLE,
+            CLE_ETABLISSEMENT,
+          ],
+        },
       },
     }),
   ]);
   const reseau = (cle: string) => parametresReseaux.find((p) => p.cle === cle)?.valeur ?? "";
+  const etablissementGoogle = reseau(CLE_ETABLISSEMENT);
+  const avisGoogleActifs = Boolean(cleGoogle()) && Boolean(etablissementGoogle);
   const planificationPrete = Boolean(process.env.CRON_SECRET);
   const fournisseur = fournisseurEmail();
   const notify = process.env.NOTIFY_EMAIL ?? "";
@@ -140,6 +152,14 @@ export default async function Reglages() {
           valeur={acompte.lien ? "activé" : "manuel"}
           ok={Boolean(acompte.lien)}
           aide="lien de paiement SumUp réutilisable"
+        />
+        <Ligne
+          label="Avis Google"
+          valeur={
+            !cleGoogle() ? "clé absente" : etablissementGoogle ? "affichés" : "aucun établissement"
+          }
+          ok={avisGoogleActifs}
+          aide="GOOGLE_PLACES_API_KEY + établissement à connecter ci-dessous"
         />
         <Ligne
           label="Stockage des photos"
@@ -218,6 +238,8 @@ export default async function Reglages() {
         autre={reseau(CLE_AUTRE_RESEAU)}
         autreLibelle={reseau(CLE_AUTRE_RESEAU_LIBELLE)}
       />
+
+      <ReglagesAvisForm etablissement={etablissementGoogle} cleConfiguree={Boolean(cleGoogle())} />
 
       <section className="rounded-2xl border border-pink-100 bg-white p-5">
         <h2 className="font-semibold">Tester l&rsquo;envoi</h2>

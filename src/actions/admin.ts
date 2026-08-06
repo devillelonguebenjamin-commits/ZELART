@@ -23,6 +23,13 @@ import {
   enregistrerParametre,
   lienSumUpValide,
 } from "@/lib/parametres";
+import {
+  CLE_ETABLISSEMENT,
+  CLE_PLACE_ID,
+  chercherEtablissement,
+  oublierCacheAvis,
+  type Candidat,
+} from "@/lib/avis";
 import type { StatutRendezVous } from "@/generated/prisma/client";
 
 // --- Session ---
@@ -261,6 +268,63 @@ export async function enregistrerReseaux(
         ? `Enregistré — ${actifs} lien${actifs > 1 ? "s" : ""} affiché${actifs > 1 ? "s" : ""} sur le site.`
         : "Enregistré — aucun réseau n'est affiché pour le moment.",
   };
+}
+
+// --- Avis Google ---
+
+export type EtatAvis = { ok?: boolean; message?: string; candidats?: Candidat[] };
+
+export async function gererAvisGoogle(
+  _etatPrecedent: EtatAvis,
+  formData: FormData
+): Promise<EtatAvis> {
+  await exigerAdmin();
+  const intention = String(formData.get("intention") ?? "");
+
+  if (intention === "deconnecter") {
+    await enregistrerParametre(CLE_PLACE_ID, "");
+    await enregistrerParametre(CLE_ETABLISSEMENT, "");
+    await oublierCacheAvis();
+    revalidatePath("/");
+    revalidatePath("/admin/reglages");
+    return { ok: true, message: "Les avis Google ne sont plus affichés sur le site." };
+  }
+
+  if (intention === "rafraichir") {
+    await oublierCacheAvis();
+    revalidatePath("/");
+    return { ok: true, message: "Avis rafraîchis : la page d'accueil rappellera Google." };
+  }
+
+  if (intention === "connecter") {
+    const placeId = String(formData.get("placeId") ?? "").trim();
+    if (!placeId) return { ok: false, message: "Établissement introuvable, relancez la recherche." };
+    await enregistrerParametre(CLE_PLACE_ID, placeId);
+    await enregistrerParametre(CLE_ETABLISSEMENT, String(formData.get("nom") ?? "").slice(0, 200));
+    await oublierCacheAvis();
+    revalidatePath("/");
+    revalidatePath("/admin/reglages");
+    return { ok: true, message: "Établissement connecté — les avis apparaissent sur l'accueil." };
+  }
+
+  const requete = String(formData.get("requete") ?? "").trim();
+  if (requete.length < 3) {
+    return { ok: false, message: "Indiquez le nom de l'établissement, et si possible sa ville." };
+  }
+
+  try {
+    const candidats = await chercherEtablissement(requete);
+    if (candidats.length === 0) {
+      return {
+        ok: false,
+        message:
+          "Google ne trouve aucun établissement à ce nom. Reprenez le nom exact de la fiche, avec la ville.",
+      };
+    }
+    return { ok: true, candidats };
+  } catch (erreur) {
+    return { ok: false, message: erreur instanceof Error ? erreur.message : "Recherche impossible." };
+  }
 }
 
 // --- Diagnostic e-mail ---

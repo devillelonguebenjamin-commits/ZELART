@@ -268,6 +268,55 @@ Pour l'ajuster : `SCENES` décrit chaque scène (hauteur, rubans, dégradé de f
 l'opacité globale se règle sur le `<svg>`. Les rubans restent opaques entre eux — les rendre
 translucides un par un ferait ressortir chaque croisement en rose plus soutenu.
 
+## Carrousel de la galerie
+
+`src/components/CarrouselGalerie.tsx` remplace l'ancienne grille de vignettes. Le défilement
+reste natif — donc fluide au doigt, au pavé tactile, à la molette et au clavier — et le
+composant n'ajoute que ce que le navigateur ne fait pas seul :
+
+- **flèches** et **indicateur de position** (largeur et place calquées sur une barre de
+  défilement), affichés seulement s'il y a de quoi défiler ;
+- **glissement à la souris**, que le défilement natif ne propose pas. L'accrochage est
+  suspendu pendant la prise puis rétabli, ce qui repose la vignette la plus proche en place.
+  Les images sont `draggable={false}`, sans quoi le navigateur lance son propre
+  glisser-déposer ;
+- **défilement automatique** en aller-retour toutes les 4,5 s, suspendu au survol, au focus
+  et quand l'onglet passe à l'arrière-plan, arrêté net dès la première manipulation, et
+  pilotable par le bouton pause.
+
+La mise en avant de la vignette centrée (échelle et opacité) est en CSS pur, calée sur le
+défilement via `animation-timeline: view(x)` : elle tourne hors du fil principal, et les
+navigateurs qui l'ignorent affichent simplement des vignettes toutes égales.
+
+`prefers-reduced-motion: reduce` désactive le défilement automatique, l'animation de
+glissement et la mise en avant. La préférence est lue par `useSyncExternalStore` : le rendu
+serveur suppose l'animation permise et l'hydratation rétablit la vérité.
+
+## Avis Google
+
+Le bas de la page d'accueil reprend les avis de la fiche Google, dans le même carrousel que la
+galerie. Deux limites tiennent à la plateforme, pas au site :
+
+- **Google ne transmet que cinq avis**, et c'est lui qui les choisit. L'API n'offre aucun moyen
+  d'en obtenir davantage ni de trier.
+- Ses conditions imposent de **reprendre les avis tels quels** — pas de coupe, pas de retouche —
+  avec l'auteur crédité et un lien vers Google. C'est ce que fait `AvisGoogle.tsx`.
+
+**Mise en place.** Créer une clé d'API Places (New) dans la console Google Cloud (facturation
+activée, quota mensuel offert largement suffisant ici) et la poser dans `GOOGLE_PLACES_API_KEY`
+sur Vercel. Zélia connecte ensuite son établissement depuis **Réglages → Avis Google** : elle
+tape le nom de sa fiche, choisit dans la liste, c'est fini. Le `placeId` est conservé en base,
+personne n'a besoin d'aller le chercher dans la console.
+
+**Cache.** `fetch` n'est pas mis en cache par défaut en Next 16 sans `cacheComponents`, et un
+cache en mémoire ne survivrait pas d'une instance à l'autre. Les avis sont donc stockés en base
+(`Parametre.avisGoogleCache`), rafraîchis au bout de six heures — soit quatre appels par jour
+quelle que soit la fréquentation. Si Google tombe, le dernier état connu reste affiché plutôt
+que de vider la section.
+
+Sans clé ou sans établissement connecté, la section n'apparaît pas et Réglages indique ce qui
+manque.
+
 ## Prochaines étapes envisagées
 
 - Envoi de SMS en complément des e-mails (rappels et campagnes).

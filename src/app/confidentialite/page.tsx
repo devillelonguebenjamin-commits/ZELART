@@ -84,6 +84,17 @@ export default function Confidentialite() {
         </section>
 
         <section>
+          <h2 className="font-display text-xl font-bold text-foreground">Avis Google</h2>
+          <p className="mt-2">
+            La page d&rsquo;accueil reprend les avis publiés sur la fiche Google de Zélia. Le site
+            les récupère lui-même auprès de Google et les conserve quelques heures : votre visite
+            n&rsquo;est pas signalée à Google. Seule la photo de profil des personnes ayant laissé un
+            avis est chargée depuis les serveurs de Google, sans leur transmettre la page que vous
+            consultez.
+          </p>
+        </section>
+
+        <section>
           <h2 className="font-display text-xl font-bold text-foreground">Cookies</h2>
           <p className="mt-2">
             Ce site n&rsquo;utilise aucun cookie publicitaire ni de mesure d&rsquo;audience. Seul un

@@ -17,3 +17,41 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
+
+/* --- Carrousel de la galerie --- */
+
+/* La barre de défilement native ferait doublon avec l'indicateur affiché sous
+   le carrousel. Le glissement au doigt et à la souris reste natif. */
+.piste-carrousel {
+  scrollbar-width: none;
+}
+.piste-carrousel::-webkit-scrollbar {
+  display: none;
+}
+
+/* La vignette au centre passe au premier plan, les voisines s'effacent. La
+   progression est calée sur le défilement lui-même : l'animation tourne hors
+   du fil principal, et les navigateurs qui l'ignorent affichent simplement des
+   vignettes toutes égales. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .vignettes-centrees > li {
+      animation: vignette-centree linear both;
+      animation-timeline: view(x);
+    }
+  }
+}
+
+/* Assez marqué pour donner du relief, assez léger pour qu'une vignette restée
+   en bord de piste reste parfaitement regardable. */
+@keyframes vignette-centree {
+  0%,
+  100% {
+    opacity: 0.62;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
