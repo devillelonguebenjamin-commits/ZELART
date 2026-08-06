@@ -45,16 +45,26 @@ export async function lancerRappelsMaintenant(): Promise<EtatRappels> {
   await exigerAdmin();
 
   const bilan = await executerRappels();
+
+  // La relance d'acompte tourne même si les rappels sont désactivés (cf.
+  // executerRappels) : elle mérite donc d'apparaître même dans ce cas.
   if (!bilan.actifs) {
-    return { ok: false, message: "Les rappels sont désactivés : activez-les d'abord." };
+    const echecsAcompte = bilan.acompte.echecs;
+    return {
+      ok: echecsAcompte === 0,
+      message:
+        `Les rappels sont désactivés. ${bilan.acompte.envoyees} relance(s) d'acompte envoyée(s) quand même.` +
+        (echecsAcompte > 0 ? ` ${echecsAcompte} envoi(s) en échec.` : ""),
+    };
   }
 
   revalidatePath("/admin");
-  const echecs = bilan.rappels.echecs + bilan.relances.echecs;
+  const echecs = bilan.rappels.echecs + bilan.relances.echecs + bilan.avis.echecs + bilan.acompte.echecs;
   return {
     ok: echecs === 0,
     message:
-      `${bilan.rappels.envoyes} rappel(s) de rendez-vous et ${bilan.relances.envoyees} relance(s) de repousse envoyé(s).` +
+      `${bilan.rappels.envoyes} rappel(s), ${bilan.relances.envoyees} relance(s) de repousse, ` +
+      `${bilan.avis.envoyees} demande(s) d'avis et ${bilan.acompte.envoyees} relance(s) d'acompte envoyé(s).` +
       (echecs > 0 ? ` ${echecs} envoi(s) en échec — vérifiez le service d'e-mails.` : ""),
   };
 }

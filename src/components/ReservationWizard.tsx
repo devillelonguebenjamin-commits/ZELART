@@ -2,6 +2,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { creerReservation, type EtatReservation } from "@/actions/reservation";
+import ListeAttenteForm from "@/components/ListeAttenteForm";
 import type { Creneau } from "@/lib/creneaux";
 import { formatDuree, formatPrix, totalDuree, totalTarifs } from "@/lib/format";
 import {
@@ -340,6 +341,10 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
             ))}
           </div>
         )}
+
+        <div className="mt-6">
+          <ListeAttenteForm ouvert={jours.length === 0} />
+        </div>
         <div className="mt-8 flex justify-between">
           <button
             type="button"

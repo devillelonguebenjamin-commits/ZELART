@@ -6,6 +6,7 @@ import { clienteConnectee } from "@/lib/cliente-auth";
 import { envoyerEmail } from "@/lib/email";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { annulationPossible, DELAI_ANNULATION_H } from "@/lib/annulation";
+import { notifierListeAttente } from "@/lib/liste-attente";
 
 export type EtatAnnulation = { ok?: boolean; message?: string };
 
@@ -41,6 +42,9 @@ export async function annulerParCliente(rendezVousId: string): Promise<EtatAnnul
     where: { id: rendezVousId },
     data: { statut: "ANNULE" },
   });
+
+  // Le créneau libéré peut intéresser une cliente en liste d'attente.
+  await notifierListeAttente();
 
   // Zélia doit le savoir tout de suite pour reproposer le créneau.
   if (process.env.NOTIFY_EMAIL) {

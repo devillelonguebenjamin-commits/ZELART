@@ -2,7 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { envoyerEmail } from "@/lib/email";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { formatPrix, totalTarifs } from "@/lib/format";
-import { reglagesRappels } from "@/lib/parametres";
+import { reglagesAcompte, reglagesRappels } from "@/lib/parametres";
+import { lienDemandeAvis } from "@/lib/avis";
 import { urlSite } from "@/lib/site";
 import type { TypePose } from "@/generated/prisma/client";
 
@@ -10,9 +11,13 @@ export type BilanRappels = {
   actifs: boolean;
   rappels: { envoyes: number; echecs: number };
   relances: { envoyees: number; echecs: number };
+  avis: { envoyees: number; echecs: number };
+  acompte: { envoyees: number; echecs: number };
 };
 
 const JOUR_MS = 24 * 60 * 60 * 1000;
+const DELAI_AVIS_JOURS = 3;
+const DELAI_RELANCE_ACOMPTE_MS = JOUR_MS; // 24 h, comme demandé
 
 const LIBELLE_TECHNIQUE: Record<TypePose, string> = {
   VSP: "vernis semi-permanent",
@@ -70,7 +75,8 @@ async function envoyerRappels(): Promise<{ envoyes: number; echecs: number }> {
            .join("<br>")}<br>
          <strong>Total : ${formatPrix(total.prixCents, total.aPartirDe)}</strong></p>
          <p><strong>${formatJour(rdv.debut)} à ${formatHeure(rdv.debut)}</strong><br>
-         L'Atelier du Regard — 108 avenue de la République, 44600 Saint-Nazaire</p>
+         L'Atelier du Regard — 108 avenue de la République, 44600 Saint-Nazaire<br>
+         <a href="${urlSite()}/api/calendrier/${rdv.id}">📅 Ajouter à mon calendrier</a></p>
          <p>Un empêchement ? Prévenez-moi au plus vite pour que je puisse proposer le créneau à
          quelqu'un d'autre : <a href="${urlSite()}/mon-espace">votre espace</a> ou par SMS au
          06 45 29 20 01.</p>`
@@ -176,13 +182,147 @@ async function envoyerRelances(
   return { envoyees, echecs };
 }
 
+// --- Demande d'avis Google, quelques jours après la pose -------------------
+
+async function envoyerDemandesAvis(): Promise<{ envoyees: number; echecs: number }> {
+  const lien = await lienDemandeAvis();
+  if (!lien) return { envoyees: 0, echecs: 0 };
+
+  const maintenant = new Date();
+  // Fenêtre bornée : au-delà de deux semaines de retard, la relance n'a plus
+  // grand sens et mieux vaut ne pas remonter indéfiniment le passé.
+  const debutFenetre = new Date(maintenant.getTime() - (DELAI_AVIS_JOURS + 14) * JOUR_MS);
+  const finFenetre = new Date(maintenant.getTime() - DELAI_AVIS_JOURS * JOUR_MS);
+
+  const [dejaDemandes, candidats] = await Promise.all([
+    prisma.rendezVous.findMany({
+      where: { demandeAvisEnvoyeeLe: { not: null } },
+      select: { clienteId: true },
+    }),
+    prisma.rendezVous.findMany({
+      where: { statut: "TERMINE", demandeAvisEnvoyeeLe: null, fin: { gte: debutFenetre, lt: finFenetre } },
+      include: { cliente: true },
+      orderBy: { fin: "desc" },
+    }),
+  ]);
+  const dejaDemandeSet = new Set(dejaDemandes.map((r) => r.clienteId));
+
+  let envoyees = 0;
+  let echecs = 0;
+  const traitees = new Set<string>();
+
+  for (const rdv of candidats) {
+    // Une seule demande par cliente, jamais répétée à chaque visite.
+    if (dejaDemandeSet.has(rdv.clienteId) || traitees.has(rdv.clienteId)) continue;
+    traitees.add(rdv.clienteId);
+    if (rdv.cliente.desabonneLe) continue;
+
+    const resultat = await envoyerEmail(
+      rdv.cliente.email,
+      "Votre avis compte pour Zelart Nails 🤍",
+      enveloppe(
+        `<p>Bonjour ${rdv.cliente.prenom},</p>
+         <p>J'espère que votre pose vous plaît toujours autant ! Si vous avez deux minutes, un avis
+         Google m'aiderait énormément à me faire connaître.</p>
+         <p style="margin:24px 0">
+           <a href="${lien}" style="background:#ec4899;color:#fff;text-decoration:none;padding:12px 24px;border-radius:999px;display:inline-block;font-weight:600">
+             Laisser un avis
+           </a>
+         </p>
+         <p>Merci infiniment, quelle que soit votre réponse 🌸</p>`,
+        `Vous recevez ce message en tant que cliente de Zelart Nails.<br>
+         <a href="${urlSite()}/desabonnement/${rdv.cliente.jetonDesabonnement}" style="color:#8a6274">Ne plus recevoir ce type de message</a>`
+      )
+    );
+
+    if (resultat.ok) {
+      await prisma.rendezVous.update({
+        where: { id: rdv.id },
+        data: { demandeAvisEnvoyeeLe: new Date() },
+      });
+      envoyees++;
+    } else {
+      echecs++;
+    }
+  }
+
+  return { envoyees, echecs };
+}
+
+// --- Relance si l'acompte demandé n'est toujours pas réglé ------------------
+
+async function envoyerRelancesAcompte(): Promise<{ envoyees: number; echecs: number }> {
+  const { lien, montantCents } = await reglagesAcompte();
+  if (!lien) return { envoyees: 0, echecs: 0 };
+
+  const seuil = new Date(Date.now() - DELAI_RELANCE_ACOMPTE_MS);
+
+  const candidats = await prisma.rendezVous.findMany({
+    where: {
+      statut: { not: "ANNULE" },
+      acompteDemandeLe: { not: null, lte: seuil },
+      acompteRegleLe: null,
+      acompteRelanceEnvoyeeLe: null,
+    },
+    include: { cliente: true },
+  });
+
+  let envoyees = 0;
+  let echecs = 0;
+
+  for (const rdv of candidats) {
+    const resultat = await envoyerEmail(
+      rdv.cliente.email,
+      "Toujours partante pour votre rendez-vous ? — Zelart Nails",
+      enveloppe(
+        `<p>Bonjour ${rdv.cliente.prenom},</p>
+         <p>Je n'ai pas encore reçu votre acompte de <strong>${formatPrix(montantCents)}</strong>
+         pour le rendez-vous du <strong>${formatJour(rdv.debut)} à ${formatHeure(rdv.debut)}</strong>.</p>
+         <p style="margin:24px 0">
+           <a href="${lien}" style="background:#ec4899;color:#fff;text-decoration:none;padding:12px 24px;border-radius:999px;display:inline-block;font-weight:600">
+             Régler mon acompte de ${formatPrix(montantCents)}
+           </a>
+         </p>
+         <p style="font-size:13px;color:#8a6274">Sans règlement, le créneau pourra être proposé à une
+         autre cliente. Un empêchement ? Un simple SMS au 06 45 29 20 01 suffit.</p>`
+      )
+    );
+
+    if (resultat.ok) {
+      await prisma.rendezVous.update({
+        where: { id: rdv.id },
+        data: { acompteRelanceEnvoyeeLe: new Date() },
+      });
+      envoyees++;
+    } else {
+      echecs++;
+    }
+  }
+
+  return { envoyees, echecs };
+}
+
 export async function executerRappels(): Promise<BilanRappels> {
   const { actifs, delais } = await reglagesRappels();
+
+  // La relance d'acompte ne dépend pas du réglage « rappels automatiques » :
+  // comme l'envoi initial du lien, elle s'active dès qu'un lien SumUp est
+  // configuré — c'est le fonctionnement attendu de l'acompte, pas un rappel
+  // de confort qu'on pourrait vouloir couper séparément.
+  const acompte = await envoyerRelancesAcompte();
+
   if (!actifs) {
-    return { actifs: false, rappels: { envoyes: 0, echecs: 0 }, relances: { envoyees: 0, echecs: 0 } };
+    return {
+      actifs: false,
+      rappels: { envoyes: 0, echecs: 0 },
+      relances: { envoyees: 0, echecs: 0 },
+      avis: { envoyees: 0, echecs: 0 },
+      acompte,
+    };
   }
 
   const rappels = await envoyerRappels();
   const relances = await envoyerRelances(delais);
-  return { actifs: true, rappels, relances };
+  const avis = await envoyerDemandesAvis();
+  return { actifs: true, rappels, relances, avis, acompte };
 }

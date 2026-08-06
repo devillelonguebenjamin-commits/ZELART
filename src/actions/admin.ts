@@ -32,6 +32,8 @@ import {
   oublierCacheAvis,
   type Candidat,
 } from "@/lib/avis";
+import { notifierListeAttente } from "@/lib/liste-attente";
+import { urlSite } from "@/lib/site";
 import type { StatutRendezVous } from "@/generated/prisma/client";
 
 // --- Session ---
@@ -90,9 +92,15 @@ export async function changerStatutRendezVous(
        <strong>Total : ${formatPrix(total.prixCents, total.aPartirDe)}</strong></p>
        <p>${formatJour(rendezVous.debut)} à ${formatHeure(rendezVous.debut)}<br>
        L'Atelier du Regard — 108 avenue de la République, 44600 Saint-Nazaire</p>
+       <p><a href="${urlSite()}/api/calendrier/${rendezVous.id}">📅 Ajouter à mon calendrier</a></p>
        <p>À très vite,<br>Zélia ✨</p>
        ${await reseauxPourEmail()}`
     );
+  }
+
+  // Une annulation libère le créneau : la liste d'attente peut être intéressée.
+  if (statut === "ANNULE") {
+    await notifierListeAttente();
   }
 
   revalidatePath("/admin");

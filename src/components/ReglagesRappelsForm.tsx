@@ -35,8 +35,9 @@ export default function ReglagesRappelsForm({ actifs, delais }: Props) {
           <span>
             <span className="font-medium">Activer les envois automatiques</span>
             <span className="block text-xs text-foreground/60">
-              Un rappel la veille de chaque rendez-vous confirmé, et une relance quand la repousse
-              arrive.
+              Un rappel la veille de chaque rendez-vous confirmé, une relance quand la repousse
+              arrive, et une invitation à laisser un avis Google quelques jours après la pose (si
+              vos avis sont connectés).
             </span>
           </span>
         </label>

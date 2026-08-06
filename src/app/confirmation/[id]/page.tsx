@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Demande envoyée — Zelart Nails",
+  robots: { index: false },
 };
 
 export default async function Confirmation({
@@ -93,12 +94,21 @@ export default async function Confirmation({
             <p>🌸 Le règlement se fait sur place, en espèces ou par carte bancaire.</p>
           </div>
 
-          <Link
-            href="/"
-            className="mt-10 inline-block rounded-full bg-pink-500 px-8 py-3 font-medium text-white shadow-sm transition hover:bg-pink-600"
+          <a
+            href={`/api/calendrier/${rendezVous.id}`}
+            className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-pink-600 hover:underline"
           >
-            Retour à l&rsquo;accueil
-          </Link>
+            📅 Ajouter à mon calendrier
+          </a>
+
+          <div>
+            <Link
+              href="/"
+              className="mt-6 inline-block rounded-full bg-pink-500 px-8 py-3 font-medium text-white shadow-sm transition hover:bg-pink-600"
+            >
+              Retour à l&rsquo;accueil
+            </Link>
+          </div>
         </div>
       </div>
     </section>

@@ -219,8 +219,9 @@ export default async function Reglages() {
         <h2 className="font-semibold">Acompte des nouvelles clientes</h2>
         <p className="mt-1 text-xs text-foreground/60">
           Collez ici votre <strong>lien de paiement réutilisable</strong> SumUp : il sera envoyé
-          automatiquement par e-mail à chaque cliente qui réserve pour la première fois. Pour le
-          créer : application SumUp → <em>Paiements par lien</em> → montant fixe →{" "}
+          automatiquement par e-mail à chaque cliente qui réserve pour la première fois, avec une
+          relance automatique au bout de 24 h si le paiement ne suit pas. Pour le créer :
+          application SumUp → <em>Paiements par lien</em> → montant fixe →{" "}
           <em>Activer lien réutilisable</em>. Laissez le champ vide pour continuer à l&rsquo;envoyer
           vous-même.
         </p>
