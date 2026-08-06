@@ -180,6 +180,20 @@ export async function creerReservation(
           }
         }
 
+        // Les −15 % de bienvenue vont à une filleule sur sa première
+        // prestation. Le rattachement pouvant dater d'une réservation annulée,
+        // on regarde ses rendez-vous encore valides plutôt que le code saisi
+        // aujourd'hui : une annulation ne doit pas consommer l'offre.
+        const marrainee =
+          cliente.parraineParId !== null ||
+          (await tx.cliente.findUnique({
+            where: { id: cliente.id },
+            select: { parraineParId: true },
+          }))?.parraineParId != null;
+        const dejaVenue = await tx.rendezVous.count({
+          where: { clienteId: cliente.id, statut: { not: "ANNULE" } },
+        });
+
         const rendezVous = await tx.rendezVous.create({
           data: {
             clienteId: cliente.id,
@@ -190,6 +204,7 @@ export async function creerReservation(
             etatOngles,
             typePoseActuel,
             consentementSante: true,
+            remiseFilleule: marrainee && dejaVenue === 0,
             lignes: {
               create: lignes.map((ligne, ordre) => ({
                 prestationId: ligne.prestation.id,

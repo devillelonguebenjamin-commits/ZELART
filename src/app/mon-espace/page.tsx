@@ -11,6 +11,8 @@ import MesInformations from "@/components/MesInformations";
 import BoutonAnnulation from "@/components/BoutonAnnulation";
 import { annulationPossible, DELAI_ANNULATION_H } from "@/lib/annulation";
 import RoueFidelite from "@/components/RoueFidelite";
+import CarteSquad from "@/components/CarteSquad";
+import { statutParrainage } from "@/lib/parrainage";
 import Vagues from "@/components/Vagues";
 import { reglagesRoue } from "@/lib/parametres";
 import {
@@ -115,6 +117,10 @@ export default async function MonEspace({
         orderBy: { debut: "desc" },
       },
       filleules: { select: { id: true, prenom: true, creeLe: true } },
+      avantages: {
+        select: { id: true, type: true, code: true, utiliseLe: true },
+        orderBy: { gagneLe: "desc" },
+      },
       recompenses: { include: { lot: true }, orderBy: { gagneLe: "desc" } },
       commandes: { include: { modele: true }, orderBy: { creeLe: "desc" } },
     },
@@ -127,6 +133,7 @@ export default async function MonEspace({
     .reverse();
   const passes = cliente.rendezVous.filter((r) => r.fin < maintenant || r.statut === "ANNULE");
   const realises = cliente.rendezVous.filter((r) => r.statut === "TERMINE");
+  const squad = await statutParrainage(cliente.id);
 
   return (
     <div className="mx-auto max-w-3xl space-y-10 px-4 py-12 sm:px-6">
@@ -295,24 +302,13 @@ export default async function MonEspace({
         </section>
       )}
 
-      {/* Parrainage */}
-      <section className="rounded-3xl bg-pink-50 p-6 sm:p-8">
-        <h2 className="font-display text-xl font-bold">Parrainez vos proches 💕</h2>
-        <p className="mt-2 text-sm text-foreground/75">
-          Partagez votre code personnel : la personne le saisit lors de sa première réservation, et
-          Zélia vous remercie toutes les deux à votre prochain rendez-vous.
-        </p>
-        <p className="mt-4 inline-block rounded-2xl border-2 border-dashed border-pink-300 bg-white px-6 py-3 font-display text-2xl font-bold tracking-wider text-pink-600">
-          {cliente.codeParrainage}
-        </p>
-        {cliente.filleules.length > 0 && (
-          <p className="mt-3 text-sm font-medium text-foreground/80">
-            🎉 {cliente.filleules.length} personne{cliente.filleules.length > 1 ? "s" : ""} déjà
-            venue{cliente.filleules.length > 1 ? "s" : ""} grâce à vous :{" "}
-            {cliente.filleules.map((f) => f.prenom).join(", ")}
-          </p>
-        )}
-      </section>
+      {/* Parrainage « Squad » */}
+      <CarteSquad
+        code={cliente.codeParrainage}
+        statut={squad}
+        avantages={cliente.avantages}
+        filleules={cliente.filleules}
+      />
 
       {/* Historique */}
       <section>

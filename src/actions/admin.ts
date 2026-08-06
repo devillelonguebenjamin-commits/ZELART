@@ -33,6 +33,7 @@ import {
   type Candidat,
 } from "@/lib/avis";
 import { notifierListeAttente } from "@/lib/liste-attente";
+import { recompenserMarraine } from "@/lib/parrainage-email";
 import { urlSite } from "@/lib/site";
 import type { StatutRendezVous } from "@/generated/prisma/client";
 
@@ -101,6 +102,12 @@ export async function changerStatutRendezVous(
   // Une annulation libère le créneau : la liste d'attente peut être intéressée.
   if (statut === "ANNULE") {
     await notifierListeAttente();
+  }
+
+  // Une filleule qui vient de passer en « Terminé » entre dans la squad de sa
+  // marraine : c'est le moment de recalculer son palier.
+  if (statut === "TERMINE") {
+    await recompenserMarraine(rendezVous.clienteId);
   }
 
   revalidatePath("/admin");
