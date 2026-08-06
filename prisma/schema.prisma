@@ -36,6 +36,24 @@ model Cliente {
   jetons      JetonConnexion[]
   recompenses Recompense[]
   commandes   CommandePressOn[]
+  changementsEmail ChangementEmail[]
+}
+
+// Changement d'adresse e-mail demandé depuis l'espace cliente. L'adresse
+// servant à se connecter, la modification n'est appliquée qu'après un clic
+// sur le lien envoyé à la nouvelle adresse : une faute de frappe ne peut donc
+// pas enfermer la cliente dehors.
+model ChangementEmail {
+  id          String    @id @default(cuid())
+  cliente     Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId   String
+  nouvelEmail String
+  jeton       String    @unique
+  expireLe    DateTime
+  utiliseLe   DateTime?
+  creeLe      DateTime  @default(now())
+
+  @@index([clienteId])
 }
 
 // Lots de la roue, entièrement gérés depuis l'espace gérante.

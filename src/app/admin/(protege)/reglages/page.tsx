@@ -1,5 +1,6 @@
 import {
   analyserExpediteur,
+  cleBrevoMalFormee,
   expediteurConfigure,
   fournisseurEmail,
   verifierExpediteurBrevo,
@@ -7,8 +8,18 @@ import {
 import { modeStockage, stockageConfigure } from "@/lib/blob";
 import TestEmailForm from "@/components/TestEmailForm";
 import ReglagesAcompteForm from "@/components/ReglagesAcompteForm";
-import { cleRelance, reglagesAcompte, reglagesRappels } from "@/lib/parametres";
+import {
+  CLE_AUTRE_RESEAU,
+  CLE_AUTRE_RESEAU_LIBELLE,
+  CLE_INSTAGRAM,
+  CLE_TIKTOK,
+  cleRelance,
+  reglagesAcompte,
+  reglagesRappels,
+} from "@/lib/parametres";
+import { prisma } from "@/lib/prisma";
 import ReglagesRappelsForm from "@/components/ReglagesRappelsForm";
+import ReglagesReseauxForm from "@/components/ReglagesReseauxForm";
 
 export const dynamic = "force-dynamic";
 
@@ -44,11 +55,17 @@ function Ligne({
 }
 
 export default async function Reglages() {
-  const [acompte, rappels, expediteurBrevo] = await Promise.all([
+  const [acompte, rappels, expediteurBrevo, parametresReseaux] = await Promise.all([
     reglagesAcompte(),
     reglagesRappels(),
     verifierExpediteurBrevo(),
+    prisma.parametre.findMany({
+      where: {
+        cle: { in: [CLE_INSTAGRAM, CLE_TIKTOK, CLE_AUTRE_RESEAU, CLE_AUTRE_RESEAU_LIBELLE] },
+      },
+    }),
   ]);
+  const reseau = (cle: string) => parametresReseaux.find((p) => p.cle === cle)?.valeur ?? "";
   const planificationPrete = Boolean(process.env.CRON_SECRET);
   const fournisseur = fournisseurEmail();
   const notify = process.env.NOTIFY_EMAIL ?? "";
@@ -56,6 +73,8 @@ export default async function Reglages() {
   const blob = stockageConfigure();
   // Noms (jamais les valeurs) des variables liées au stockage, pour diagnostic
   const variablesBlob = Object.keys(process.env).filter((nom) => nom.includes("BLOB"));
+
+  const cleRefusee = !expediteurBrevo.verifiable && expediteurBrevo.cleRefusee === true;
 
   const expediteurResendInvalide =
     fournisseur === "resend" && Boolean(process.env.EMAIL_FROM) && !expediteur.includes("resend.dev");
@@ -72,9 +91,17 @@ export default async function Reglages() {
       <section className="overflow-hidden rounded-2xl border border-pink-100 bg-white">
         <Ligne
           label="Service d'envoi d'e-mails"
-          valeur={fournisseur ?? "aucun"}
-          ok={Boolean(fournisseur)}
-          aide="BREVO_API_KEY ou RESEND_API_KEY"
+          valeur={
+            fournisseur === "brevo" && cleRefusee ? "clé refusée par Brevo" : (fournisseur ?? "aucun")
+          }
+          ok={Boolean(fournisseur) && !cleRefusee}
+          aide={
+            cleRefusee
+              ? cleBrevoMalFormee()
+                ? "La clé ne commence pas par « xkeysib- » : c'est sans doute le mot de passe SMTP. Prenez la clé de l'onglet « API keys » de Brevo."
+                : "Brevo ne reconnaît pas cette clé. Régénérez-en une dans « API keys » et recollez-la dans BREVO_API_KEY."
+              : "BREVO_API_KEY ou RESEND_API_KEY"
+          }
         />
         <Ligne
           label="Adresse qui reçoit les demandes"
@@ -95,9 +122,11 @@ export default async function Reglages() {
             (!expediteurBrevo.verifiable || expediteurBrevo.valide)
           }
           aide={
-            expediteurBrevo.verifiable && !expediteurBrevo.valide
-              ? `Non vérifiée chez Brevo. Adresses validées : ${expediteurBrevo.connus.join(", ") || "aucune"}`
-              : "EMAIL_FROM"
+            !expediteurBrevo.verifiable
+              ? "EMAIL_FROM"
+              : expediteurBrevo.valide
+                ? "EMAIL_FROM — vérifiée chez Brevo"
+                : `Non vérifiée chez Brevo. Adresses validées : ${expediteurBrevo.connus.join(", ") || "aucune"}`
           }
         />
         <Ligne
@@ -182,6 +211,13 @@ export default async function Reglages() {
           />
         </div>
       </section>
+
+      <ReglagesReseauxForm
+        instagram={reseau(CLE_INSTAGRAM)}
+        tiktok={reseau(CLE_TIKTOK)}
+        autre={reseau(CLE_AUTRE_RESEAU)}
+        autreLibelle={reseau(CLE_AUTRE_RESEAU_LIBELLE)}
+      />
 
       <section className="rounded-2xl border border-pink-100 bg-white p-5">
         <h2 className="font-semibold">Tester l&rsquo;envoi</h2>

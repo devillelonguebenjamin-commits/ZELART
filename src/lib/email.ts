@@ -9,10 +9,28 @@ export type ResultatEmail =
   | { ok: true; fournisseur: Exclude<Fournisseur, null> }
   | { ok: false; erreur: string };
 
+// Une clé collée depuis le tableau de bord d'un fournisseur traîne souvent une
+// espace ou un retour à la ligne, que l'API rejette ensuite sans indice utile.
+function cleNettoyee(brut: string | undefined): string | undefined {
+  const cle = brut?.trim().replace(/^["']|["']$/g, "");
+  return cle || undefined;
+}
+
+export function cleBrevo(): string | undefined {
+  return cleNettoyee(process.env.BREVO_API_KEY);
+}
+
 export function fournisseurEmail(): Fournisseur {
-  if (process.env.BREVO_API_KEY) return "brevo";
-  if (process.env.RESEND_API_KEY) return "resend";
+  if (cleBrevo()) return "brevo";
+  if (cleNettoyee(process.env.RESEND_API_KEY)) return "resend";
   return null;
+}
+
+// Brevo distingue la clé de l'API v3 (xkeysib-) du mot de passe SMTP
+// (xsmtpsib-) : le second, envoyé à l'API, revient en « Key not found ».
+export function cleBrevoMalFormee(): boolean {
+  const cle = cleBrevo();
+  return Boolean(cle) && !cle!.startsWith("xkeysib-");
 }
 
 export function expediteurConfigure(): string {
@@ -63,11 +81,11 @@ async function envoyerViaBrevo(
 // boîte concernée. On demande la liste plutôt que de laisser un 400 obscur
 // surgir au premier envoi réel.
 export type EtatExpediteur =
-  | { verifiable: false }
+  | { verifiable: false; cleRefusee?: boolean }
   | { verifiable: true; valide: boolean; connus: string[] };
 
 export async function verifierExpediteurBrevo(): Promise<EtatExpediteur> {
-  const cle = process.env.BREVO_API_KEY;
+  const cle = cleBrevo();
   if (!cle || !process.env.EMAIL_FROM) return { verifiable: false };
 
   try {
@@ -78,6 +96,11 @@ export async function verifierExpediteurBrevo(): Promise<EtatExpediteur> {
       ),
       { headers: { "api-key": cle, Accept: "application/json" }, cache: "no-store" }
     );
+    // Une clé refusée se voit ici : autant le dire plutôt que de laisser
+    // découvrir le problème au premier envoi réel.
+    if (reponse.status === 401 || reponse.status === 403) {
+      return { verifiable: false, cleRefusee: true };
+    }
     if (!reponse.ok) return { verifiable: false };
 
     const donnees = (await reponse.json()) as {
@@ -129,8 +152,8 @@ export async function envoyerEmail(
   try {
     const resultat =
       fournisseur === "brevo"
-        ? await envoyerViaBrevo(process.env.BREVO_API_KEY!, destinataire, sujet, html)
-        : await envoyerViaResend(process.env.RESEND_API_KEY!, destinataire, sujet, html);
+        ? await envoyerViaBrevo(cleBrevo()!, destinataire, sujet, html)
+        : await envoyerViaResend(cleNettoyee(process.env.RESEND_API_KEY)!, destinataire, sujet, html);
     if (!resultat.ok) console.error(resultat.erreur);
     return resultat;
   } catch (erreur) {

@@ -129,6 +129,10 @@ Protégé par la variable d'environnement `ADMIN_PASSWORD` (session par cookie s
   point-virgule et BOM UTF-8 pour Excel en français), fiche détaillée avec historique, notes
   privées, accord aux offres et suppression définitive.
 - **Prestations** : édition des prix, durées, visibilité.
+- **Réglages → Mes réseaux** : liens Instagram, TikTok et un lien libre (Linktree, Pinterest…),
+  saisis au choix sous forme de pseudo (`@zelart`) ou d'adresse complète. Ils apparaissent dans le
+  pied de page, dans un bloc de l'accueil et au bas de l'e-mail de confirmation ; un champ vide
+  n'affiche rien.
 - **Press-on** : commandes reçues (chiffrage des frais d'envoi, envoi de la demande de règlement,
   avancement de la fabrication, note interne) et catalogue des sets affichés sur `/press-on`.
 - **Congés** : blocage de périodes, immédiatement retirées des créneaux publics.
@@ -240,6 +244,29 @@ propre parcours, sans créneau ni agenda.
    « prête » prévient la cliente par e-mail.
 
 La cliente suit l'avancement de sa commande depuis `/mon-espace`.
+
+## Direction artistique
+
+Le motif de la marque — de larges rubans roses qui ondulent — est dessiné en SVG dans
+`src/components/Vagues.tsx`, jamais en image : rien à télécharger, net sur tous les écrans,
+teinte pilotée par les classes Tailwind. Trois échelles, une seule signature :
+
+| Composant | Où | Rôle |
+| --- | --- | --- |
+| `<Vagues variante="hero" />` | accueil, pages de confirmation | grand fond de page |
+| `<Vagues variante="bandeau" />` | en-têtes de `/reserver`, `/press-on`, `/mon-espace` | bandeau plat |
+| `<Vagues variante="bloc" />` | encart « L'institut » | angle d'une carte |
+| `<CreteVagues />` | haut du pied de page | séparation ondulée |
+| `<TraitVagues />` | sous les titres de section | petit trait |
+
+Le fond s'attend à un parent `relative isolate overflow-hidden` : `isolate` crée le contexte
+d'empilement sans lequel le `-z-10` du motif l'enverrait derrière la page entière, et
+`overflow-hidden` le recadre. Le motif est `aria-hidden`, non cliquable, et masqué à
+l'impression.
+
+Pour l'ajuster : `SCENES` décrit chaque scène (hauteur, rubans, dégradé de fondu), et
+l'opacité globale se règle sur le `<svg>`. Les rubans restent opaques entre eux — les rendre
+translucides un par un ferait ressortir chaque croisement en rose plus soutenu.
 
 ## Prochaines étapes envisagées
 

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { envoyerEmail } from "@/lib/email";
 import { urlSite } from "@/lib/site";
+import { coordonneesSchema, emailSchema } from "@/lib/validations";
 import {
   clienteConnectee,
   fermerSessionCliente,
@@ -80,6 +81,136 @@ export async function demanderLienConnexion(
   );
 
   return reponseNeutre;
+}
+
+export type EtatInformations = { ok?: boolean; message?: string };
+
+// Prénom, nom et téléphone se corrigent sans cérémonie : ils n'ouvrent aucun
+// accès. L'adresse e-mail, elle, passe par une confirmation (plus bas).
+export async function enregistrerMesInformations(
+  _etatPrecedent: EtatInformations,
+  formData: FormData
+): Promise<EtatInformations> {
+  const clienteId = await clienteConnectee();
+  if (!clienteId) {
+    return { ok: false, message: "Connectez-vous pour modifier vos informations." };
+  }
+
+  const analyse = coordonneesSchema.safeParse({
+    prenom: formData.get("prenom"),
+    nom: formData.get("nom"),
+    telephone: formData.get("telephone"),
+  });
+  if (!analyse.success) {
+    return { ok: false, message: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+  }
+
+  await prisma.cliente.update({ where: { id: clienteId }, data: analyse.data });
+
+  revalidatePath("/mon-espace");
+  revalidatePath(`/admin/clientes/${clienteId}`);
+  return { ok: true, message: "Vos informations sont à jour 🤍" };
+}
+
+export async function demanderChangementEmail(
+  _etatPrecedent: EtatInformations,
+  formData: FormData
+): Promise<EtatInformations> {
+  const clienteId = await clienteConnectee();
+  if (!clienteId) {
+    return { ok: false, message: "Connectez-vous pour modifier votre adresse." };
+  }
+
+  const analyse = emailSchema.safeParse(formData.get("nouvelEmail"));
+  if (!analyse.success) {
+    return { ok: false, message: "Adresse e-mail invalide." };
+  }
+  const nouvelEmail = analyse.data;
+
+  const cliente = await prisma.cliente.findUnique({
+    where: { id: clienteId },
+    select: { prenom: true, email: true },
+  });
+  if (!cliente) return { ok: false, message: "Fiche introuvable." };
+
+  if (cliente.email === nouvelEmail) {
+    return { ok: false, message: "C'est déjà votre adresse actuelle." };
+  }
+
+  // Une adresse déjà rattachée à une autre fiche ne peut pas être reprise ;
+  // on le dit sans confirmer à qui elle appartient.
+  const occupee = await prisma.cliente.findUnique({
+    where: { email: nouvelEmail },
+    select: { id: true },
+  });
+  if (occupee) {
+    return {
+      ok: false,
+      message:
+        "Cette adresse est déjà utilisée. Si elle est bien à vous, écrivez à Zélia pour réunir vos fiches.",
+    };
+  }
+
+  const recent = await prisma.changementEmail.findFirst({
+    where: { clienteId, creeLe: { gt: new Date(Date.now() - DELAI_RENVOI_MS) } },
+    select: { id: true },
+  });
+  if (recent) {
+    return {
+      ok: false,
+      message: "Un lien vient déjà d'être envoyé. Patientez une minute avant de réessayer.",
+    };
+  }
+
+  const jeton = nouveauJeton();
+  await prisma.changementEmail.create({
+    data: {
+      clienteId,
+      nouvelEmail,
+      jeton,
+      expireLe: new Date(Date.now() + VALIDITE_LIEN_MIN * 60_000),
+    },
+  });
+
+  const lien = `${urlSite()}/mon-espace/email/${jeton}`;
+  const envoi = await envoyerEmail(
+    nouvelEmail,
+    "Confirmez votre nouvelle adresse — Zelart Nails",
+    `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
+      <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
+      <p>Bonjour ${cliente.prenom},</p>
+      <p>Vous souhaitez utiliser cette adresse pour votre espace Zelart. Confirmez-la en cliquant
+      ci-dessous : le lien est valable ${VALIDITE_LIEN_MIN} minutes et ne sert qu'une fois.</p>
+      <p style="margin:24px 0">
+        <a href="${lien}" style="background:#ec4899;color:#fff;text-decoration:none;padding:12px 24px;border-radius:999px;display:inline-block;font-weight:600">
+          Confirmer cette adresse
+        </a>
+      </p>
+      <p style="font-size:13px;color:#8a6274">Tant que vous n'avez pas cliqué, rien ne change :
+      vos rendez-vous continuent d'être envoyés à votre adresse actuelle.</p>
+      <p>À très vite,<br>Zélia ✨</p>
+    </div>`
+  );
+  if (!envoi.ok) {
+    return { ok: false, message: "L'envoi a échoué. Réessayez dans un instant." };
+  }
+
+  // L'ancienne adresse est prévenue : un accès laissé ouvert sur un
+  // ordinateur partagé ne doit pas permettre une reprise silencieuse du compte.
+  await envoyerEmail(
+    cliente.email,
+    "Demande de changement d'adresse — Zelart Nails",
+    `<p>Bonjour ${cliente.prenom},</p>
+     <p>Une demande vient d'être faite depuis votre espace pour remplacer cette adresse par
+     <strong>${nouvelEmail}</strong>. Elle ne prendra effet qu'après confirmation depuis la
+     nouvelle boîte.</p>
+     <p>Si vous n'êtes pas à l'origine de cette demande, prévenez Zélia par SMS au 06 45 29 20 01.</p>`
+  );
+
+  return {
+    ok: true,
+    message: `Un lien de confirmation vient d'être envoyé à ${nouvelEmail}. Votre adresse actuelle reste active jusqu'à votre clic.`,
+  };
 }
 
 export async function deconnexionCliente(): Promise<void> {
