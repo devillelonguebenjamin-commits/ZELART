@@ -5,6 +5,13 @@ import { urlSite } from "@/lib/site";
 
 // Fichier .ics d'un rendez-vous, public comme la page de confirmation
 // (identifiant non devinable) : un lien à cliquer, sans connexion à ouvrir.
+//
+// Seulement une fois Zélia d'accord : une demande n'est pas un rendez-vous, et
+// l'inscrire au calendrier de la cliente le lui ferait croire. Le contrôle est
+// ici et pas seulement sur les liens — une adresse gardée de côté ou une page
+// de confirmation restée ouverte contournerait un affichage conditionnel.
+const STATUTS_AU_CALENDRIER = ["CONFIRME", "TERMINE"];
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -15,8 +22,14 @@ export async function GET(
     include: { lignes: { include: { prestation: true }, orderBy: { ordre: "asc" } } },
   });
 
-  if (!rendezVous || rendezVous.statut === "ANNULE") {
+  if (!rendezVous || rendezVous.statut === "ANNULE" || rendezVous.statut === "NO_SHOW") {
     return NextResponse.json({ error: "Rendez-vous introuvable." }, { status: 404 });
+  }
+  if (!STATUTS_AU_CALENDRIER.includes(rendezVous.statut)) {
+    return NextResponse.json(
+      { error: "Ce rendez-vous n'est pas encore confirmé par Zélia." },
+      { status: 409 }
+    );
   }
 
   const ics = genererICS({

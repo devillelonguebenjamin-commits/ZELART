@@ -111,12 +111,22 @@ export default async function Confirmation({
             <p>🌸 Le règlement se fait sur place, en espèces ou par carte bancaire.</p>
           </div>
 
-          <a
-            href={`/api/calendrier/${rendezVous.id}`}
-            className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-pink-600 hover:underline"
-          >
-            📅 Ajouter à mon calendrier
-          </a>
+          {/* L'ajout au calendrier attend l'accord de Zélia : une demande
+              inscrite dans l'agenda de la cliente passerait pour un rendez-vous
+              acquis. Le lien part avec l'e-mail de confirmation. */}
+          {rendezVous.statut === "CONFIRME" ? (
+            <a
+              href={`/api/calendrier/${rendezVous.id}`}
+              className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-pink-600 hover:underline"
+            >
+              📅 Ajouter à mon calendrier
+            </a>
+          ) : (
+            <p className="mt-6 text-sm text-foreground/60">
+              📅 Vous pourrez ajouter le rendez-vous à votre calendrier dès que Zélia
+              l&rsquo;aura confirmé — le lien vous sera envoyé par e-mail.
+            </p>
+          )}
 
           <div>
             <Link

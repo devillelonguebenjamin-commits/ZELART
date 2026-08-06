@@ -482,8 +482,16 @@ casserait sinon la page.
 ## Ajout au calendrier
 
 `/api/calendrier/[id]` sert un fichier `.ics` (RFC 5545) ouvert par Google Agenda, Apple
-Calendrier ou Outlook. Le lien figure sur la page de confirmation, dans l'espace cliente et
-dans les e-mails de confirmation et de rappel.
+Calendrier ou Outlook.
+
+**Seulement une fois Zélia d'accord.** Une demande n'est pas un rendez-vous : l'inscrire au
+calendrier de la cliente dès l'envoi du formulaire le lui ferait croire. La route ne répond
+donc qu'aux rendez-vous `CONFIRME` ou `TERMINE` (`409` tant que la demande est en attente,
+`404` si elle est annulée), et le contrôle est là plutôt que sur les seuls liens : une adresse
+gardée de côté ou une page de confirmation restée ouverte contournerait un affichage
+conditionnel. La page de confirmation et l'espace cliente masquent le lien en conséquence et
+annoncent qu'il arrivera avec l'e-mail de confirmation ; ce sont les e-mails de confirmation
+et de rappel, envoyés une fois le rendez-vous validé, qui le portent.
 
 Un lien plutôt qu'une pièce jointe : Brevo et Resend ont des API de pièces jointes
 différentes, et un lien fonctionne aussi depuis le site. L'identifiant du rendez-vous suffit à
