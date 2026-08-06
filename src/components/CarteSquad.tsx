@@ -1,15 +1,18 @@
 import { LIBELLE_AVANTAGE, PALIERS, type StatutParrainage } from "@/lib/parrainage";
+import PartageCodeParrainage from "@/components/PartageCodeParrainage";
 import type { TypeAvantage } from "@/generated/prisma/client";
 
 type Avantage = { id: string; type: TypeAvantage; code: string; utiliseLe: Date | null };
 
 export default function CarteSquad({
   code,
+  lienSite,
   statut,
   avantages,
   filleules,
 }: {
   code: string;
+  lienSite: string;
   statut: StatutParrainage;
   avantages: Avantage[];
   filleules: { id: string; prenom: string }[];
@@ -42,6 +45,7 @@ export default function CarteSquad({
       <p className="mt-4 inline-block rounded-2xl border-2 border-dashed border-pink-300 bg-white px-6 py-3 font-display text-2xl font-bold tracking-wider text-pink-600">
         {code}
       </p>
+      <PartageCodeParrainage code={code} lien={lienSite} />
 
       {/* Progression vers le palier suivant */}
       <div className="mt-6">

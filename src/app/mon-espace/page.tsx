@@ -13,6 +13,7 @@ import { annulationPossible, DELAI_ANNULATION_H } from "@/lib/annulation";
 import RoueFidelite from "@/components/RoueFidelite";
 import CarteSquad from "@/components/CarteSquad";
 import { statutParrainage } from "@/lib/parrainage";
+import { urlSite } from "@/lib/site";
 import Vagues from "@/components/Vagues";
 import { reglagesRoue } from "@/lib/parametres";
 import {
@@ -305,6 +306,7 @@ export default async function MonEspace({
       {/* Parrainage « Squad » */}
       <CarteSquad
         code={cliente.codeParrainage}
+        lienSite={`${urlSite()}/reserver`}
         statut={squad}
         avantages={cliente.avantages}
         filleules={cliente.filleules}

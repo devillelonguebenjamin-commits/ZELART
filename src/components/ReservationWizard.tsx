@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { creerReservation, type EtatReservation } from "@/actions/reservation";
 import ListeAttenteForm from "@/components/ListeAttenteForm";
+import InfoPrestation from "@/components/InfoPrestation";
 import type { Creneau } from "@/lib/creneaux";
 import { formatDuree, formatPrix, totalDuree, totalTarifs } from "@/lib/format";
 import {
@@ -33,12 +34,19 @@ export type PrestationPublique = {
 type Props = {
   prestations: PrestationPublique[];
   creneaux: Creneau[];
+  /** Renseigné quand la cliente est connectée à son espace. */
+  cliente?: { prenom: string; nom: string; email: string; telephone: string } | null;
   envoiImagesActif: boolean;
 };
 
 const etapes = ["Vos ongles", "Prestation", "Créneau", "Coordonnées"] as const;
 
-export default function ReservationWizard({ prestations, creneaux, envoiImagesActif }: Props) {
+export default function ReservationWizard({
+  prestations,
+  creneaux,
+  envoiImagesActif,
+  cliente,
+}: Props) {
   const [etape, setEtape] = useState(0);
   const [etatOngles, setEtatOngles] = useState<EtatOngles | null>(null);
   const [typePoseActuel, setTypePoseActuel] = useState<TypePose | null>(null);
@@ -243,7 +251,17 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
         <div className="mt-6 space-y-6">
           {categories.map(([categorie, items]) => (
             <fieldset key={categorie}>
-              <legend className="font-display text-lg font-bold text-pink-500">{categorie}</legend>
+              {/* La définition vit sur les prestations : on prend la première
+                  renseignée de la catégorie, toutes n'en portant pas. */}
+              <legend className="flex flex-wrap items-center gap-2">
+                <span className="font-display text-lg font-bold text-pink-500">{categorie}</span>
+                {(() => {
+                  const definition = items.find((p) => p.description)?.description;
+                  return definition ? (
+                    <InfoPrestation titre={categorie} definition={definition} />
+                  ) : null;
+                })()}
+              </legend>
               <div className="mt-3 grid gap-2">
                 {items.map((p) => (
                   <label
@@ -367,6 +385,12 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
       {/* Étape 4 : coordonnées */}
       <section hidden={etape !== 3}>
         <h2 className="font-display text-2xl font-bold">Vos coordonnées</h2>
+        {cliente && (
+          <p className="mt-3 rounded-2xl bg-emerald-50 px-5 py-3 text-sm text-emerald-800">
+            Vos informations sont déjà remplies — corrigez-les si besoin, la modification sera
+            enregistrée sur votre fiche.
+          </p>
+        )}
         {lignes.length > 0 && creneauChoisi && (
           <div className="mt-3 rounded-2xl bg-pink-50 px-5 py-4 text-sm text-foreground/80">
             <ul className="space-y-1">
@@ -399,6 +423,7 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
             <input
               name="prenom"
               required
+              defaultValue={cliente?.prenom ?? ""}
               autoComplete="given-name"
               className="mt-1 w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
             />
@@ -408,6 +433,7 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
             <input
               name="nom"
               required
+              defaultValue={cliente?.nom ?? ""}
               autoComplete="family-name"
               className="mt-1 w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
             />
@@ -418,6 +444,7 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
               name="email"
               type="email"
               required
+              defaultValue={cliente?.email ?? ""}
               autoComplete="email"
               className="mt-1 w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
             />
@@ -428,23 +455,30 @@ export default function ReservationWizard({ prestations, creneaux, envoiImagesAc
               name="telephone"
               type="tel"
               required
+              defaultValue={cliente?.telephone ?? ""}
               autoComplete="tel"
               placeholder="06 12 34 56 78"
               className="mt-1 w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
             />
           </label>
-          <label className="block sm:col-span-2">
-            <span className="text-sm font-medium">
-              Code de parrainage{" "}
-              <span className="text-foreground/50">(facultatif, si une cliente vous a recommandée)</span>
-            </span>
-            <input
-              name="codeParrainage"
-              placeholder="ZEL-XXXXX"
-              maxLength={20}
-              className="mt-1 w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 uppercase outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
-            />
-          </label>
+          {/* L'offre de bienvenue ne vaut qu'au premier rendez-vous : inutile
+              de proposer le champ à une cliente déjà connue. */}
+          {!cliente && (
+            <label className="block sm:col-span-2">
+              <span className="text-sm font-medium">
+                Code de parrainage{" "}
+                <span className="text-foreground/50">
+                  (facultatif — une cliente vous a recommandée ? vous gagnez −15 %)
+                </span>
+              </span>
+              <input
+                name="codeParrainage"
+                placeholder="ZEL-XXXXX"
+                maxLength={20}
+                className="mt-1 w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 uppercase outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
+              />
+            </label>
+          )}
           <label className="block sm:col-span-2">
             <span className="text-sm font-medium">
               Un message pour Zélia ?{" "}

@@ -371,6 +371,23 @@ sa première prestation**, cumulables avec les autres offres. La marraine gravit
 **Une filleule ne compte que lorsqu'elle est venue** (rendez-vous passé en *Terminé*). Sans
 cette règle, trois inscriptions jamais honorées offriraient une manucure.
 
+**Le code n'est accepté qu'à une première réservation.** Une filleule comptant dès qu'elle a une
+pose honorée, sans cette condition une habituée pourrait saisir le code d'une amie et la faire
+monter d'un palier sur-le-champ, sans amener personne. Le champ est d'ailleurs masqué aux
+clientes connectées, à qui l'offre de bienvenue ne s'adresse plus.
+
+**Validation de la venue.** Le bouton *Elle est bien venue* de l'agenda remplace l'ancien
+« Terminé » : il ouvre un champ de commentaire, signale le cas échéant que la cliente est une
+filleule, et **annonce en retour le palier débloqué chez la marraine** — sinon Zélia offrirait
+une manucure sans le savoir. Le commentaire se retrouve dans l'historique de la fiche cliente,
+distinct de la fiche technique : celle-ci décrit la pose, celui-là raconte la visite.
+
+Ce retour impose une contrainte de rendu : les sections de l'agenda sont découpées **par date
+seule, jamais par statut**. Un composant qui changerait de section à la validation serait
+démonté puis remonté, et le message disparaîtrait avant d'être lu. Ce découpage corrige au
+passage un défaut plus ancien — un rendez-vous futur annulé par erreur devenait introuvable,
+son bouton *Réactiver* hors d'atteinte.
+
 Le palier n'est **jamais stocké** : il se recalcule à chaque lecture depuis les filleules
 venues, si bien qu'un rendez-vous repassé en annulé ajuste le décompte tout seul. Seuls les
 avantages accordés sont conservés, puisqu'ils se consomment.

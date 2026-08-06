@@ -165,9 +165,22 @@ export async function creerReservation(
           },
         });
 
-        // Parrainage : rattachement une seule fois, et jamais à soi-même.
+        // Une réservation annulée ne consomme pas l'offre de bienvenue : on
+        // compte donc les rendez-vous encore valides, pas toutes les demandes.
+        const dejaVenue = await tx.rendezVous.count({
+          where: { clienteId: cliente.id, statut: { not: "ANNULE" } },
+        });
+
+        // Parrainage : réservé aux nouvelles clientes, une seule fois, et
+        // jamais à soi-même.
+        //
+        // La condition « nouvelle » est indispensable, pas cosmétique : une
+        // filleule compte pour sa marraine dès qu'elle a une pose honorée. Sans
+        // elle, une habituée pourrait saisir le code d'une amie et la faire
+        // monter d'un palier sur-le-champ, sans amener personne.
         const code = String(formData.get("codeParrainage") ?? "").trim().toUpperCase();
-        if (code && !cliente.parraineParId) {
+        let marrainee = cliente.parraineParId !== null;
+        if (code && !marrainee && dejaVenue === 0) {
           const marraine = await tx.cliente.findUnique({
             where: { codeParrainage: code },
             select: { id: true },
@@ -177,22 +190,9 @@ export async function creerReservation(
               where: { id: cliente.id },
               data: { parraineParId: marraine.id },
             });
+            marrainee = true;
           }
         }
-
-        // Les −15 % de bienvenue vont à une filleule sur sa première
-        // prestation. Le rattachement pouvant dater d'une réservation annulée,
-        // on regarde ses rendez-vous encore valides plutôt que le code saisi
-        // aujourd'hui : une annulation ne doit pas consommer l'offre.
-        const marrainee =
-          cliente.parraineParId !== null ||
-          (await tx.cliente.findUnique({
-            where: { id: cliente.id },
-            select: { parraineParId: true },
-          }))?.parraineParId != null;
-        const dejaVenue = await tx.rendezVous.count({
-          where: { clienteId: cliente.id, statut: { not: "ANNULE" } },
-        });
 
         const rendezVous = await tx.rendezVous.create({
           data: {
