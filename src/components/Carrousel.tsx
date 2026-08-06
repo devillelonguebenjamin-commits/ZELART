@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-export type Visuel = { id: string; url: string; legende: string | null };
-
 const DELAI_AUTO_MS = 4500;
 // En deçà, il n'y a rien à faire défiler : ni flèches, ni barre, ni lecture auto.
 const MARGE_PX = 8;
@@ -57,7 +55,22 @@ function Pictogramme({ lecture }: { lecture: boolean }) {
   );
 }
 
-export default function CarrouselGalerie({ visuels }: { visuels: Visuel[] }) {
+/**
+ * Piste horizontale à défilement natif — donc fluide au doigt, au pavé tactile,
+ * à la molette et au clavier. Le composant n'ajoute que ce que le navigateur ne
+ * fait pas seul : flèches, indicateur de position, glissement à la souris et
+ * défilement automatique.
+ *
+ * Les enfants sont des `<li>` fournis par l'appelant, qui porte donc aussi leur
+ * largeur — c'est elle qui décide du nombre de cartes visibles à la fois.
+ */
+export default function Carrousel({
+  libelle,
+  children,
+}: {
+  libelle: string;
+  children: React.ReactNode;
+}) {
   const piste = useRef<HTMLUListElement>(null);
   // Survol ou focus : on suspend le défilement sans l'arrêter pour autant.
   const suspendu = useRef(false);
@@ -161,8 +174,6 @@ export default function CarrouselGalerie({ visuels }: { visuels: Visuel[] }) {
     setTiree(false);
   }
 
-  if (visuels.length === 0) return null;
-
   return (
     <div
       onMouseEnter={() => (suspendu.current = true)}
@@ -189,38 +200,14 @@ export default function CarrouselGalerie({ visuels }: { visuels: Visuel[] }) {
             onPointerMove={tirer}
             onPointerUp={lacher}
             onPointerCancel={lacher}
-            aria-label="Réalisations de Zélia"
+            aria-label={libelle}
             className={`piste-carrousel flex snap-x snap-mandatory gap-4 overflow-x-auto rounded-[2rem] px-1 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-400 ${
               // Centrer une piste qui déborde rendrait son début inatteignable
               // dans plusieurs navigateurs : réservé au cas où tout tient.
               defilable ? "vignettes-centrees cursor-grab" : "justify-center"
             } ${tiree ? "cursor-grabbing select-none" : ""}`}
           >
-            {visuels.map((visuel, rang) => (
-              <li
-                key={visuel.id}
-                className="w-[74%] shrink-0 snap-center sm:w-[46%] lg:w-[31%]"
-              >
-                <figure className="group relative overflow-hidden rounded-3xl border border-pink-100 bg-white shadow-sm">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={visuel.url}
-                    alt={visuel.legende ?? "Réalisation Zelart"}
-                    loading={rang < 3 ? "eager" : "lazy"}
-                    decoding="async"
-                    // Sans cela, le navigateur lance son propre glisser-déposer
-                    // d'image dès le premier mouvement et la piste ne suit plus.
-                    draggable={false}
-                    className="aspect-4/5 w-full object-cover transition duration-500 group-hover:scale-105"
-                  />
-                  {visuel.legende && (
-                    <figcaption className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 via-black/35 to-transparent px-4 pt-10 pb-3 text-sm font-medium text-white">
-                      {visuel.legende}
-                    </figcaption>
-                  )}
-                </figure>
-              </li>
-            ))}
+            {children}
           </ul>
         </div>
 

@@ -4,12 +4,14 @@ import { formatPrix, grouperParCategorie } from "@/lib/format";
 import { reglagesReseaux } from "@/lib/parametres";
 import LiensReseaux from "@/components/LiensReseaux";
 import Vagues, { TraitVagues } from "@/components/Vagues";
-import CarrouselGalerie from "@/components/CarrouselGalerie";
+import Carrousel from "@/components/Carrousel";
+import AvisGoogle from "@/components/AvisGoogle";
+import { avisGoogle } from "@/lib/avis";
 
 export const dynamic = "force-dynamic";
 
 export default async function Accueil() {
-  const [prestations, photos, realisations, pressOnMoinsCher, reseaux] = await Promise.all([
+  const [prestations, photos, realisations, pressOnMoinsCher, reseaux, avis] = await Promise.all([
     prisma.prestation.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
     prisma.photo.findMany({ orderBy: [{ ordre: "asc" }, { creeLe: "desc" }], take: 12 }),
     prisma.realisation.findMany({
@@ -24,6 +26,7 @@ export default async function Accueil() {
       select: { prixCents: true },
     }),
     reglagesReseaux(),
+    avisGoogle(),
   ]);
   // La galerie réunit les photos ajoutées à la main et les réalisations publiées.
   const visuels = [
@@ -136,7 +139,33 @@ export default async function Accueil() {
             <h2 className="font-display text-center text-3xl font-bold">Mes réalisations 💅</h2>
             <TraitVagues className="mx-auto mt-4" />
             <div className="mt-8">
-              <CarrouselGalerie visuels={visuels} />
+              <Carrousel libelle="Réalisations de Zélia">
+                {visuels.map((visuel, rang) => (
+                  <li
+                    key={visuel.id}
+                    className="w-[74%] shrink-0 snap-center sm:w-[46%] lg:w-[31%]"
+                  >
+                    <figure className="group relative overflow-hidden rounded-3xl border border-pink-100 bg-white shadow-sm">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={visuel.url}
+                        alt={visuel.legende ?? "Réalisation Zelart"}
+                        loading={rang < 3 ? "eager" : "lazy"}
+                        decoding="async"
+                        // Sans cela, le navigateur lance son propre glisser-déposer
+                        // d'image dès le premier mouvement et la piste ne suit plus.
+                        draggable={false}
+                        className="aspect-4/5 w-full object-cover transition duration-500 group-hover:scale-105"
+                      />
+                      {visuel.legende && (
+                        <figcaption className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 via-black/35 to-transparent px-4 pt-10 pb-3 text-sm font-medium text-white">
+                          {visuel.legende}
+                        </figcaption>
+                      )}
+                    </figure>
+                  </li>
+                ))}
+              </Carrousel>
             </div>
           </section>
         )}
@@ -203,6 +232,9 @@ export default async function Accueil() {
             </Link>
           </div>
         </section>
+
+        {/* Avis Google */}
+        <AvisGoogle fiche={avis} />
       </div>
     </>
   );

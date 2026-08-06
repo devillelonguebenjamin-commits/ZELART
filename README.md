@@ -292,6 +292,31 @@ navigateurs qui l'ignorent affichent simplement des vignettes toutes égales.
 glissement et la mise en avant. La préférence est lue par `useSyncExternalStore` : le rendu
 serveur suppose l'animation permise et l'hydratation rétablit la vérité.
 
+## Avis Google
+
+Le bas de la page d'accueil reprend les avis de la fiche Google, dans le même carrousel que la
+galerie. Deux limites tiennent à la plateforme, pas au site :
+
+- **Google ne transmet que cinq avis**, et c'est lui qui les choisit. L'API n'offre aucun moyen
+  d'en obtenir davantage ni de trier.
+- Ses conditions imposent de **reprendre les avis tels quels** — pas de coupe, pas de retouche —
+  avec l'auteur crédité et un lien vers Google. C'est ce que fait `AvisGoogle.tsx`.
+
+**Mise en place.** Créer une clé d'API Places (New) dans la console Google Cloud (facturation
+activée, quota mensuel offert largement suffisant ici) et la poser dans `GOOGLE_PLACES_API_KEY`
+sur Vercel. Zélia connecte ensuite son établissement depuis **Réglages → Avis Google** : elle
+tape le nom de sa fiche, choisit dans la liste, c'est fini. Le `placeId` est conservé en base,
+personne n'a besoin d'aller le chercher dans la console.
+
+**Cache.** `fetch` n'est pas mis en cache par défaut en Next 16 sans `cacheComponents`, et un
+cache en mémoire ne survivrait pas d'une instance à l'autre. Les avis sont donc stockés en base
+(`Parametre.avisGoogleCache`), rafraîchis au bout de six heures — soit quatre appels par jour
+quelle que soit la fréquentation. Si Google tombe, le dernier état connu reste affiché plutôt
+que de vider la section.
+
+Sans clé ou sans établissement connecté, la section n'apparaît pas et Réglages indique ce qui
+manque.
+
 ## Prochaines étapes envisagées
 
 - Envoi de SMS en complément des e-mails (rappels et campagnes).
