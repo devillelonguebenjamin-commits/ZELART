@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { envoyerEmail } from "@/lib/email";
 import { nouveauCode } from "@/lib/cliente-auth";
 import { commandePressOnSchema, urlImageValide } from "@/lib/validations";
+import { clienteBloquee, MESSAGE_BLOCAGE } from "@/lib/blocage";
 import { formatPrix } from "@/lib/format";
 import { LIBELLE_REMISE } from "@/lib/press-on";
 import { urlSite } from "@/lib/site";
@@ -40,6 +41,10 @@ export async function commanderPressOn(
     return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
   }
   const donnees = analyse.data;
+
+  if (await clienteBloquee(donnees.email, donnees.telephone)) {
+    return { erreur: MESSAGE_BLOCAGE };
+  }
 
   const modele = await prisma.modelePressOn.findUnique({ where: { id: donnees.modeleId } });
   if (!modele || !modele.actif) {

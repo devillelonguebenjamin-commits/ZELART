@@ -15,6 +15,7 @@ const liens = [
   { href: "/admin/galerie", label: "Galerie" },
   { href: "/admin/campagnes", label: "Campagnes" },
   { href: "/admin/roue", label: "Roue" },
+  { href: "/admin/bouffonnes", label: "Bouffonnes" },
   { href: "/admin/reglages", label: "Réglages" },
 ];
 
