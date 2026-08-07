@@ -32,7 +32,7 @@ npm run dev
 | --- | --- |
 | `Cliente` | Coordonnées + notes de suivi (allergies, préférences…) |
 | `Prestation` | Catalogue avec catégorie, durée indicative, prix en centimes, prix « à partir de » |
-| `Disponibilite` | Fenêtres d'ouverture récurrentes — lundi à samedi, 9h et 14h (une cliente par fenêtre) |
+| `Disponibilite` | Fenêtres d'ouverture récurrentes, avec période de validité facultative (une cliente par fenêtre) |
 | `Indisponibilite` | Exceptions ponctuelles : congés, jours fériés… |
 | `RendezVous` | Créneau réservé, statut `EN_ATTENTE` par défaut (Zélia confirme à la main) |
 | `LignePrestation` | Prestations d'une demande : la cliente peut en cocher plusieurs, la dépose imposée s'y ajoute avec `automatique = true` ; `prixCents` fige le tarif du jour |
@@ -44,6 +44,30 @@ npm run dev
 Les créneaux libres sont **calculés à la volée** (`src/lib/creneaux.ts`) : fenêtres récurrentes,
 moins les indisponibilités et les rendez-vous actifs. Les horaires sont interprétés dans le
 fuseau `Europe/Paris` quel que soit le fuseau du serveur.
+
+### Jours d'ouverture et jours de repos
+
+Ouverture du **mardi au samedi**, 9h–12h30 et 14h–18h. Le dimanche est fermé de longue date ; le
+**lundi l'est depuis le 1er octobre 2026**.
+
+Cette bascule a demandé une période de validité sur `Disponibilite` (`actifDu` / `actifJusquau`,
+bornes comprises, vides = de tout temps). Sans elle, un changement d'horaires n'aurait pu se faire
+qu'au présent : supprimer la ligne du lundi aurait fermé **aussi** les lundis de septembre, et
+retiré de l'agenda ceux qui y étaient déjà réservés. La ligne est donc conservée avec une date de
+fin plutôt que supprimée.
+
+La comparaison se fait sur la **clé de jour parisienne** (`2026-10-05`), jamais sur les instants :
+deux dates du même jour peuvent différer de plusieurs heures selon l'heure enregistrée, et un
+`<=` sur les instants ouvrirait ou fermerait un jour de trop selon la saison.
+
+Trois endroits lisent ces bornes, et les trois doivent le faire : les créneaux proposés à la
+cliente, le taux de remplissage des statistiques, et surtout `fenetrePourDebut` — seul contrôle
+qui décide si une réservation passe. Un formulaire resté ouvert la veille d'une fermeture
+proposerait sinon un créneau devenu invalide. Le calendrier de l'espace gérante hachure les jours
+de repos, l'absence de rendez-vous ne distinguant pas un jour fermé d'un jour creux.
+
+> Les horaires n'ont pas d'interface d'administration : ils vivent dans le seed et se modifient
+> par migration. C'est une limite connue, pas un oubli de cette évolution.
 
 ## Parcours de réservation
 
@@ -155,6 +179,11 @@ désactivé plutôt que supprimé, pour ne pas rompre l'historique des récompen
 Protégé par la variable d'environnement `ADMIN_PASSWORD` (session par cookie signé, 30 jours) :
 
 - **Agenda** : demandes à confirmer, rendez-vous à venir, historique — changement de statut en un clic.
+- **Agenda** : un **calendrier mensuel** en tête de page — rendez-vous colorés par statut, congés
+  posés sur chaque journée qu'ils recouvrent, jour courant marqué —, puis les listes habituelles.
+  La navigation passe par `?mois=2026-08` : sans paramètre, la page retombe sur le mois en cours,
+  ce qui donne le bouton « Aujourd'hui » sans calcul supplémentaire. Naviguer dans le calendrier
+  ne touche pas aux listes, qui restent centrées sur l'actualité.
 - **Chiffres** : chiffre d'affaires mois par mois (poses honorées + press-on remis), panier moyen,
   prestations les plus demandées, taux de remplissage sur 30 jours, part de clientes qui reviennent
   et créneaux perdus. Le prix est figé sur chaque ligne de prestation au moment de la demande
@@ -251,6 +280,15 @@ explicite ». Le lien envoyé par e-mail reste donc valable, ce qui n'allait pas
 30 minutes souvent citées concernent la session de paiement une fois la page ouverte, pas la
 durée de vie du lien. La référence porte l'identifiant de commande suivi d'un horodatage, pour
 qu'une seconde demande — un montant corrigé — ne soit pas refusée en doublon.
+
+### Vérifier la connexion
+
+La page Réglages porte une ligne **API SumUp** qui interroge `/v0.1/memberships` : la réponse
+valide la clé **et révèle le code marchand auquel elle donne accès** (`resource_id` d'une adhésion
+marchande). Zélia n'a donc pas à le chercher dans son tableau de bord ni à craindre une lettre de
+travers — l'écran le lui affiche, et signale le cas échéant que le code saisi n'est pas celui de
+la clé. Quatre états distincts, chacun avec sa conduite à tenir : non configurée, clé refusée,
+code marchand incorrect, connectée.
 
 `SUMUP_API_URL` permet de détourner les appels, comme `BREVO_API_URL` et `RESEND_API_URL` : c'est
 ce qui rend ce chemin éprouvable sans compte marchand.
@@ -546,6 +584,33 @@ Le classement charge toutes les marraines en **une requête** plutôt qu'un `sta
 cliente, et les règles de palier vivent dans une fonction unique (`statutDepuisDecompte`)
 partagée avec l'espace cliente : deux décomptes séparés finiraient par ne plus dire la même
 chose.
+
+## Rendez-vous pris de vive voix
+
+Toutes les clientes ne passeront pas par le site : une habituée appelle, une autre prend rendez-vous
+au salon en repartant. Le bouton **« Noter un rendez-vous »** de l'agenda les enregistre.
+
+Trois différences assumées avec une réservation en ligne :
+
+- il naît **confirmé** — l'accord a été pris de vive voix, demander à Zélia de confirmer ce
+  qu'elle vient de décider n'aurait pas de sens ;
+- **aucun e-mail ne part**, ni demande d'acompte ni notification : elle était dans la conversation ;
+- **aucune contrainte de créneau**, ni préavis ni fenêtre d'ouverture. Le calendrier récurrent
+  existe pour que les clientes ne réservent pas n'importe quand ; Zélia dispose de son agenda.
+
+Le contrôle de chevauchement, lui, demeure : une double réservation en reste une, qu'elle vienne
+du site ou du carnet. **Fiche cliente et rendez-vous sont créés dans la même transaction** — créer
+la fiche d'abord laissait, sur un créneau déjà pris, une cliente sans rendez-vous à nettoyer à la
+main.
+
+### Clientes sans adresse e-mail
+
+`Cliente.email` est obligatoire et unique, ce qui bloquait la saisie d'une habituée qui n'a pas
+d'e-mail. Une **adresse de complaisance** est alors attribuée, sous le domaine `zelart.invalid` —
+réservé par la RFC 2606, il ne peut atteindre aucune boîte réelle, ni aujourd'hui ni jamais.
+`envoyerEmail` refuse ces adresses **à la source** plutôt que chez chaque appelant : rappels,
+avantages, relances, il aurait suffi d'en oublier un pour accumuler les rejets chez le fournisseur
+d'envoi.
 
 ## Ce qui attend Zélia
 

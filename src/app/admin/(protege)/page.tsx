@@ -15,6 +15,48 @@ import ValidationVenue from "@/components/ValidationVenue";
 import type { TypeAvantage } from "@/generated/prisma/client";
 import { reglagesAcompte } from "@/lib/parametres";
 import type { Prisma } from "@/generated/prisma/client";
+import { bornesMois, grilleMois, moisDemande, type EvenementJour } from "@/lib/calendrier";
+import { jourParis, ouvertureActive } from "@/lib/creneaux";
+import CalendrierMois from "@/components/CalendrierMois";
+import FormulaireRdvManuel from "@/components/FormulaireRdvManuel";
+
+const JOUR_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Un congé par journée qu'il recouvre.
+ *
+ * Un événement rangé sur son seul jour de départ laisserait le reste de la
+ * semaine bloquée en apparence libre — exactement l'erreur qu'un calendrier est
+ * censé empêcher.
+ */
+function joursCouverts(
+  conge: { id: string; debut: Date; fin: Date; motif: string | null },
+  bornes: { debut: Date; fin: Date }
+): EvenementJour[] {
+  const evenements: EvenementJour[] = [];
+  const depart = new Date(Math.max(conge.debut.getTime(), bornes.debut.getTime()));
+  const arrivee = new Date(Math.min(conge.fin.getTime(), bornes.fin.getTime()));
+
+  // Ancre à midi : insensible aux changements d'heure, comme partout ailleurs.
+  let curseur = new Date(depart.getTime());
+  const vus = new Set<string>();
+  while (curseur < arrivee && vus.size < 62) {
+    const cle = jourParis(curseur);
+    if (!vus.has(cle)) {
+      vus.add(cle);
+      evenements.push({
+        id: `${conge.id}-${cle}`,
+        debut: curseur,
+        fin: conge.fin,
+        titre: conge.motif ?? "Congé",
+        statut: "ANNULE",
+        indisponible: true,
+      });
+    }
+    curseur = new Date(curseur.getTime() + JOUR_MS);
+  }
+  return evenements;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -269,27 +311,92 @@ function CarteRdv({
   );
 }
 
-export default async function Agenda() {
+export default async function Agenda({
+  searchParams,
+}: {
+  searchParams: Promise<{ mois?: string }>;
+}) {
   const maintenant = new Date();
   const ilYa14Jours = new Date(maintenant.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-  const [rdvs, acompte, listeAttente, avantagesEnAttente] = await Promise.all([
-    prisma.rendezVous.findMany({
-      where: { debut: { gte: ilYa14Jours } },
-      include: {
-        cliente: { include: { parraine: { select: { prenom: true } } } },
-        inspirations: true,
-        lignes: { include: { prestation: true }, orderBy: { ordre: "asc" } },
-      },
-      orderBy: { debut: "asc" },
-    }),
-    reglagesAcompte(),
-    prisma.listeAttente.findMany({ where: { notifieeLe: null }, orderBy: { creeLe: "asc" } }),
-    prisma.avantageParrainage.findMany({
-      where: { utiliseLe: null },
-      select: { id: true, clienteId: true, type: true, code: true },
-    }),
-  ]);
+  // Le calendrier montre le mois demandé, les listes restent centrées sur
+  // l'actualité : naviguer en juin ne doit pas vider « Demandes à confirmer ».
+  const { mois: moisDemandeCle } = await searchParams;
+  const { annee, mois } = moisDemande(moisDemandeCle);
+  const bornes = bornesMois(annee, mois);
+
+  const [rdvs, acompte, listeAttente, avantagesEnAttente, rdvsDuMois, congesDuMois, clientes, catalogue, ouvertures] =
+    await Promise.all([
+      prisma.rendezVous.findMany({
+        where: { debut: { gte: ilYa14Jours } },
+        include: {
+          cliente: { include: { parraine: { select: { prenom: true } } } },
+          inspirations: true,
+          lignes: { include: { prestation: true }, orderBy: { ordre: "asc" } },
+        },
+        orderBy: { debut: "asc" },
+      }),
+      reglagesAcompte(),
+      prisma.listeAttente.findMany({ where: { notifieeLe: null }, orderBy: { creeLe: "asc" } }),
+      prisma.avantageParrainage.findMany({
+        where: { utiliseLe: null },
+        select: { id: true, clienteId: true, type: true, code: true },
+      }),
+      prisma.rendezVous.findMany({
+        where: { debut: { gte: bornes.debut, lt: bornes.fin } },
+        select: {
+          id: true,
+          debut: true,
+          fin: true,
+          statut: true,
+          cliente: { select: { id: true, prenom: true, nom: true } },
+          lignes: { select: { prestation: { select: { nom: true } } }, orderBy: { ordre: "asc" } },
+        },
+      }),
+      prisma.indisponibilite.findMany({
+        where: { debut: { lt: bornes.fin }, fin: { gt: bornes.debut } },
+      }),
+      prisma.cliente.findMany({
+        where: { bloqueeLe: null },
+        select: { id: true, prenom: true, nom: true, telephone: true },
+        orderBy: [{ nom: "asc" }, { prenom: "asc" }],
+      }),
+      prisma.prestation.findMany({
+        where: { active: true },
+        select: { id: true, nom: true, categorie: true, dureeMin: true, prixCents: true, aPartirDe: true },
+        orderBy: { ordre: "asc" },
+      }),
+      prisma.disponibilite.findMany(),
+    ]);
+
+  // Jours de repos : aucune ouverture ne s'applique. Les hachures du calendrier
+  // le disent d'un coup d'œil, là où l'absence de rendez-vous ne distingue pas
+  // un jour fermé d'un jour creux.
+  const ouvertLe = (cleJour: string) => {
+    const [a, m, j] = cleJour.split("-").map(Number);
+    const jourSemaine = ((new Date(Date.UTC(a, m - 1, j, 12)).getUTCDay() + 6) % 7) + 1;
+    return ouvertures.some((o) => o.jourSemaine === jourSemaine && ouvertureActive(o, cleJour));
+  };
+
+  // Demain 9 h : la valeur qu'on corrige le moins souvent.
+  const demain = new Date(maintenant.getTime() + JOUR_MS);
+  const dateParDefaut = `${jourParis(demain)}T09:00`;
+
+  const grille = grilleMois(annee, mois, [
+    ...rdvsDuMois.map((r) => ({
+      id: r.id,
+      debut: r.debut,
+      fin: r.fin,
+      titre: `${r.cliente.prenom} ${r.cliente.nom.slice(0, 1)}.`,
+      soustitre: r.lignes.map((l) => l.prestation.nom).join(" + ") || undefined,
+      statut: r.statut,
+      lien: `/admin/clientes/${r.cliente.id}`,
+    })),
+    // Les congés couvrent souvent plusieurs jours : on en pose un par journée
+    // touchée, sinon une semaine bloquée n'apparaîtrait que dans sa case de
+    // départ et le reste semblerait libre.
+    ...congesDuMois.flatMap((conge) => joursCouverts(conge, bornes)),
+  ], ouvertLe);
   // Regroupés par cliente : chaque carte de rendez-vous rappelle ce qui reste
   // à appliquer, sinon Zélia devrait ouvrir la fiche pour le savoir.
   const avantagesParCliente = new Map<string, typeof avantagesEnAttente>();
@@ -320,6 +427,17 @@ export default async function Agenda() {
 
   return (
     <div className="space-y-10">
+      <section>
+        <div className="mb-4">
+          <FormulaireRdvManuel
+            clientes={clientes}
+            prestations={catalogue}
+            dateParDefaut={dateParDefaut}
+          />
+        </div>
+        <CalendrierMois grille={grille} />
+      </section>
+
       <section>
         <h1 className="font-display text-2xl font-bold">
           Demandes à confirmer{" "}

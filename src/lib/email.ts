@@ -20,6 +20,16 @@ export type Fournisseur = "brevo" | "resend" | null;
  * une image de son choix dans la boîte de Zélia, sous couvert d'un message
  * légitime venant du site.
  */
+// Domaine des adresses de complaisance, pour les clientes qui n'ont pas
+// d'e-mail — les habituées qui prennent rendez-vous de vive voix. `.invalid`
+// est réservé par la RFC 2606 : une telle adresse ne peut atteindre aucune
+// boîte réelle, ni aujourd'hui ni jamais.
+export const DOMAINE_SANS_EMAIL = "zelart.invalid";
+
+export function sansEmail(adresse: string): boolean {
+  return adresse.trim().toLowerCase().endsWith(`@${DOMAINE_SANS_EMAIL}`);
+}
+
 export function echapperHtml(texte: string): string {
   return texte
     .replace(/&/g, "&amp;")
@@ -175,6 +185,13 @@ export async function envoyerEmail(
   sujet: string,
   html: string
 ): Promise<ResultatEmail> {
+  // Adresse de complaisance : il n'y a personne au bout. Le contrôle est ici et
+  // pas chez chaque appelant — rappels, avantages, relances : il suffirait d'en
+  // oublier un pour accumuler les rejets chez le fournisseur d'envoi.
+  if (sansEmail(destinataire)) {
+    return { ok: false, erreur: "Cette cliente n'a pas d'adresse e-mail." };
+  }
+
   const fournisseur = fournisseurEmail();
   if (!fournisseur) {
     return { ok: false, erreur: "Aucune clé d'envoi configurée (BREVO_API_KEY ou RESEND_API_KEY)." };

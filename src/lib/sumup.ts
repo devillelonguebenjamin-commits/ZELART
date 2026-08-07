@@ -90,3 +90,126 @@ export async function creerLienPaiement(
     };
   }
 }
+
+/**
+ * État de la connexion SumUp, tel que l'affiche la page Réglages.
+ *
+ * Un seul objet plat plutôt qu'une union : chaque champ répond à une question
+ * que Zélia se pose devant l'écran — la clé est-elle acceptée, quel code
+ * marchand lui correspond, et celui que j'ai saisi est-il le bon.
+ */
+/** Un compte marchand auquel la clé donne accès. */
+export type Marchand = {
+  code: string;
+  nom: string;
+  /** Compte de test : les paiements n'y encaissent rien. */
+  bacASable: boolean;
+};
+
+export type EtatSumUp = {
+  /** Les deux variables sont renseignées. */
+  configure: boolean;
+  /** La clé est acceptée par SumUp. */
+  cleValide: boolean;
+  /**
+   * Comptes marchands ouverts par cette clé. Il y en a parfois plusieurs — un
+   * compte de test à côté du vrai, ou un ancien compte resté rattaché. D'où le
+   * nom et le drapeau « bac à sable » : deux codes nus ne permettraient pas de
+   * choisir, et se tromper ferait encaisser sur le mauvais compte, ou nulle part.
+   */
+  marchands: Marchand[];
+  /** Renseigné et cohérent avec la clé. */
+  codeCorrect: boolean;
+  /** Le compte retenu est un compte de test : rien n'y est réellement encaissé. */
+  bacASable: boolean;
+  erreur: string | null;
+};
+
+/**
+ * Vérifie la clé et confronte le code marchand à ceux qu'elle ouvre.
+ *
+ * `/v0.1/memberships` renvoie les ressources auxquelles la clé donne accès ; le
+ * `resource_id` d'une adhésion marchande **est** le code marchand. On peut donc
+ * le découvrir à partir de la seule clé, plutôt que de laisser Zélia le chercher
+ * dans son tableau de bord et se tromper d'une lettre sans jamais savoir
+ * pourquoi les liens de paiement échouent.
+ */
+export async function verifierSumUp(): Promise<EtatSumUp> {
+  const cle = process.env.SUMUP_API_KEY?.trim();
+  const marchand = process.env.SUMUP_MERCHANT_CODE?.trim() ?? "";
+  const vide: EtatSumUp = {
+    configure: false,
+    cleValide: false,
+    marchands: [],
+    codeCorrect: false,
+    bacASable: false,
+    erreur: null,
+  };
+  if (!cle) return vide;
+
+  const echec = (erreur: string): EtatSumUp => ({ ...vide, erreur });
+
+  try {
+    const reponse = await fetch(`${racine()}/memberships?limit=25`, {
+      headers: { Authorization: `Bearer ${cle}`, Accept: "application/json" },
+      cache: "no-store",
+      signal: AbortSignal.timeout(DELAI_MS),
+    });
+
+    if (reponse.status === 401 || reponse.status === 403) {
+      return echec("SumUp refuse cette clé. Régénérez-en une et recollez-la dans SUMUP_API_KEY.");
+    }
+    if (!reponse.ok) return echec(`SumUp a répondu ${reponse.status}.`);
+
+    const donnees = (await reponse.json()) as {
+      items?: {
+        resource_id?: string;
+        type?: string;
+        resource?: { name?: string; attributes?: { sandbox?: boolean } };
+      }[];
+    };
+
+    const parCode = new Map<string, Marchand>();
+    for (const item of donnees.items ?? []) {
+      if (item.type && item.type !== "merchant") continue;
+      const code = item.resource_id ?? "";
+      if (!code || parCode.has(code)) continue;
+      parCode.set(code, {
+        code,
+        nom: item.resource?.name?.trim() || "compte sans nom",
+        bacASable: item.resource?.attributes?.sandbox === true,
+      });
+    }
+    const marchands = [...parCode.values()];
+
+    // Un code absent de la liste ne peut pas fonctionner : autant le dire ici
+    // plutôt que de laisser découvrir le problème sur une vraie commande.
+    const codeCorrect =
+      marchand !== "" &&
+      (marchands.length === 0 || marchands.some((m) => m.code === marchand));
+
+    const choisi = marchands.find((m) => m.code === marchand);
+
+    return {
+      configure: marchand !== "",
+      cleValide: true,
+      marchands,
+      codeCorrect,
+      bacASable: choisi?.bacASable === true,
+      erreur:
+        marchand === ""
+          ? null
+          : !codeCorrect
+            ? `Le code marchand renseigné (${marchand}) n'est pas celui de cette clé.`
+            : choisi?.bacASable
+              ? `Attention : « ${choisi.nom} » est un compte de test. Aucun paiement n'y sera réellement encaissé.`
+              : null,
+    };
+  } catch (erreur) {
+    return echec(
+      erreur instanceof Error && erreur.name === "TimeoutError"
+        ? "SumUp n'a pas répondu dans le délai imparti."
+        : "Impossible de joindre SumUp."
+    );
+  }
+}

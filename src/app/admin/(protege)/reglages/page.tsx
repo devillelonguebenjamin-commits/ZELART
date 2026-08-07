@@ -22,6 +22,7 @@ import ReglagesRappelsForm from "@/components/ReglagesRappelsForm";
 import ReglagesReseauxForm from "@/components/ReglagesReseauxForm";
 import ReglagesAvisForm from "@/components/ReglagesAvisForm";
 import { CLE_ETABLISSEMENT, cleGoogle } from "@/lib/avis";
+import { verifierSumUp } from "@/lib/sumup";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +58,7 @@ function Ligne({
 }
 
 export default async function Reglages() {
-  const [acompte, rappels, expediteurBrevo, parametresReseaux] = await Promise.all([
+  const [acompte, rappels, expediteurBrevo, parametresReseaux, sumup] = await Promise.all([
     reglagesAcompte(),
     reglagesRappels(),
     verifierExpediteurBrevo(),
@@ -74,6 +75,7 @@ export default async function Reglages() {
         },
       },
     }),
+    verifierSumUp(),
   ]);
   const reseau = (cle: string) => parametresReseaux.find((p) => p.cle === cle)?.valeur ?? "";
   const etablissementGoogle = reseau(CLE_ETABLISSEMENT);
@@ -152,6 +154,37 @@ export default async function Reglages() {
           valeur={acompte.lien ? "activé" : "manuel"}
           ok={Boolean(acompte.lien)}
           aide="lien de paiement SumUp réutilisable"
+        />
+        <Ligne
+          label="API SumUp (press-on)"
+          valeur={
+            !sumup.cleValide && sumup.erreur
+              ? "clé refusée"
+              : !sumup.cleValide
+                ? "non configurée"
+                : !sumup.configure
+                  ? "clé valide, code marchand manquant"
+                  : !sumup.codeCorrect
+                    ? "code marchand incorrect"
+                    : sumup.bacASable
+                      ? "reliée à un compte de test"
+                      : "connectée"
+          }
+          ok={sumup.cleValide && sumup.configure && sumup.codeCorrect && !sumup.bacASable}
+          aide={
+            sumup.erreur ??
+            (sumup.cleValide && sumup.marchands.length > 0
+              ? // Nom et drapeau « test » plutôt que des codes nus : avec deux
+                // comptes rattachés à la même clé, un code seul ne permet pas
+                // de choisir.
+                `${sumup.marchands.length > 1 ? "Cette clé ouvre plusieurs comptes — " : ""}${sumup.marchands
+                  .map(
+                    (m) =>
+                      `${m.nom} : ${m.code}${m.bacASable ? " (compte de test, n'encaisse rien)" : ""}`
+                  )
+                  .join(" · ")}`
+              : "SUMUP_API_KEY + SUMUP_MERCHANT_CODE — sans elles, vous collez le lien de paiement à la main sur chaque commande")
+          }
         />
         <Ligne
           label="Avis Google"
