@@ -164,15 +164,25 @@ export default async function Reglages() {
                 ? "non configurée"
                 : !sumup.configure
                   ? "clé valide, code marchand manquant"
-                  : sumup.codeCorrect
-                    ? "connectée"
-                    : "code marchand incorrect"
+                  : !sumup.codeCorrect
+                    ? "code marchand incorrect"
+                    : sumup.bacASable
+                      ? "reliée à un compte de test"
+                      : "connectée"
           }
-          ok={sumup.cleValide && sumup.configure && sumup.codeCorrect}
+          ok={sumup.cleValide && sumup.configure && sumup.codeCorrect && !sumup.bacASable}
           aide={
             sumup.erreur ??
-            (sumup.cleValide && sumup.codesConnus.length > 0
-              ? `Code marchand de cette clé : ${sumup.codesConnus.join(", ")}`
+            (sumup.cleValide && sumup.marchands.length > 0
+              ? // Nom et drapeau « test » plutôt que des codes nus : avec deux
+                // comptes rattachés à la même clé, un code seul ne permet pas
+                // de choisir.
+                `${sumup.marchands.length > 1 ? "Cette clé ouvre plusieurs comptes — " : ""}${sumup.marchands
+                  .map(
+                    (m) =>
+                      `${m.nom} : ${m.code}${m.bacASable ? " (compte de test, n'encaisse rien)" : ""}`
+                  )
+                  .join(" · ")}`
               : "SUMUP_API_KEY + SUMUP_MERCHANT_CODE — sans elles, vous collez le lien de paiement à la main sur chaque commande")
           }
         />

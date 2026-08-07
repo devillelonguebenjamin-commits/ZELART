@@ -98,15 +98,30 @@ export async function creerLienPaiement(
  * que Zélia se pose devant l'écran — la clé est-elle acceptée, quel code
  * marchand lui correspond, et celui que j'ai saisi est-il le bon.
  */
+/** Un compte marchand auquel la clé donne accès. */
+export type Marchand = {
+  code: string;
+  nom: string;
+  /** Compte de test : les paiements n'y encaissent rien. */
+  bacASable: boolean;
+};
+
 export type EtatSumUp = {
   /** Les deux variables sont renseignées. */
   configure: boolean;
   /** La clé est acceptée par SumUp. */
   cleValide: boolean;
-  /** Codes marchands auxquels cette clé donne accès. */
-  codesConnus: string[];
+  /**
+   * Comptes marchands ouverts par cette clé. Il y en a parfois plusieurs — un
+   * compte de test à côté du vrai, ou un ancien compte resté rattaché. D'où le
+   * nom et le drapeau « bac à sable » : deux codes nus ne permettraient pas de
+   * choisir, et se tromper ferait encaisser sur le mauvais compte, ou nulle part.
+   */
+  marchands: Marchand[];
   /** Renseigné et cohérent avec la clé. */
   codeCorrect: boolean;
+  /** Le compte retenu est un compte de test : rien n'y est réellement encaissé. */
+  bacASable: boolean;
   erreur: string | null;
 };
 
@@ -125,8 +140,9 @@ export async function verifierSumUp(): Promise<EtatSumUp> {
   const vide: EtatSumUp = {
     configure: false,
     cleValide: false,
-    codesConnus: [],
+    marchands: [],
     codeCorrect: false,
+    bacASable: false,
     erreur: null,
   };
   if (!cle) return vide;
@@ -146,33 +162,48 @@ export async function verifierSumUp(): Promise<EtatSumUp> {
     if (!reponse.ok) return echec(`SumUp a répondu ${reponse.status}.`);
 
     const donnees = (await reponse.json()) as {
-      items?: { resource_id?: string; type?: string }[];
+      items?: {
+        resource_id?: string;
+        type?: string;
+        resource?: { name?: string; attributes?: { sandbox?: boolean } };
+      }[];
     };
-    const codesConnus = [
-      ...new Set(
-        (donnees.items ?? [])
-          .filter((m) => !m.type || m.type === "merchant")
-          .map((m) => m.resource_id ?? "")
-          .filter(Boolean)
-      ),
-    ];
+
+    const parCode = new Map<string, Marchand>();
+    for (const item of donnees.items ?? []) {
+      if (item.type && item.type !== "merchant") continue;
+      const code = item.resource_id ?? "";
+      if (!code || parCode.has(code)) continue;
+      parCode.set(code, {
+        code,
+        nom: item.resource?.name?.trim() || "compte sans nom",
+        bacASable: item.resource?.attributes?.sandbox === true,
+      });
+    }
+    const marchands = [...parCode.values()];
 
     // Un code absent de la liste ne peut pas fonctionner : autant le dire ici
     // plutôt que de laisser découvrir le problème sur une vraie commande.
     const codeCorrect =
-      marchand !== "" && (codesConnus.length === 0 || codesConnus.includes(marchand));
+      marchand !== "" &&
+      (marchands.length === 0 || marchands.some((m) => m.code === marchand));
+
+    const choisi = marchands.find((m) => m.code === marchand);
 
     return {
       configure: marchand !== "",
       cleValide: true,
-      codesConnus,
+      marchands,
       codeCorrect,
+      bacASable: choisi?.bacASable === true,
       erreur:
         marchand === ""
           ? null
-          : codeCorrect
-            ? null
-            : `Le code marchand renseigné (${marchand}) n'est pas celui de cette clé.`,
+          : !codeCorrect
+            ? `Le code marchand renseigné (${marchand}) n'est pas celui de cette clé.`
+            : choisi?.bacASable
+              ? `Attention : « ${choisi.nom} » est un compte de test. Aucun paiement n'y sera réellement encaissé.`
+              : null,
     };
   } catch (erreur) {
     return echec(
