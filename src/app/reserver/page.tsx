@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCreneauxDisponibles } from "@/lib/creneaux";
 import { stockageConfigure } from "@/lib/blob";
@@ -53,6 +54,17 @@ export default async function Reserver() {
             Quelques questions sur vos ongles, puis le choix de votre prestation et de votre
             créneau. Une fois votre demande envoyée, Zélia vous répondra par message pour la
             confirmer 🤍
+          </p>
+          {/* L'hésitation se produit ici, pas sur l'accueil : le lien s'ouvre à
+              côté pour ne pas faire perdre la sélection en cours. */}
+          <p className="mt-3 text-sm">
+            <Link
+              href="/prestations"
+              target="_blank"
+              className="font-medium text-pink-600 hover:underline"
+            >
+              Vous hésitez entre deux prestations ? Voir ce que chacune veut dire
+            </Link>
           </p>
         </div>
       </section>

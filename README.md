@@ -54,6 +54,39 @@ fuseau `Europe/Paris` quel que soit le fuseau du serveur.
 3. `/confirmation/[id]` — récapitulatif ; la demande reste **en attente** jusqu'à la confirmation
    par Zélia (acompte de 15 € via SumUp pour les nouvelles clientes, cf. CGV).
 
+## Les prestations expliquées (`/prestations`)
+
+Page publique destinée à celles pour qui « gainage », « Gel X » ou « Pop-it » ne veulent rien
+dire. Elle explique les quatre techniques, les trois mots qui reviennent (pose, remplissage,
+dépose), la règle de la pose qui ne se recouvre pas, et ce que chaque niveau de nail art ajoute.
+
+**Tout y est déduit du catalogue et des règles, jamais recopié à côté** (`src/lib/explications.ts`) :
+
+- les tarifs, durées et définitions viennent des `Prestation` actives ;
+- « remplissage possible » se lit sur l'existence d'une prestation de remplissage dans la
+  catégorie, pas sur une liste écrite en dur — c'est la même vérité que celle appliquée par
+  `regles.ts` au moment de réserver ;
+- le retour conseillé reprend le délai de relance configuré dans les réglages ;
+- le supplément de chaque niveau de nail art est **mesuré** : écart de prix et de durée entre la
+  prestation décorée et la même sans décor, rendu sous forme de fourchette si les catégories
+  divergent.
+
+Le sens des niveaux (ce qui sépare un niveau 2 d'un niveau 3) ne vit nulle part dans le système :
+seule Zélia en juge, à la lecture d'une inspiration. La page s'en tient donc à ce qui est
+vérifiable — le supplément et le temps — et renvoie vers la photo d'inspiration pour le reste.
+Inventer des définitions que le salon ne suivrait pas serait pire que de ne rien dire.
+
+Une prestation modifiée, retirée ou reprisée se répercute donc sans que personne pense à cette
+page. La description affichée est celle d'une **pose** de la catégorie : prise au premier venu,
+c'était celle de la dépose (la moins chère), et le semi-permanent se définissait comme « dépose
+seule de votre vernis semi-permanent ».
+
+**Accès** : entrée « Prestations » de l'en-tête (qui remplace le lien vers l'ancre des tarifs —
+la page porte les tarifs en lien, l'inverse n'était pas vrai), lien dans la section tarifs de
+l'accueil et dans le pied de page, tous deux visibles sur téléphone où l'en-tête masque ses
+entrées secondaires, et lien depuis le tunnel de réservation, ouvert dans un onglet à part pour
+ne pas faire perdre la sélection en cours.
+
 ### Règles selon l'état des ongles
 
 La première étape demande ce que la cliente porte à son arrivée, puis le catalogue est filtré
