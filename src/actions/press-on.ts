@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { envoyerEmail } from "@/lib/email";
-import { nouveauCode } from "@/lib/cliente-auth";
+import { nouveauCodeUnique } from "@/lib/cliente-auth";
 import { commandePressOnSchema, urlImageValide } from "@/lib/validations";
 import { clienteBloquee, MESSAGE_BLOCAGE } from "@/lib/blocage";
 import { formatPrix } from "@/lib/format";
@@ -77,7 +77,7 @@ export async function commanderPressOn(
       nom: donnees.nom,
       email: donnees.email,
       telephone: donnees.telephone,
-      codeParrainage: nouveauCode(),
+      codeParrainage: await nouveauCodeUnique(prisma),
       consentementMarketing: accord,
       consentementLe: accord ? new Date() : null,
     },

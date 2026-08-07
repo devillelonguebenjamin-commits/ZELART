@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import type { TypeAvantage } from "@/generated/prisma/client";
 
@@ -83,10 +84,38 @@ function palierPourNombre(nombre: number): Palier {
   return [...PALIERS].reverse().find((p) => nombre >= p.seuil) ?? PALIERS[0];
 }
 
+/** Première venue de chaque filleule — vide tant qu'elle n'est jamais venue. */
+type PremieresVenues = { rendezVous: { debut: Date }[] }[];
+
 /**
  * Décompte des filleules venues au moins une fois, et date de la plus récente
  * arrivée dans la squad — celle qui décide du maintien du statut Ambassadrice.
+ *
+ * Séparé de la requête pour servir aussi au classement de l'espace gérante, qui
+ * charge toutes les marraines d'un coup : deux décomptes distincts finiraient
+ * par ne plus dire la même chose.
  */
+function decompte(filleules: PremieresVenues): { nombre: number; derniereArrivee: Date | null } {
+  // « Arrivée » dans la squad = première venue de la filleule, pas sa dernière.
+  const premieres = filleules
+    .map((f) => f.rendezVous[0]?.debut)
+    .filter((d): d is Date => d instanceof Date);
+
+  return {
+    nombre: premieres.length,
+    derniereArrivee: premieres.length > 0 ? new Date(Math.max(...premieres.map(Number))) : null,
+  };
+}
+
+const PREMIERE_VENUE = {
+  rendezVous: {
+    where: { statut: "TERMINE" },
+    orderBy: { debut: "asc" },
+    take: 1,
+    select: { debut: true },
+  },
+} as const;
+
 async function filleulesVenues(
   clienteId: string
 ): Promise<{ nombre: number; derniereArrivee: Date | null }> {
@@ -95,29 +124,16 @@ async function filleulesVenues(
       parraineParId: clienteId,
       rendezVous: { some: { statut: "TERMINE" } },
     },
-    select: {
-      rendezVous: {
-        where: { statut: "TERMINE" },
-        orderBy: { debut: "asc" },
-        take: 1,
-        select: { debut: true },
-      },
-    },
+    select: PREMIERE_VENUE,
   });
-
-  // « Arrivée » dans la squad = première venue de la filleule, pas sa dernière.
-  const premieres = filleules
-    .map((f) => f.rendezVous[0]?.debut)
-    .filter((d): d is Date => d instanceof Date);
-
-  return {
-    nombre: filleules.length,
-    derniereArrivee: premieres.length > 0 ? new Date(Math.max(...premieres.map(Number))) : null,
-  };
+  return decompte(filleules);
 }
 
-export async function statutParrainage(clienteId: string): Promise<StatutParrainage> {
-  const { nombre, derniereArrivee } = await filleulesVenues(clienteId);
+/** Applique les règles de palier à un décompte déjà établi. */
+export function statutDepuisDecompte(
+  nombre: number,
+  derniereArrivee: Date | null
+): StatutParrainage {
   const palierAcquis = palierPourNombre(nombre);
 
   const maintienOk =
@@ -141,8 +157,72 @@ export async function statutParrainage(clienteId: string): Promise<StatutParrain
   };
 }
 
+export async function statutParrainage(clienteId: string): Promise<StatutParrainage> {
+  const { nombre, derniereArrivee } = await filleulesVenues(clienteId);
+  return statutDepuisDecompte(nombre, derniereArrivee);
+}
+
+export type LigneSquad = {
+  id: string;
+  prenom: string;
+  nom: string;
+  email: string;
+  codeParrainage: string;
+  /** Filleules rattachées, venues ou non — le décompte du palier n'en retient qu'une part. */
+  filleulesInscrites: number;
+  statut: StatutParrainage;
+};
+
+/**
+ * Classement des marraines pour l'espace gérante.
+ *
+ * Une seule requête plutôt qu'un `statutParrainage` par cliente : le nombre de
+ * marraines n'est pas borné, et la page se chargerait de plus en plus lentement.
+ */
+export async function classementSquad(): Promise<LigneSquad[]> {
+  const marraines = await prisma.cliente.findMany({
+    where: { filleules: { some: {} } },
+    select: {
+      id: true,
+      prenom: true,
+      nom: true,
+      email: true,
+      codeParrainage: true,
+      filleules: { select: PREMIERE_VENUE },
+    },
+  });
+
+  return marraines
+    .map(({ filleules, ...cliente }) => {
+      const { nombre, derniereArrivee } = decompte(filleules);
+      return {
+        ...cliente,
+        filleulesInscrites: filleules.length,
+        statut: statutDepuisDecompte(nombre, derniereArrivee),
+      };
+    })
+    .sort(
+      (a, b) =>
+        b.statut.filleulesVenues - a.statut.filleulesVenues ||
+        b.filleulesInscrites - a.filleulesInscrites ||
+        a.prenom.localeCompare(b.prenom)
+    );
+}
+
+// Même alphabet lisible que les codes de parrainage : ces codes se lisent à
+// voix haute au salon. `Math.random` conviendrait au tirage, mais `randomBytes`
+// évite deux codes identiques après un redémarrage.
 function nouveauCodeAvantage(): string {
-  return `SQUAD-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const code = [...randomBytes(6)].map((o) => alphabet[o % alphabet.length]).join("");
+  return `SQUAD-${code}`;
+}
+
+/** Vrai quand l'échec vient du couple (cliente, type, période) déjà présent. */
+function dejaAccorde(e: unknown): boolean {
+  const cible = (e as { code?: string; meta?: { target?: unknown } })?.meta?.target;
+  const champs = Array.isArray(cible) ? cible.map(String) : [String(cible ?? "")];
+  return champs.some((c) => c.includes("clienteId") || c.includes("periode"));
 }
 
 /**
@@ -169,13 +249,20 @@ export async function attribuerAvantages(
     if (type === "DIVA_POSE_ANNUELLE" && statut.palier.cle !== "DIVA") continue;
     const periode = type === "DIVA_POSE_ANNUELLE" ? String(new Date().getFullYear()) : "";
 
-    try {
-      const avantage = await prisma.avantageParrainage.create({
-        data: { clienteId, type, periode, code: nouveauCodeAvantage() },
-      });
-      accordes.push({ type, code: avantage.code });
-    } catch {
-      // Déjà accordé : c'est le fonctionnement normal, pas une anomalie.
+    // Deux échecs possibles, à ne pas confondre : l'avantage est déjà accordé —
+    // le cas normal, la contrainte fait son travail — ou le code tiré existe
+    // déjà. Tout absorber ferait disparaître sans bruit un avantage mérité.
+    for (let essai = 0; ; essai++) {
+      try {
+        const avantage = await prisma.avantageParrainage.create({
+          data: { clienteId, type, periode, code: nouveauCodeAvantage() },
+        });
+        accordes.push({ type, code: avantage.code });
+        break;
+      } catch (e) {
+        if (dejaAccorde(e)) break;
+        if (essai >= 4) throw e;
+      }
     }
   }
 

@@ -14,4 +14,5 @@ export async function marquerAvantageUtilise(id: string, utilise: boolean): Prom
   });
   revalidatePath("/admin");
   revalidatePath("/admin/clientes");
+  revalidatePath("/admin/parrainage");
 }

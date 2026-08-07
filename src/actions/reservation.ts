@@ -16,7 +16,7 @@ import { envoyerEmail } from "@/lib/email";
 import { envoyerDemandeAcompte, estNouvelleCliente } from "@/lib/acompte";
 import { clienteBloquee, MESSAGE_BLOCAGE } from "@/lib/blocage";
 import { urlSite } from "@/lib/site";
-import { nouveauCode } from "@/lib/cliente-auth";
+import { nouveauCodeUnique } from "@/lib/cliente-auth";
 import { deposeNecessaire, prestationProposee, trouverDepose } from "@/lib/regles";
 import { formatPrix, totalDuree, totalTarifs } from "@/lib/format";
 
@@ -191,7 +191,7 @@ export async function creerReservation(
             nom: donnees.nom,
             email: donnees.email,
             telephone: donnees.telephone,
-            codeParrainage: nouveauCode(),
+            codeParrainage: await nouveauCodeUnique(tx),
             consentementMarketing: accord,
             consentementLe: accord ? new Date() : null,
           },

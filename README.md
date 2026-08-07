@@ -139,6 +139,8 @@ Protégé par la variable d'environnement `ADMIN_PASSWORD` (session par cookie s
   avancement de la fabrication, note interne) et catalogue des sets affichés sur `/press-on`.
 - **Congés** : blocage de périodes, immédiatement retirées des créneaux publics.
 - **Galerie** : upload de photos affichées sur l'accueil.
+- **Parrainage** : avantages à honorer (pastille de rappel dans la navigation), classement des
+  marraines et rappel des paliers — cf. *Programme de parrainage « Squad »*.
 
 ### Stockage des photos
 
@@ -410,6 +412,38 @@ vie »** aux clientes : promettre puis reprendre serait pire que de ne rien prom
 Le site n'encaisse pas : les remises sont **affichées** à la cliente et **rappelées à Zélia** sur
 la carte du rendez-vous, sous « À déduire à l'encaissement », avec un bouton *Utilisé* qui
 consomme l'avantage — sans quoi le même code pourrait resservir à chaque venue.
+
+### Codes de parrainage
+
+Un code par cliente, tiré à sa création (`nouveauCodeUnique`) : `ZEL-` suivi de 5 lettres d'un
+alphabet sans caractères ambigus (`0/O`, `1/I` écartés), ces codes se lisant à voix haute au
+salon. La colonne porte une contrainte d'unicité, et le tirage est **vérifié en base avant
+insertion** : la contrainte seule transformerait un tirage malheureux en « une erreur est
+survenue » au milieu d'une réservation. Après trois échecs le code s'allonge d'une lettre —
+signe que le fichier client est dense, pas que la chance manque. Les codes d'avantage
+(`SQUAD-…`) suivent les mêmes règles ; leur création distingue les deux échecs possibles, l'avantage
+déjà accordé — le cas normal — d'une collision de code, qu'il faut retirer sous peine de perdre
+sans bruit un avantage mérité.
+
+### Onglet `/admin/parrainage`
+
+- **Avantages à honorer** : ce qui reste dû, avec le code à présenter et un bouton *Honoré*. Le
+  compte s'affiche en pastille sur l'onglet depuis n'importe quelle page — un avantage gagné se
+  perdrait dans un e-mail lu en vitesse.
+- **La squad** : les marraines classées par filleules venues, avec palier, distance au palier
+  suivant, statut Ambassadrice en sommeil le cas échéant, et le nombre de filleules inscrites
+  mais pas encore venues — qui explique un palier en apparence en retard.
+- **Derniers avantages honorés**, pour retrouver un code présenté deux fois.
+
+Zélia reçoit un e-mail à chaque palier atteint, en plus de celui envoyé à la marraine : c'est
+elle qui honore l'avantage au salon et doit pouvoir le préparer. Cet envoi a lieu même si la
+marraine est bloquée ou désinscrite — ce sont ses messages à elle qui s'arrêtent, pas le suivi
+de la gérante.
+
+Le classement charge toutes les marraines en **une requête** plutôt qu'un `statutParrainage` par
+cliente, et les règles de palier vivent dans une fonction unique (`statutDepuisDecompte`)
+partagée avec l'espace cliente : deux décomptes séparés finiraient par ne plus dire la même
+chose.
 
 ## Blocage de clientes (`/admin/bouffonnes`)
 
