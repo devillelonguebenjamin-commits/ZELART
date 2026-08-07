@@ -117,6 +117,16 @@ export default async function Accueil() {
             Gainage, pose Gel X, Pop-it et vernis semi-permanent — avec ou sans nail art. Le niveau de
             nail art (1 à 3) dépend de la complexité du design souhaité.
           </p>
+          {/* Seul point d'entrée visible sur téléphone : les liens secondaires
+              de l'en-tête sont masqués sous « lg ». */}
+          <p className="mt-4 text-center">
+            <Link
+              href="/prestations"
+              className="inline-flex items-center gap-1.5 rounded-full border border-pink-200 px-5 py-2 text-sm font-medium text-pink-600 transition hover:bg-pink-50"
+            >
+              Ces mots ne vous parlent pas ? Tout est expliqué ici →
+            </Link>
+          </p>
           <div className="mt-10 grid gap-6 sm:grid-cols-2">
             {categories.map((categorie) => (
               <div

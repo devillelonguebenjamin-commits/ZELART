@@ -48,11 +48,15 @@ export default async function RootLayout({
               </span>
             </Link>
             <nav className="flex items-center gap-3 text-sm sm:gap-6">
+              {/* Une seule entrée « Prestations » plutôt que deux : la page
+                  d'explications porte les tarifs en lien, alors que l'inverse
+                  n'était pas vrai. Le nombre d'entrées ne bouge donc pas, et la
+                  barre ne redéborde pas sur téléphone. */}
               <Link
-                href="/#prestations"
+                href="/prestations"
                 className="hidden whitespace-nowrap text-foreground/80 hover:text-pink-500 lg:block"
               >
-                Prestations &amp; tarifs
+                Prestations
               </Link>
               <Link
                 href="/#infos"
@@ -116,6 +120,9 @@ export default async function RootLayout({
               <p>06 45 29 20 01 (SMS uniquement)</p>
               <p className="mt-1">Paiement en espèces ou par carte (SumUp)</p>
               <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1">
+                <Link href="/prestations" className="hover:text-pink-500">
+                  Les prestations
+                </Link>
                 <Link href="/mentions-legales" className="hover:text-pink-500">
                   Mentions légales
                 </Link>
