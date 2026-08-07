@@ -5,6 +5,7 @@ import { commanderPressOn, type EtatCommande } from "@/actions/press-on";
 import { formatPrix } from "@/lib/format";
 import { grouperParCollection } from "@/lib/press-on";
 import ChampInspiration from "@/components/ChampInspiration";
+import GuideTailles from "@/components/GuideTailles";
 
 export type ModelePublic = {
   id: string;
@@ -17,8 +18,11 @@ export type ModelePublic = {
   photoUrl: string | null;
 };
 
-const FORMES = ["Amande", "Ballerine", "Carré", "Carré rond", "Ovale", "Stiletto"];
-const LONGUEURS = ["Courte", "Moyenne", "Longue", "Extra longue"];
+// Formes et longueurs réellement proposées par Zélia. La liste sert de
+// suggestions (`datalist`) et non de contrainte : le champ reste libre, une
+// cliente peut donc toujours décrire autrement ce qu'elle veut.
+const FORMES = ["Amande", "Arrondi", "Ballerine", "Carré", "Stiletto"];
+const LONGUEURS = ["Courte", "Moyenne", "Longue"];
 
 const CHAMPS_VIDES = {
   prenom: "",
@@ -120,8 +124,8 @@ export default function FormulaireCommandePressOn({
       <section>
         <h2 className="font-display text-2xl font-bold">2. Vos ongles</h2>
         <p className="mt-1 text-sm text-foreground/70">
-          Zélia taille chaque capsule à votre main. Si vous ne connaissez pas vos mesures, dites-le :
-          elle vous expliquera comment les prendre, ou vous prêtera un kit de taille.
+          Zélia taille chaque capsule à votre main. Le guide ci-dessous vous explique comment
+          mesurer vos ongles en deux minutes — et reporte vos mesures dans la commande.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="block text-sm">
@@ -159,6 +163,8 @@ export default function FormulaireCommandePressOn({
             </datalist>
           </label>
         </div>
+        <GuideTailles onReporter={(texte) => majChamp("mesures", texte)} />
+
         <label className="mt-4 block text-sm">
           <span className="font-medium">Mesures de vos ongles (facultatif)</span>
           <textarea
@@ -279,11 +285,22 @@ export default function FormulaireCommandePressOn({
             checked={conditions}
             onChange={(e) => setConditions(e.target.checked)}
           />
+          {/* Ce qui est réclamé d'avance dépend du mode de remise : tout pour
+              un envoi, l'acompte seulement pour un retrait où le solde se règle
+              au salon. Annoncer « paiement intégral » dans les deux cas serait
+              faux, et c'est une case que la cliente coche en s'engageant. */}
           <span className="text-foreground/80">
             J&rsquo;ai lu et j&rsquo;accepte les conditions de vente des press-on : les sets étant
-            personnalisés, le{" "}
-            <strong>paiement intégral est demandé avant la fabrication</strong> et{" "}
-            <strong>aucun retour ni remboursement</strong>
+            personnalisés,{" "}
+            {postal ? (
+              <strong>le paiement intégral est demandé avant la fabrication</strong>
+            ) : (
+              <strong>
+                un acompte est demandé avant la fabrication, le solde se réglant au salon à la
+                remise
+              </strong>
+            )}{" "}
+            et <strong>aucun retour ni remboursement</strong>
             {" n’est possible. En cas de défaut visible à la remise, un échange ou un ajustement m’est proposé."}
           </span>
         </label>

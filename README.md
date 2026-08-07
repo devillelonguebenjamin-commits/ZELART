@@ -215,6 +215,44 @@ L'agenda signale les nouvelles clientes, l'état de l'acompte (`acompteDemandeLe
 `acompteRegleLe`) et permet de renvoyer le lien ou de marquer l'acompte reçu. Sans lien
 configuré, rien n'est envoyé : la demande reste manuelle.
 
+## Paiement des press-on
+
+Le lien « Régler ma commande » pointait vers le **lien réutilisable des réglages**, c'est-à-dire
+l'acompte de 15 € des rendez-vous : une cliente devant 65 € arrivait sur une page à 15 €, alors
+que l'e-mail annonçait le bon total. Chaque commande porte désormais son propre lien, au bon
+montant.
+
+**Ce qui est réclamé en ligne dépend du mode de remise** (`montantARegler`, `lib/press-on.ts`) :
+
+| Mode | Demandé d'avance | Solde |
+| --- | --- | --- |
+| Envoi postal | la totalité, port compris | — |
+| Retrait au salon | l'acompte configuré dans les réglages | en espèces ou par carte à la remise |
+
+Le set part de chez Zélia dans un cas, la cliente revient dans l'autre : d'où la différence. Mais
+quelque chose est réglé avant fabrication dans les deux cas — un set sur-mesure jamais récupéré
+est de la matière et des heures perdues. La case « conditions de vente » du formulaire annonce
+l'un ou l'autre selon le mode choisi : promettre un « paiement intégral » à qui ne réglera qu'un
+acompte serait faux, et c'est une case qui engage.
+
+### D'où vient le lien
+
+Trois sources, dans cet ordre : le lien **collé à la main** sur la commande (Zélia a tranché
+elle-même), puis l'**API SumUp** si `SUMUP_API_KEY` et `SUMUP_MERCHANT_CODE` sont renseignés.
+Sans l'une ni l'autre, rien n'est envoyé et Zélia est invitée à coller un lien — le site ne
+devine jamais un montant.
+
+`lib/sumup.ts` crée un *checkout* hébergé (`hosted_checkout.enabled`) et récupère
+`hosted_checkout_url`. **`valid_until` est volontairement omis** : la spécification officielle de
+SumUp le décrit comme facultatif — « si omis, le checkout n'a pas de date d'expiration
+explicite ». Le lien envoyé par e-mail reste donc valable, ce qui n'allait pas de soi : les
+30 minutes souvent citées concernent la session de paiement une fois la page ouverte, pas la
+durée de vie du lien. La référence porte l'identifiant de commande suivi d'un horodatage, pour
+qu'une seconde demande — un montant corrigé — ne soit pas refusée en doublon.
+
+`SUMUP_API_URL` permet de détourner les appels, comme `BREVO_API_URL` et `RESEND_API_URL` : c'est
+ce qui rend ce chemin éprouvable sans compte marchand.
+
 ## Campagnes de fidélisation
 
 L'onglet **Campagnes** de l'espace gérante permet de composer un e-mail, de choisir un groupe de
@@ -267,6 +305,17 @@ interroge la liste des expéditeurs validés chez Brevo et signale une adresse q
 encore, plutôt que de laisser surgir un refus au premier envoi réel.
 
 ## Commandes de press-on (`/press-on`)
+
+Formes proposées : Amande, Arrondi, Ballerine, Carré, Stiletto. Longueurs : Courte, Moyenne,
+Longue. Ce sont des suggestions (`datalist`), pas une contrainte : le champ reste libre.
+
+Un **guide de mesure** dépliable (`GuideTailles`) explique où mesurer — la largeur, jamais la
+longueur —, propose la méthode de la bande de papier à défaut de réglet, et reporte les dix
+valeurs saisies dans le champ « mesures » de la commande. Ses champs n'ont **aucun attribut
+`name`** : ils vivent dans le `<form>` de commande et seraient sinon envoyés avec elle. Le report
+passe par un bouton et non par la frappe, pour ne pas effacer une précision écrite à la main ; le
+texte composé est tronqué à 300 caractères, la limite du champ d'arrivée.
+
 
 La vente de press-on est une activité à part entière, distincte des rendez-vous : elle a donc son
 propre parcours, sans créneau ni agenda.

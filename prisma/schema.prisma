@@ -422,6 +422,14 @@ model CommandePressOn {
   statut StatutCommandePressOn @default(DEMANDE)
   note   String? // note interne de Zélia
 
+  // Lien de règlement propre à cette commande, au bon montant. Créé par l'API
+  // SumUp quand elle est configurée, sinon collé à la main par Zélia depuis un
+  // lien de paiement créé dans son application. Le lien réutilisable des
+  // réglages ne peut pas servir ici : il porte le montant de l'acompte des
+  // rendez-vous, pas celui du set.
+  lienPaiement       String?
+  montantDemandeCents Int? // ce qui a réellement été demandé, acompte ou total
+
   paiementDemandeLe DateTime?
   paiementRecuLe    DateTime?
   remiseLe          DateTime?
