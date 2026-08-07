@@ -284,12 +284,13 @@ export async function fenetrePourDebut(debut: Date): Promise<{ debut: Date; fin:
   const jourSemaine = ((new Date(Date.UTC(p.annee, p.mois - 1, p.jour, 12)).getUTCDay() + 6) % 7) + 1;
   const heureDebut = `${String(p.heure).padStart(2, "0")}:${String(p.minute).padStart(2, "0")}`;
 
-  // Le contrôle des bornes compte surtout ici : c'est le seul endroit qui
-  // décide si une réservation passe. Un formulaire gardé ouvert la veille d'une
-  // fermeture proposerait sinon encore un créneau devenu invalide.
-  const dispo = await prisma.disponibilite.findFirst({ where: { jourSemaine, heureDebut } });
+  // Toutes les ouvertures de ce jour et de cette heure, pas la première venue :
+  // un changement d'horaires fait coexister l'ancienne ligne et la nouvelle sur
+  // la même heure de début, et `findFirst` aurait pu renvoyer celle qui vient
+  // d'expirer — refusant alors une réservation parfaitement valide.
+  const candidates = await prisma.disponibilite.findMany({ where: { jourSemaine, heureDebut } });
+  const dispo = candidates.find((d) => ouvertureActive(d, jourParis(debut)));
   if (!dispo) return null;
-  if (!ouvertureActive(dispo, jourParis(debut))) return null;
 
   const [hf, mf] = dispo.heureFin.split(":").map(Number);
   return { debut, fin: dateParis(p.annee, p.mois, p.jour, hf, mf) };

@@ -79,12 +79,23 @@ const modelesPressOn = [
 // Repos le dimanche et, à partir d'octobre 2026, le lundi. La ligne du lundi
 // est conservée avec une date de fin plutôt que supprimée : les lundis
 // antérieurs restent ouverts, et ceux déjà réservés le restent aussi.
-const FIN_DES_LUNDIS = new Date("2026-09-30T00:00:00.000Z");
+const BASCULE = new Date("2026-09-30T00:00:00.000Z"); // dernier jour de l'ancien
+const DEBUT_NOUVEAU = new Date("2026-10-01T00:00:00.000Z");
 
-const disponibilites = [1, 2, 3, 4, 5, 6].flatMap((jourSemaine) => [
-  { jourSemaine, heureDebut: "09:00", heureFin: "12:30", actifJusquau: jourSemaine === 1 ? FIN_DES_LUNDIS : null },
-  { jourSemaine, heureDebut: "14:00", heureFin: "18:00", actifJusquau: jourSemaine === 1 ? FIN_DES_LUNDIS : null },
-]);
+const disponibilites = [
+  // Jusqu'au 30 septembre 2026 : lundi à samedi, matin et après-midi.
+  ...[1, 2, 3, 4, 5, 6].flatMap((jourSemaine) => [
+    { jourSemaine, heureDebut: "09:00", heureFin: "12:30", actifDu: null, actifJusquau: BASCULE },
+    { jourSemaine, heureDebut: "14:00", heureFin: "18:00", actifDu: null, actifJusquau: BASCULE },
+  ]),
+  // À partir du 1er octobre 2026 : mardi à samedi, trois créneaux par jour.
+  // Repos le dimanche et le lundi.
+  ...[2, 3, 4, 5, 6].flatMap((jourSemaine) => [
+    { jourSemaine, heureDebut: "09:00", heureFin: "13:00", actifDu: DEBUT_NOUVEAU, actifJusquau: null },
+    { jourSemaine, heureDebut: "13:00", heureFin: "16:00", actifDu: DEBUT_NOUVEAU, actifJusquau: null },
+    { jourSemaine, heureDebut: "16:00", heureFin: "19:00", actifDu: DEBUT_NOUVEAU, actifJusquau: null },
+  ]),
+];
 
 const TYPE_POSE: Record<string, "VSP" | "GAINAGE" | "GEL_X" | "POP_IT"> = {
   "Vernis semi-permanent": "VSP",
