@@ -118,6 +118,29 @@ export function formatHeure(date: Date): string {
 
 type Intervalle = { debut: Date; fin: Date };
 
+/** Ouverture récurrente, éventuellement bornée dans le temps. */
+type Ouverture = {
+  jourSemaine: number;
+  heureDebut: string;
+  heureFin: string;
+  actifDu: Date | null;
+  actifJusquau: Date | null;
+};
+
+/**
+ * Vrai si cette ouverture s'applique au jour donné ("2026-10-05").
+ *
+ * La comparaison se fait sur la clé de jour parisienne, jamais sur les
+ * instants : deux dates du même jour peuvent différer de plusieurs heures selon
+ * l'heure enregistrée, et un `<=` sur les instants fermerait ou ouvrirait un
+ * jour de trop selon la saison.
+ */
+export function ouvertureActive(dispo: Ouverture, cleJour: string): boolean {
+  if (dispo.actifDu && jourParis(dispo.actifDu) > cleJour) return false;
+  if (dispo.actifJusquau && jourParis(dispo.actifJusquau) < cleJour) return false;
+  return true;
+}
+
 function chevauche(a: Intervalle, debut: Date, fin: Date): boolean {
   return a.debut < fin && a.fin > debut;
 }
@@ -155,8 +178,11 @@ export async function getCreneauxDisponibles(): Promise<Creneau[]> {
     const jour = jourCourant.getUTCDate();
     const jourSemaine = ((jourCourant.getUTCDay() + 6) % 7) + 1; // 1 = lundi … 7 = dimanche
 
+    const cleJour = `${annee}-${String(mois).padStart(2, "0")}-${String(jour).padStart(2, "0")}`;
+
     for (const dispo of dispos) {
       if (dispo.jourSemaine !== jourSemaine) continue;
+      if (!ouvertureActive(dispo, cleJour)) continue;
       const [hd, md] = dispo.heureDebut.split(":").map(Number);
       const [hf, mf] = dispo.heureFin.split(":").map(Number);
       const debut = dateParis(annee, mois, jour, hd, md);
@@ -203,8 +229,11 @@ export async function creneauxOuverts(debutPeriode: Date, finPeriode: Date): Pro
     const jour = jourCourant.getUTCDate();
     const jourSemaine = ((jourCourant.getUTCDay() + 6) % 7) + 1;
 
+    const cleJour = `${annee}-${String(mois).padStart(2, "0")}-${String(jour).padStart(2, "0")}`;
+
     for (const dispo of dispos) {
       if (dispo.jourSemaine !== jourSemaine) continue;
+      if (!ouvertureActive(dispo, cleJour)) continue;
       const [hd, md] = dispo.heureDebut.split(":").map(Number);
       const [hf, mf] = dispo.heureFin.split(":").map(Number);
       const debut = dateParis(annee, mois, jour, hd, md);
@@ -255,8 +284,12 @@ export async function fenetrePourDebut(debut: Date): Promise<{ debut: Date; fin:
   const jourSemaine = ((new Date(Date.UTC(p.annee, p.mois - 1, p.jour, 12)).getUTCDay() + 6) % 7) + 1;
   const heureDebut = `${String(p.heure).padStart(2, "0")}:${String(p.minute).padStart(2, "0")}`;
 
+  // Le contrôle des bornes compte surtout ici : c'est le seul endroit qui
+  // décide si une réservation passe. Un formulaire gardé ouvert la veille d'une
+  // fermeture proposerait sinon encore un créneau devenu invalide.
   const dispo = await prisma.disponibilite.findFirst({ where: { jourSemaine, heureDebut } });
   if (!dispo) return null;
+  if (!ouvertureActive(dispo, jourParis(debut))) return null;
 
   const [hf, mf] = dispo.heureFin.split(":").map(Number);
   return { debut, fin: dateParis(p.annee, p.mois, p.jour, hf, mf) };

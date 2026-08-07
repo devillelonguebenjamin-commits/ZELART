@@ -16,7 +16,7 @@ import type { TypeAvantage } from "@/generated/prisma/client";
 import { reglagesAcompte } from "@/lib/parametres";
 import type { Prisma } from "@/generated/prisma/client";
 import { bornesMois, grilleMois, moisDemande, type EvenementJour } from "@/lib/calendrier";
-import { jourParis } from "@/lib/creneaux";
+import { jourParis, ouvertureActive } from "@/lib/creneaux";
 import CalendrierMois from "@/components/CalendrierMois";
 import FormulaireRdvManuel from "@/components/FormulaireRdvManuel";
 
@@ -325,7 +325,7 @@ export default async function Agenda({
   const { annee, mois } = moisDemande(moisDemandeCle);
   const bornes = bornesMois(annee, mois);
 
-  const [rdvs, acompte, listeAttente, avantagesEnAttente, rdvsDuMois, congesDuMois, clientes, catalogue] =
+  const [rdvs, acompte, listeAttente, avantagesEnAttente, rdvsDuMois, congesDuMois, clientes, catalogue, ouvertures] =
     await Promise.all([
       prisma.rendezVous.findMany({
         where: { debut: { gte: ilYa14Jours } },
@@ -366,7 +366,17 @@ export default async function Agenda({
         select: { id: true, nom: true, categorie: true, dureeMin: true, prixCents: true, aPartirDe: true },
         orderBy: { ordre: "asc" },
       }),
+      prisma.disponibilite.findMany(),
     ]);
+
+  // Jours de repos : aucune ouverture ne s'applique. Les hachures du calendrier
+  // le disent d'un coup d'œil, là où l'absence de rendez-vous ne distingue pas
+  // un jour fermé d'un jour creux.
+  const ouvertLe = (cleJour: string) => {
+    const [a, m, j] = cleJour.split("-").map(Number);
+    const jourSemaine = ((new Date(Date.UTC(a, m - 1, j, 12)).getUTCDay() + 6) % 7) + 1;
+    return ouvertures.some((o) => o.jourSemaine === jourSemaine && ouvertureActive(o, cleJour));
+  };
 
   // Demain 9 h : la valeur qu'on corrige le moins souvent.
   const demain = new Date(maintenant.getTime() + JOUR_MS);
@@ -386,7 +396,7 @@ export default async function Agenda({
     // touchée, sinon une semaine bloquée n'apparaîtrait que dans sa case de
     // départ et le reste semblerait libre.
     ...congesDuMois.flatMap((conge) => joursCouverts(conge, bornes)),
-  ]);
+  ], ouvertLe);
   // Regroupés par cliente : chaque carte de rendez-vous rappelle ce qui reste
   // à appliquer, sinon Zélia devrait ouvrir la fiche pour le savoir.
   const avantagesParCliente = new Map<string, typeof avantagesEnAttente>();

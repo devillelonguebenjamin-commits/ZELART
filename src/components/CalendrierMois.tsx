@@ -55,7 +55,14 @@ export default function CalendrierMois({ grille }: { grille: GrilleMois }) {
                 <div
                   key={jour.cle}
                   className={`min-h-24 border-r border-pink-50 p-1.5 last:border-0 ${
-                    jour.duMois ? "" : "bg-pink-50/30"
+                    !jour.duMois
+                      ? "bg-pink-50/30"
+                      : jour.ferme
+                        ? // Repos : hachures légères plutôt qu'un aplat, pour
+                          // que la case reste lisible si un rendez-vous y a
+                          // malgré tout été noté à la main.
+                          "bg-[repeating-linear-gradient(135deg,transparent,transparent_6px,rgb(0_0_0/0.035)_6px,rgb(0_0_0/0.035)_12px)]"
+                        : ""
                   }`}
                 >
                   <p
@@ -112,6 +119,10 @@ export default function CalendrierMois({ grille }: { grille: GrilleMois }) {
       </div>
 
       <div className="mt-3 flex flex-wrap gap-3 text-xs text-foreground/60">
+        <span className="flex items-center gap-1.5">
+          <span className="h-3 w-3 rounded-sm border border-pink-100 bg-[repeating-linear-gradient(135deg,transparent,transparent_2px,rgb(0_0_0/0.12)_2px,rgb(0_0_0/0.12)_4px)]" />
+          repos
+        </span>
         {[
           ["EN_ATTENTE", "à confirmer"],
           ["CONFIRME", "confirmé"],

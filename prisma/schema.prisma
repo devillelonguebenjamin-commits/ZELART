@@ -242,6 +242,13 @@ model Disponibilite {
   heureDebut  String // "09:00"
   heureFin    String // "12:30"
 
+  // Période de validité, bornes comprises. Vides, l'ouverture vaut de tout
+  // temps. Sans elles, changer d'horaires n'aurait pu se faire qu'au présent :
+  // fermer le lundi « à partir d'octobre » aurait fermé les lundis de septembre
+  // — et effacé de l'agenda ceux qui étaient déjà réservés.
+  actifDu       DateTime?
+  actifJusquau  DateTime?
+
   @@index([jourSemaine])
 }
 

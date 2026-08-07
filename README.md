@@ -32,7 +32,7 @@ npm run dev
 | --- | --- |
 | `Cliente` | Coordonnées + notes de suivi (allergies, préférences…) |
 | `Prestation` | Catalogue avec catégorie, durée indicative, prix en centimes, prix « à partir de » |
-| `Disponibilite` | Fenêtres d'ouverture récurrentes — lundi à samedi, 9h et 14h (une cliente par fenêtre) |
+| `Disponibilite` | Fenêtres d'ouverture récurrentes, avec période de validité facultative (une cliente par fenêtre) |
 | `Indisponibilite` | Exceptions ponctuelles : congés, jours fériés… |
 | `RendezVous` | Créneau réservé, statut `EN_ATTENTE` par défaut (Zélia confirme à la main) |
 | `LignePrestation` | Prestations d'une demande : la cliente peut en cocher plusieurs, la dépose imposée s'y ajoute avec `automatique = true` ; `prixCents` fige le tarif du jour |
@@ -44,6 +44,30 @@ npm run dev
 Les créneaux libres sont **calculés à la volée** (`src/lib/creneaux.ts`) : fenêtres récurrentes,
 moins les indisponibilités et les rendez-vous actifs. Les horaires sont interprétés dans le
 fuseau `Europe/Paris` quel que soit le fuseau du serveur.
+
+### Jours d'ouverture et jours de repos
+
+Ouverture du **mardi au samedi**, 9h–12h30 et 14h–18h. Le dimanche est fermé de longue date ; le
+**lundi l'est depuis le 1er octobre 2026**.
+
+Cette bascule a demandé une période de validité sur `Disponibilite` (`actifDu` / `actifJusquau`,
+bornes comprises, vides = de tout temps). Sans elle, un changement d'horaires n'aurait pu se faire
+qu'au présent : supprimer la ligne du lundi aurait fermé **aussi** les lundis de septembre, et
+retiré de l'agenda ceux qui y étaient déjà réservés. La ligne est donc conservée avec une date de
+fin plutôt que supprimée.
+
+La comparaison se fait sur la **clé de jour parisienne** (`2026-10-05`), jamais sur les instants :
+deux dates du même jour peuvent différer de plusieurs heures selon l'heure enregistrée, et un
+`<=` sur les instants ouvrirait ou fermerait un jour de trop selon la saison.
+
+Trois endroits lisent ces bornes, et les trois doivent le faire : les créneaux proposés à la
+cliente, le taux de remplissage des statistiques, et surtout `fenetrePourDebut` — seul contrôle
+qui décide si une réservation passe. Un formulaire resté ouvert la veille d'une fermeture
+proposerait sinon un créneau devenu invalide. Le calendrier de l'espace gérante hachure les jours
+de repos, l'absence de rendez-vous ne distinguant pas un jour fermé d'un jour creux.
+
+> Les horaires n'ont pas d'interface d'administration : ils vivent dans le seed et se modifient
+> par migration. C'est une limite connue, pas un oubli de cette évolution.
 
 ## Parcours de réservation
 

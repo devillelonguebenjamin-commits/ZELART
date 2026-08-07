@@ -76,10 +76,14 @@ const modelesPressOn = [
   { collection: "Printemps / Été", nom: "Daisy", prixCents: 5500 },
 ];
 
-// Rendez-vous du lundi au samedi, à 9h ou 14h (une cliente par créneau)
+// Repos le dimanche et, à partir d'octobre 2026, le lundi. La ligne du lundi
+// est conservée avec une date de fin plutôt que supprimée : les lundis
+// antérieurs restent ouverts, et ceux déjà réservés le restent aussi.
+const FIN_DES_LUNDIS = new Date("2026-09-30T00:00:00.000Z");
+
 const disponibilites = [1, 2, 3, 4, 5, 6].flatMap((jourSemaine) => [
-  { jourSemaine, heureDebut: "09:00", heureFin: "12:30" },
-  { jourSemaine, heureDebut: "14:00", heureFin: "18:00" },
+  { jourSemaine, heureDebut: "09:00", heureFin: "12:30", actifJusquau: jourSemaine === 1 ? FIN_DES_LUNDIS : null },
+  { jourSemaine, heureDebut: "14:00", heureFin: "18:00", actifJusquau: jourSemaine === 1 ? FIN_DES_LUNDIS : null },
 ]);
 
 const TYPE_POSE: Record<string, "VSP" | "GAINAGE" | "GEL_X" | "POP_IT"> = {

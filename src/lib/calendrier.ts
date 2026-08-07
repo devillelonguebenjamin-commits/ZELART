@@ -29,6 +29,8 @@ export type CaseJour = {
   /** Faux pour les jours d'un mois voisin qui complètent la grille. */
   duMois: boolean;
   aujourdhui: boolean;
+  /** Jour de repos : le salon n'ouvre pas, aucun créneau n'y est proposé. */
+  ferme: boolean;
   evenements: EvenementJour[];
 };
 
@@ -74,7 +76,13 @@ export function bornesMois(annee: number, mois: number): { debut: Date; fin: Dat
  * Compose la grille : semaines complètes du lundi au dimanche, les jours des
  * mois voisins étant conservés pour que la grille reste rectangulaire.
  */
-export function grilleMois(annee: number, mois: number, evenements: EvenementJour[]): GrilleMois {
+export function grilleMois(
+  annee: number,
+  mois: number,
+  evenements: EvenementJour[],
+  /** Renvoie vrai si le salon ouvre ce jour-là ; tout est ouvert par défaut. */
+  estOuvert: (cleJour: string) => boolean = () => true
+): GrilleMois {
   const parJour = new Map<string, EvenementJour[]>();
   for (const evenement of evenements) {
     const cle = jourParis(evenement.debut);
@@ -109,6 +117,7 @@ export function grilleMois(annee: number, mois: number, evenements: EvenementJou
         numero,
         duMois: mois2 === mois && annee2 === annee,
         aujourdhui: cle === cleAujourdhui,
+        ferme: !estOuvert(cle),
         evenements: parJour.get(cle) ?? [],
       });
     }
