@@ -281,6 +281,15 @@ explicite ». Le lien envoyé par e-mail reste donc valable, ce qui n'allait pas
 durée de vie du lien. La référence porte l'identifiant de commande suivi d'un horodatage, pour
 qu'une seconde demande — un montant corrigé — ne soit pas refusée en doublon.
 
+### Vérifier la connexion
+
+La page Réglages porte une ligne **API SumUp** qui interroge `/v0.1/memberships` : la réponse
+valide la clé **et révèle le code marchand auquel elle donne accès** (`resource_id` d'une adhésion
+marchande). Zélia n'a donc pas à le chercher dans son tableau de bord ni à craindre une lettre de
+travers — l'écran le lui affiche, et signale le cas échéant que le code saisi n'est pas celui de
+la clé. Quatre états distincts, chacun avec sa conduite à tenir : non configurée, clé refusée,
+code marchand incorrect, connectée.
+
 `SUMUP_API_URL` permet de détourner les appels, comme `BREVO_API_URL` et `RESEND_API_URL` : c'est
 ce qui rend ce chemin éprouvable sans compte marchand.
 

@@ -90,3 +90,95 @@ export async function creerLienPaiement(
     };
   }
 }
+
+/**
+ * État de la connexion SumUp, tel que l'affiche la page Réglages.
+ *
+ * Un seul objet plat plutôt qu'une union : chaque champ répond à une question
+ * que Zélia se pose devant l'écran — la clé est-elle acceptée, quel code
+ * marchand lui correspond, et celui que j'ai saisi est-il le bon.
+ */
+export type EtatSumUp = {
+  /** Les deux variables sont renseignées. */
+  configure: boolean;
+  /** La clé est acceptée par SumUp. */
+  cleValide: boolean;
+  /** Codes marchands auxquels cette clé donne accès. */
+  codesConnus: string[];
+  /** Renseigné et cohérent avec la clé. */
+  codeCorrect: boolean;
+  erreur: string | null;
+};
+
+/**
+ * Vérifie la clé et confronte le code marchand à ceux qu'elle ouvre.
+ *
+ * `/v0.1/memberships` renvoie les ressources auxquelles la clé donne accès ; le
+ * `resource_id` d'une adhésion marchande **est** le code marchand. On peut donc
+ * le découvrir à partir de la seule clé, plutôt que de laisser Zélia le chercher
+ * dans son tableau de bord et se tromper d'une lettre sans jamais savoir
+ * pourquoi les liens de paiement échouent.
+ */
+export async function verifierSumUp(): Promise<EtatSumUp> {
+  const cle = process.env.SUMUP_API_KEY?.trim();
+  const marchand = process.env.SUMUP_MERCHANT_CODE?.trim() ?? "";
+  const vide: EtatSumUp = {
+    configure: false,
+    cleValide: false,
+    codesConnus: [],
+    codeCorrect: false,
+    erreur: null,
+  };
+  if (!cle) return vide;
+
+  const echec = (erreur: string): EtatSumUp => ({ ...vide, erreur });
+
+  try {
+    const reponse = await fetch(`${racine()}/memberships?limit=25`, {
+      headers: { Authorization: `Bearer ${cle}`, Accept: "application/json" },
+      cache: "no-store",
+      signal: AbortSignal.timeout(DELAI_MS),
+    });
+
+    if (reponse.status === 401 || reponse.status === 403) {
+      return echec("SumUp refuse cette clé. Régénérez-en une et recollez-la dans SUMUP_API_KEY.");
+    }
+    if (!reponse.ok) return echec(`SumUp a répondu ${reponse.status}.`);
+
+    const donnees = (await reponse.json()) as {
+      items?: { resource_id?: string; type?: string }[];
+    };
+    const codesConnus = [
+      ...new Set(
+        (donnees.items ?? [])
+          .filter((m) => !m.type || m.type === "merchant")
+          .map((m) => m.resource_id ?? "")
+          .filter(Boolean)
+      ),
+    ];
+
+    // Un code absent de la liste ne peut pas fonctionner : autant le dire ici
+    // plutôt que de laisser découvrir le problème sur une vraie commande.
+    const codeCorrect =
+      marchand !== "" && (codesConnus.length === 0 || codesConnus.includes(marchand));
+
+    return {
+      configure: marchand !== "",
+      cleValide: true,
+      codesConnus,
+      codeCorrect,
+      erreur:
+        marchand === ""
+          ? null
+          : codeCorrect
+            ? null
+            : `Le code marchand renseigné (${marchand}) n'est pas celui de cette clé.`,
+    };
+  } catch (erreur) {
+    return echec(
+      erreur instanceof Error && erreur.name === "TimeoutError"
+        ? "SumUp n'a pas répondu dans le délai imparti."
+        : "Impossible de joindre SumUp."
+    );
+  }
+}
