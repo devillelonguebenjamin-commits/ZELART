@@ -50,7 +50,7 @@ export function dateParis(annee: number, mois: number, jour: number, heure: numb
   return new Date(estimation - tzOffsetMs(new Date(estimation)));
 }
 
-function partiesParis(date: Date): { annee: number; mois: number; jour: number; heure: number; minute: number } {
+export function partiesParis(date: Date): { annee: number; mois: number; jour: number; heure: number; minute: number } {
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat("en-US", {
       timeZone: PARIS_TZ,
@@ -71,6 +71,12 @@ function partiesParis(date: Date): { annee: number; mois: number; jour: number; 
     heure: Number(parts.hour) % 24,
     minute: Number(parts.minute),
   };
+}
+
+/** Clé de jour ("2026-08-07") dans le fuseau du salon. */
+export function jourParis(date: Date): string {
+  const { annee, mois, jour } = partiesParis(date);
+  return `${annee}-${String(mois).padStart(2, "0")}-${String(jour).padStart(2, "0")}`;
 }
 
 // Clé de regroupement mensuel ("2026-08") dans le fuseau du salon : un

@@ -155,6 +155,11 @@ désactivé plutôt que supprimé, pour ne pas rompre l'historique des récompen
 Protégé par la variable d'environnement `ADMIN_PASSWORD` (session par cookie signé, 30 jours) :
 
 - **Agenda** : demandes à confirmer, rendez-vous à venir, historique — changement de statut en un clic.
+- **Agenda** : un **calendrier mensuel** en tête de page — rendez-vous colorés par statut, congés
+  posés sur chaque journée qu'ils recouvrent, jour courant marqué —, puis les listes habituelles.
+  La navigation passe par `?mois=2026-08` : sans paramètre, la page retombe sur le mois en cours,
+  ce qui donne le bouton « Aujourd'hui » sans calcul supplémentaire. Naviguer dans le calendrier
+  ne touche pas aux listes, qui restent centrées sur l'actualité.
 - **Chiffres** : chiffre d'affaires mois par mois (poses honorées + press-on remis), panier moyen,
   prestations les plus demandées, taux de remplissage sur 30 jours, part de clientes qui reviennent
   et créneaux perdus. Le prix est figé sur chaque ligne de prestation au moment de la demande
@@ -546,6 +551,33 @@ Le classement charge toutes les marraines en **une requête** plutôt qu'un `sta
 cliente, et les règles de palier vivent dans une fonction unique (`statutDepuisDecompte`)
 partagée avec l'espace cliente : deux décomptes séparés finiraient par ne plus dire la même
 chose.
+
+## Rendez-vous pris de vive voix
+
+Toutes les clientes ne passeront pas par le site : une habituée appelle, une autre prend rendez-vous
+au salon en repartant. Le bouton **« Noter un rendez-vous »** de l'agenda les enregistre.
+
+Trois différences assumées avec une réservation en ligne :
+
+- il naît **confirmé** — l'accord a été pris de vive voix, demander à Zélia de confirmer ce
+  qu'elle vient de décider n'aurait pas de sens ;
+- **aucun e-mail ne part**, ni demande d'acompte ni notification : elle était dans la conversation ;
+- **aucune contrainte de créneau**, ni préavis ni fenêtre d'ouverture. Le calendrier récurrent
+  existe pour que les clientes ne réservent pas n'importe quand ; Zélia dispose de son agenda.
+
+Le contrôle de chevauchement, lui, demeure : une double réservation en reste une, qu'elle vienne
+du site ou du carnet. **Fiche cliente et rendez-vous sont créés dans la même transaction** — créer
+la fiche d'abord laissait, sur un créneau déjà pris, une cliente sans rendez-vous à nettoyer à la
+main.
+
+### Clientes sans adresse e-mail
+
+`Cliente.email` est obligatoire et unique, ce qui bloquait la saisie d'une habituée qui n'a pas
+d'e-mail. Une **adresse de complaisance** est alors attribuée, sous le domaine `zelart.invalid` —
+réservé par la RFC 2606, il ne peut atteindre aucune boîte réelle, ni aujourd'hui ni jamais.
+`envoyerEmail` refuse ces adresses **à la source** plutôt que chez chaque appelant : rappels,
+avantages, relances, il aurait suffi d'en oublier un pour accumuler les rejets chez le fournisseur
+d'envoi.
 
 ## Ce qui attend Zélia
 
