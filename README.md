@@ -603,6 +603,27 @@ du site ou du carnet. **Fiche cliente et rendez-vous sont créés dans la même 
 la fiche d'abord laissait, sur un créneau déjà pris, une cliente sans rendez-vous à nettoyer à la
 main.
 
+### Bloquer un créneau personnel
+
+Le bouton **« Bloquer un créneau »** de l'agenda pose un rendez-vous à soi : intitulé, date, heure,
+durée. Rien d'autre — ce n'est pas un rendez-vous, il n'y a ni cliente ni tarif.
+
+Il crée une `Indisponibilite`, **la même chose qu'un congé** : c'est elle que lisent déjà le calcul
+des créneaux libres et le contrôle de réservation. Rien de nouveau à faire respecter, donc rien
+à oublier de faire respecter. Les congés, eux, se posent en journées entières (`ajouterConge`) —
+bloquer un rendez-vous de 14 h par ce biais aurait fermé la journée.
+
+Deux garde-fous symétriques, parce que le double-booking peut venir des deux côtés :
+
+- bloquer un créneau où une cliente a déjà rendez-vous est **refusé**, en nommant la cliente : le
+  blocage ne l'aurait pas annulée, et Zélia se serait retrouvée avec les deux ;
+- noter un rendez-vous sur un créneau bloqué est **refusé** aussi — ce contrôle manquait à la
+  saisie manuelle, qui ne regardait que les rendez-vous.
+
+Le calendrier affiche l'heure d'un créneau personnel et le pictogramme 🚫 d'un congé : l'heure ne
+veut rien dire sur une absence de plusieurs jours, et c'est la seule chose utile sur un
+rendez-vous de deux heures. Un clic mène à l'onglet Congés, d'où le blocage se retire.
+
 ### Clientes sans adresse e-mail
 
 `Cliente.email` est obligatoire et unique, ce qui bloquait la saisie d'une habituée qui n'a pas

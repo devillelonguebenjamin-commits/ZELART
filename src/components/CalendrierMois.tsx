@@ -85,10 +85,17 @@ export default function CalendrierMois({ grille }: { grille: GrilleMois }) {
 
                   <div className="space-y-1">
                     {jour.evenements.map((evenement) => {
+                      // Un congé couvre des journées entières : l'heure n'y veut
+                      // rien dire. Un créneau personnel, si — c'est même la
+                      // seule chose qu'on ait besoin de lire d'un coup d'œil.
+                      const journeeEntiere =
+                        evenement.fin.getTime() - evenement.debut.getTime() >= 20 * 3600_000;
                       const contenu = (
                         <>
                           <span className="font-medium">
-                            {evenement.indisponible ? "🚫" : formatHeure(evenement.debut)}
+                            {evenement.indisponible && journeeEntiere
+                              ? "🚫"
+                              : formatHeure(evenement.debut)}
                           </span>{" "}
                           {evenement.titre}
                           {evenement.soustitre && (
@@ -129,7 +136,7 @@ export default function CalendrierMois({ grille }: { grille: GrilleMois }) {
           ["TERMINE", "réalisé"],
           ["NO_SHOW", "absente"],
           ["ANNULE", "annulé"],
-          ["INDISPONIBLE", "congé"],
+          ["INDISPONIBLE", "bloqué"],
         ].map(([cle, libelle]) => (
           <span key={cle} className="flex items-center gap-1.5">
             <span className={`h-3 w-3 rounded-sm ${(TEINTE[cle] ?? "").split(" ")[0]}`} />

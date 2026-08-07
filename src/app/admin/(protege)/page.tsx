@@ -19,6 +19,7 @@ import { bornesMois, grilleMois, moisDemande, type EvenementJour } from "@/lib/c
 import { jourParis, ouvertureActive } from "@/lib/creneaux";
 import CalendrierMois from "@/components/CalendrierMois";
 import FormulaireRdvManuel from "@/components/FormulaireRdvManuel";
+import FormulaireCreneauPerso from "@/components/FormulaireCreneauPerso";
 
 const JOUR_MS = 24 * 60 * 60 * 1000;
 
@@ -51,6 +52,9 @@ function joursCouverts(
         titre: conge.motif ?? "Congé",
         statut: "ANNULE",
         indisponible: true,
+        // Se retire depuis l'onglet Congés : autant y mener directement, plutôt
+        // que de laisser chercher où l'on annule ce qu'on vient de poser.
+        lien: "/admin/conges",
       });
     }
     curseur = new Date(curseur.getTime() + JOUR_MS);
@@ -428,12 +432,13 @@ export default async function Agenda({
   return (
     <div className="space-y-10">
       <section>
-        <div className="mb-4">
+        <div className="mb-4 flex flex-wrap items-start gap-3">
           <FormulaireRdvManuel
             clientes={clientes}
             prestations={catalogue}
             dateParDefaut={dateParDefaut}
           />
+          <FormulaireCreneauPerso dateParDefaut={dateParDefaut} />
         </div>
         <CalendrierMois grille={grille} />
       </section>
