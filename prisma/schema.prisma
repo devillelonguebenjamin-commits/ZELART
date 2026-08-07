@@ -289,6 +289,12 @@ model RendezVous {
   relanceEnvoyeeLe      DateTime?
   demandeAvisEnvoyeeLe  DateTime? // invitation à laisser un avis Google, une fois la pose faite
 
+  // Créneau proposé par la cliente faute d'horaire ouvert qui lui convienne.
+  // Le rendez-vous suit le circuit habituel — il arrive « à confirmer » et
+  // Zélia tranche — mais il sort de ses fenêtres d'ouverture, ce qu'elle doit
+  // voir avant d'accepter.
+  creneauPropose Boolean @default(false)
+
   // Mot laissé au moment de valider la venue. Distinct de la fiche technique :
   // celle-ci décrit la pose pour la reproduire, celui-ci raconte la visite —
   // ponctualité, envies exprimées, ce qu'il faudra retenir la prochaine fois.

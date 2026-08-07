@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { envoyerEmail } from "@/lib/email";
+import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { urlSite } from "@/lib/site";
 import { attribuerAvantages, LIBELLE_AVANTAGE, statutParrainage } from "@/lib/parrainage";
 
@@ -42,6 +42,25 @@ export async function recompenserMarraine(
     avantages: accordes.map((a) => LIBELLE_AVANTAGE[a.type]),
   };
 
+  // Zélia est prévenue la première : c'est elle qui honore l'avantage au salon,
+  // et elle doit pouvoir le préparer — une manucure offerte n'est pas un détail
+  // à découvrir au moment de l'encaissement. L'envoi a lieu même si la marraine
+  // est bloquée ou désinscrite : ce sont ses e-mails à elle qui s'arrêtent, pas
+  // le suivi de la gérante.
+  if (process.env.NOTIFY_EMAIL) {
+    await envoyerEmail(
+      process.env.NOTIFY_EMAIL,
+      `${statutFinal.palier.emoji} Palier ${statutFinal.palier.nom} atteint — ${bilan.marraine}`,
+      `<p><strong>${echapperHtml(bilan.marraine)}</strong> vient d'atteindre le palier
+       <strong>${statutFinal.palier.nom}</strong> : ${echapperHtml(filleule.prenom)} est venue grâce à elle.</p>
+       <p>Sa squad compte <strong>${statutFinal.filleulesVenues} filleule${statutFinal.filleulesVenues > 1 ? "s" : ""} venue${statutFinal.filleulesVenues > 1 ? "s" : ""}</strong>.</p>
+       <p>À honorer :</p>
+       <ul>${accordes.map((a) => `<li><strong>${LIBELLE_AVANTAGE[a.type]}</strong> — code <code>${a.code}</code></li>`).join("")}</ul>
+       ${marraine?.bloqueeLe ? "<p><strong>⚠ Cette cliente est bloquée</strong> — l'avantage est enregistré, à vous de voir.</p>" : ""}
+       <p><a href="${urlSite()}/admin/parrainage">Ouvrir l'onglet Parrainage</a></p>`
+    );
+  }
+
   if (!marraine || marraine.bloqueeLe) return bilan;
 
   // Un avantage gagné n'est pas de la prospection : il reste accordé même à une
@@ -57,8 +76,8 @@ export async function recompenserMarraine(
     `${statutFinal.palier.emoji} Vous passez ${statutFinal.palier.nom} !`,
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
       <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
-      <p>Bonjour ${marraine.prenom},</p>
-      <p>${filleule.prenom} est venue grâce à vous — votre squad compte maintenant
+      <p>Bonjour ${echapperHtml(marraine.prenom)},</p>
+      <p>${echapperHtml(filleule.prenom)} est venue grâce à vous — votre squad compte maintenant
       <strong>${statutFinal.filleulesVenues} filleule${statutFinal.filleulesVenues > 1 ? "s" : ""}</strong> !</p>
       <p>Vous débloquez :</p>
       <ul>${lignes}</ul>

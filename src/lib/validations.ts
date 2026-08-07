@@ -23,7 +23,9 @@ export const reservationSchema = z.object({
     .array(z.string().min(1))
     .min(1, "Choisissez au moins une prestation.")
     .max(6, "Six prestations au maximum par rendez-vous."),
-  debut: z.string().min(1, "Choisissez un créneau."),
+  // Vide quand la cliente propose son propre horaire : la présence est
+  // contrôlée dans l'action, qui seule connaît le chemin emprunté.
+  debut: z.string(),
   prenom,
   nom,
   email,
@@ -80,12 +82,22 @@ export const listeAttenteSchema = z.object({
 
 // Les URL d'images sont produites par notre propre stockage : on refuse tout
 // autre hôte, le formulaire étant public.
+//
+// Le suffixe seul ne suffit pas vraiment : il laisse passer *n'importe quel*
+// magasin Vercel Blob, y compris celui d'un tiers qui y hébergerait ce qu'il
+// veut. Renseigner BLOB_HOSTNAME (l'hôte exact des URL rendues par nos propres
+// envois, de la forme « xxxx.public.blob.vercel-storage.com ») ferme
+// complètement la porte ; sans elle, on retombe sur le contrôle large, qui
+// reste préférable à rien.
 export function urlImageValide(url: string): boolean {
   try {
     const analysee = new URL(url);
-    return (
-      analysee.protocol === "https:" && analysee.hostname.endsWith(".blob.vercel-storage.com")
-    );
+    if (analysee.protocol !== "https:") return false;
+
+    const hoteAttendu = process.env.BLOB_HOSTNAME?.trim().toLowerCase();
+    if (hoteAttendu) return analysee.hostname.toLowerCase() === hoteAttendu;
+
+    return analysee.hostname.endsWith(".blob.vercel-storage.com");
   } catch {
     return false;
   }

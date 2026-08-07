@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { exigerAdmin } from "@/lib/auth";
-import { nouveauCode } from "@/lib/cliente-auth";
+import { nouveauCodeUnique } from "@/lib/cliente-auth";
 
 const clienteSchema = z.object({
   prenom: z.string().trim().min(1, "Indiquez le prénom.").max(60, "Prénom trop long."),
@@ -53,7 +53,7 @@ export async function creerCliente(
     data: {
       ...analyse.data,
       notes: analyse.data.notes || null,
-      codeParrainage: nouveauCode(),
+      codeParrainage: await nouveauCodeUnique(prisma),
       consentementMarketing: accord,
       consentementLe: accord ? new Date() : null,
     },

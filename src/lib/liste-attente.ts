@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { envoyerEmail } from "@/lib/email";
+import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { urlSite } from "@/lib/site";
 
 // Pas de créneau précis à faire correspondre : l'annonce part à tout le
@@ -11,13 +11,25 @@ export async function notifierListeAttente(): Promise<{ prevenues: number }> {
   const enAttente = await prisma.listeAttente.findMany({ where: { notifieeLe: null } });
   if (enAttente.length === 0) return { prevenues: 0 };
 
+  let prevenues = 0;
+
   for (const personne of enAttente) {
-    await envoyerEmail(
+    // Marquée avant l'envoi, et une par une : l'ancien `updateMany` final
+    // laissait, si la fonction expirait en cours de boucle, des personnes déjà
+    // prévenues mais non marquées — toutes recevaient une nouvelle annonce à
+    // l'annulation suivante. Une annonce manquée vaut mieux qu'une annonce en
+    // double, la promesse faite étant « prévenue une fois ».
+    await prisma.listeAttente.update({
+      where: { id: personne.id },
+      data: { notifieeLe: new Date() },
+    });
+
+    const resultat = await envoyerEmail(
       personne.email,
       "Une place vient de se libérer chez Zelart Nails 🤍",
       `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
         <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
-        <p>Bonjour ${personne.prenom},</p>
+        <p>Bonjour ${echapperHtml(personne.prenom)},</p>
         <p>Une cliente vient d&rsquo;annuler : un créneau s&rsquo;est libéré.</p>
         <p style="margin:24px 0">
           <a href="${urlSite()}/reserver" style="background:#ec4899;color:#fff;text-decoration:none;padding:12px 24px;border-radius:999px;display:inline-block;font-weight:600">
@@ -28,12 +40,8 @@ export async function notifierListeAttente(): Promise<{ prevenues: number }> {
         <p>À très vite,<br>Zélia ✨</p>
       </div>`
     );
+    if (resultat.ok) prevenues++;
   }
 
-  await prisma.listeAttente.updateMany({
-    where: { id: { in: enAttente.map((p) => p.id) } },
-    data: { notifieeLe: new Date() },
-  });
-
-  return { prevenues: enAttente.length };
+  return { prevenues };
 }

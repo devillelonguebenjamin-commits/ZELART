@@ -2,7 +2,12 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { formatPrix, totalTarifs } from "@/lib/format";
-import { changerStatutRendezVous, marquerAcompteRegle, renvoyerLienAcompte } from "@/actions/admin";
+import {
+  changerStatutRendezVous,
+  marquerAcompteRegle,
+  refuserCreneauPropose,
+  renvoyerLienAcompte,
+} from "@/actions/admin";
 import { supprimerListeAttente } from "@/actions/liste-attente";
 import { marquerAvantageUtilise } from "@/actions/avantages";
 import { LIBELLE_AVANTAGE, REMISE_FILLEULE_POURCENT } from "@/lib/parrainage";
@@ -80,6 +85,11 @@ function CarteRdv({
           {nouvelle && (
             <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-800">
               Nouvelle cliente
+            </span>
+          )}
+          {rdv.creneauPropose && (
+            <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-900">
+              Horaire proposé
             </span>
           )}
           <span className={`rounded-full px-3 py-1 text-xs font-semibold ${badge.classes}`}>
@@ -212,12 +222,27 @@ function CarteRdv({
       )}
 
       <div className="mt-3 flex flex-wrap gap-2">
-        {rdv.statut === "EN_ATTENTE" && (
-          <>
-            <BoutonStatut id={rdv.id} statut="CONFIRME" label="✓ Confirmer" />
-            <BoutonStatut id={rdv.id} statut="ANNULE" label="✕ Annuler" />
-          </>
-        )}
+        {rdv.statut === "EN_ATTENTE" &&
+          (rdv.creneauPropose ? (
+            // Horaire proposé par la cliente : le refus lui répond, là où
+            // l'annulation ordinaire se contente de libérer le créneau.
+            <>
+              <BoutonStatut id={rdv.id} statut="CONFIRME" label="✓ Accepter l’horaire" />
+              <form action={refuserCreneauPropose.bind(null, rdv.id)}>
+                <button
+                  type="submit"
+                  className="rounded-full border border-pink-200 px-3 py-1 text-xs font-medium text-pink-600 transition hover:bg-pink-50"
+                >
+                  ✕ Refuser l&rsquo;horaire
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <BoutonStatut id={rdv.id} statut="CONFIRME" label="✓ Confirmer" />
+              <BoutonStatut id={rdv.id} statut="ANNULE" label="✕ Annuler" />
+            </>
+          ))}
         {/* Position unique, quel que soit le statut : la validation fait passer
             le rendez-vous de « confirmé » à « terminé », et un composant qui
             changerait de branche serait démonté puis remonté — le message

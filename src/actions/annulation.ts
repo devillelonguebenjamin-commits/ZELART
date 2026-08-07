@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { clienteConnectee } from "@/lib/cliente-auth";
-import { envoyerEmail } from "@/lib/email";
+import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { annulationPossible, DELAI_ANNULATION_H } from "@/lib/annulation";
 import { notifierListeAttente } from "@/lib/liste-attente";
@@ -51,9 +51,9 @@ export async function annulerParCliente(rendezVousId: string): Promise<EtatAnnul
     await envoyerEmail(
       process.env.NOTIFY_EMAIL,
       `Annulation — ${rdv.cliente.prenom} ${rdv.cliente.nom} le ${formatJour(rdv.debut)}`,
-      `<p>${rdv.cliente.prenom} ${rdv.cliente.nom} vient d'annuler depuis son espace :</p>
+      `<p>${echapperHtml(rdv.cliente.prenom)} ${echapperHtml(rdv.cliente.nom)} vient d'annuler depuis son espace :</p>
        <p><strong>${formatJour(rdv.debut)} à ${formatHeure(rdv.debut)}</strong><br>
-       ${rdv.lignes.map((l) => l.prestation.nom).join(" + ")}</p>
+       ${echapperHtml(rdv.lignes.map((l) => l.prestation.nom).join(" + "))}</p>
        <p>Le créneau est de nouveau disponible à la réservation.</p>`
     );
   }

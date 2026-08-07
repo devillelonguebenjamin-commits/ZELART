@@ -48,7 +48,9 @@ fuseau `Europe/Paris` quel que soit le fuseau du serveur.
 ## Parcours de réservation
 
 1. `/` — page d'accueil publique : présentation, prestations & tarifs, infos pratiques.
-2. `/reserver` — tunnel en 3 étapes : prestation → créneau → coordonnées.
+2. `/reserver` — tunnel en 4 étapes : état des ongles → prestation → créneau → coordonnées.
+   Faute de créneau convenable, la cliente peut s'inscrire en liste d'attente ou proposer son
+   propre horaire.
 3. `/confirmation/[id]` — récapitulatif ; la demande reste **en attente** jusqu'à la confirmation
    par Zélia (acompte de 15 € via SumUp pour les nouvelles clientes, cf. CGV).
 
@@ -137,6 +139,8 @@ Protégé par la variable d'environnement `ADMIN_PASSWORD` (session par cookie s
   avancement de la fabrication, note interne) et catalogue des sets affichés sur `/press-on`.
 - **Congés** : blocage de périodes, immédiatement retirées des créneaux publics.
 - **Galerie** : upload de photos affichées sur l'accueil.
+- **Parrainage** : avantages à honorer (pastille de rappel dans la navigation), classement des
+  marraines et rappel des paliers — cf. *Programme de parrainage « Squad »*.
 
 ### Stockage des photos
 
@@ -168,7 +172,8 @@ test en affichant l'erreur exacte du service.
 Zélia colle dans `/admin/reglages` un **lien de paiement SumUp réutilisable** (créé depuis
 l'application SumUp : *Paiements par lien* → montant fixe → *Activer lien réutilisable*). Toute
 cliente sans autre rendez-vous actif reçoit alors automatiquement, à sa réservation, un e-mail
-contenant ce lien et le rappel des conditions.
+contenant ce lien et le rappel des conditions — sauf sur un horaire proposé, où la demande
+attend l'accord de Zélia (cf. *Horaire proposé par la cliente*).
 
 Le lien réutilisable est préféré à l'API SumUp : les `hosted_checkout_url` créés par l'API
 n'ont qu'une validité de 30 minutes, incompatible avec un lien envoyé par e-mail.
@@ -408,6 +413,38 @@ Le site n'encaisse pas : les remises sont **affichées** à la cliente et **rapp
 la carte du rendez-vous, sous « À déduire à l'encaissement », avec un bouton *Utilisé* qui
 consomme l'avantage — sans quoi le même code pourrait resservir à chaque venue.
 
+### Codes de parrainage
+
+Un code par cliente, tiré à sa création (`nouveauCodeUnique`) : `ZEL-` suivi de 5 lettres d'un
+alphabet sans caractères ambigus (`0/O`, `1/I` écartés), ces codes se lisant à voix haute au
+salon. La colonne porte une contrainte d'unicité, et le tirage est **vérifié en base avant
+insertion** : la contrainte seule transformerait un tirage malheureux en « une erreur est
+survenue » au milieu d'une réservation. Après trois échecs le code s'allonge d'une lettre —
+signe que le fichier client est dense, pas que la chance manque. Les codes d'avantage
+(`SQUAD-…`) suivent les mêmes règles ; leur création distingue les deux échecs possibles, l'avantage
+déjà accordé — le cas normal — d'une collision de code, qu'il faut retirer sous peine de perdre
+sans bruit un avantage mérité.
+
+### Onglet `/admin/parrainage`
+
+- **Avantages à honorer** : ce qui reste dû, avec le code à présenter et un bouton *Honoré*. Le
+  compte s'affiche en pastille sur l'onglet depuis n'importe quelle page — un avantage gagné se
+  perdrait dans un e-mail lu en vitesse.
+- **La squad** : les marraines classées par filleules venues, avec palier, distance au palier
+  suivant, statut Ambassadrice en sommeil le cas échéant, et le nombre de filleules inscrites
+  mais pas encore venues — qui explique un palier en apparence en retard.
+- **Derniers avantages honorés**, pour retrouver un code présenté deux fois.
+
+Zélia reçoit un e-mail à chaque palier atteint, en plus de celui envoyé à la marraine : c'est
+elle qui honore l'avantage au salon et doit pouvoir le préparer. Cet envoi a lieu même si la
+marraine est bloquée ou désinscrite — ce sont ses messages à elle qui s'arrêtent, pas le suivi
+de la gérante.
+
+Le classement charge toutes les marraines en **une requête** plutôt qu'un `statutParrainage` par
+cliente, et les règles de palier vivent dans une fonction unique (`statutDepuisDecompte`)
+partagée avec l'espace cliente : deux décomptes séparés finiraient par ne plus dire la même
+chose.
+
 ## Blocage de clientes (`/admin/bouffonnes`)
 
 Une cliente bloquée depuis cet onglet ne peut plus ni réserver ni commander de press-on. Le
@@ -423,6 +460,30 @@ Bloquer **n'annule pas** les rendez-vous déjà pris : ce serait irréversible, 
 vouloir honorer celui de la semaine avant de fermer la porte. Ils sont signalés dans l'onglet,
 à elle de les annuler depuis l'agenda.
 
+## Horaire proposé par la cliente
+
+Quand aucun créneau ne convient, la cliente a deux issues plutôt qu'une : s'inscrire en liste
+d'attente, ou **proposer elle-même une date et une heure** (`PropositionCreneau`). Une
+proposition ne correspond à aucune fenêtre d'ouverture : le calendrier récurrent ne peut donc
+pas la valider, et c'est la durée des prestations qui délimite le créneau et sert au contrôle
+de chevauchement. Deux bornes tout de même, annoncées par le champ (`min`/`max`) **et**
+revérifiées côté serveur, seul contrôle qui compte : au moins 24 h de préavis, au plus
+90 jours (`src/lib/creneaux-bornes.ts`).
+
+Ces bornes vivent à part de `creneaux.ts`, qui importe Prisma : un composant client important
+ce module entraînerait Prisma tout entier dans le bundle du navigateur.
+
+Le rendez-vous est créé en attente avec `creneauPropose = true`. Zélia le repère à son badge
+*Horaire proposé* dans l'agenda et répond par **Accepter l'horaire** ou **Refuser l'horaire** —
+deux boutons dédiés, là où une demande ordinaire garde *Confirmer* / *Annuler*. Le refus
+n'est pas une annulation ordinaire : il envoie un e-mail à la cliente, qui a demandé une heure
+et attend une réponse, alors qu'une annulation muette suffit pour un créneau qu'elle avait
+choisi elle-même dans la liste.
+
+L'acompte suit la même logique : il n'est **pas** réclamé à la réservation d'un horaire
+proposé — faire payer un rendez-vous que Zélia peut refuser n'aurait pas de sens — mais à
+l'acceptation.
+
 ## Liste d'attente
 
 Quand aucun créneau ne convient, la cliente laisse ses coordonnées à l'étape *Créneau*. À
@@ -431,13 +492,79 @@ monde est prévenu d'un coup : pas de date à faire correspondre, la première �
 le créneau. Chacune n'est prévenue **qu'une fois** ; à elle de se réinscrire si l'annonce ne
 débouche sur rien, plutôt que d'être relancée à chaque annulation suivante.
 
-Le bloc s'affiche replié tant qu'il reste des créneaux, et déplié quand il n'y en a plus.
+Le bloc s'affiche replié tant qu'il reste des créneaux, et déplié quand il n'y en a plus — sauf
+si la cliente est en train de proposer un horaire, les deux chemins s'excluant.
 
 > **Attention en cas de modification** : ce bloc vit à l'intérieur du `<form>` du parcours de
 > réservation. Il n'a donc volontairement ni `<form>` à lui — imbriqué, il serait supprimé au
 > parsage et son bouton enverrait la demande de rendez-vous — ni attribut `name` sur ses
 > champs, qui entreraient en collision avec les `prenom`/`email` de la réservation. Les
 > valeurs sont repérées par `data-champ`, invisible des formulaires.
+
+## Sécurité et robustesse
+
+Points non évidents, issus d'un audit du code — chacun corrigeait un défaut reproduit, pas une
+inquiétude théorique.
+
+**Comparaison des cookies de session.** `auth.ts` et `cliente-auth.ts` comparent des octets avec
+`timingSafeEqual` : la longueur doit donc se mesurer en octets elle aussi. Mesurée en caractères,
+un cookie forgé de 64 caractères accentués passait le contrôle et faisait lever la comparaison —
+une erreur 500 sur l'espace gérante, l'espace cliente **et la page de réservation**, qui lit la
+session pour se pré-remplir.
+
+**Échappement des e-mails.** Les pages sont protégées par React ; les e-mails sont construits par
+concaténation et ne le sont pas. Toute donnée saisie par une cliente passe par `echapperHtml`
+(`lib/email.ts`) avant d'entrer dans un corps HTML — sans quoi le champ « message » d'une
+réservation place le lien de son choix dans la boîte de Zélia. Les **objets** d'e-mail et les
+messages rendus par React ne sont pas échappés : ils afficheraient les entités en clair.
+
+**Délais sur les appels sortants.** Brevo, Resend et Google Places sont bornés par
+`AbortSignal.timeout`. Sans cela, un fournisseur qui ne répond pas fige la tâche quotidienne, qui
+enchaîne les envois en boucle, jusqu'à ce que la fonction meure sur sa limite de temps sans
+laisser de bilan. Un dépassement est signalé comme tel, pas confondu avec un refus.
+
+**Isolation des étapes quotidiennes.** Les six étapes de `executerRappels` sont indépendantes :
+une exception dans l'une n'empêche plus les suivantes, elle est consignée et le bilan continue.
+La fenêtre de rappel part désormais de *maintenant* et non de *dans 24 h*, pour rattraper une
+exécution manquée — le libellé s'adapte (« aujourd'hui » / « demain » / la date).
+
+**Réservation d'un destinataire avant l'envoi.** Les campagnes créent la ligne `EnvoiCampagne`
+*avant* d'expédier : c'est la contrainte `(campagne, cliente)` qui arbitre entre deux appels
+simultanés. Enregistrée après coup, elle laissait deux onglets envoyer chacun leur copie avant
+qu'une des écritures n'échoue en 500 au milieu du lot.
+
+**Durée contre plage d'ouverture.** La fenêtre servait au seul contrôle de chevauchement : six
+prestations cumulées débordaient l'heure de fermeture sans alerte (9 h → 14 h pour une fermeture
+à 12 h 30). La réservation est refusée avec un message qui renvoie vers Zélia — une séance
+exceptionnellement longue reste possible, elle se convient de vive voix.
+
+**Liste d'attente.** Formulaire public : contrôle de blocage (une cliente bloquée s'y inscrivait
+et recevait les annonces), une seule inscription active par adresse, et une heure entre deux
+réinscriptions. La réponse est la même dans tous les cas — une réponse différenciée dirait qui
+figure sur la liste. `notifieeLe` est marqué **avant** chaque envoi et une par une : le
+`updateMany` final laissait, si la fonction expirait en cours de boucle, des personnes prévenues
+mais non marquées, renotifiées à l'annulation suivante.
+
+**Envoi d'images public.** `/api/inspirations/upload` n'a pas d'authentification par nécessité —
+elle sert avant que la cliente existe. Ses bornes de type, poids et nombre valent par requête ;
+un compteur en mémoire limite désormais le nombre de requêtes par IP. Ce compteur vit **par
+instance** : c'est un garde-fou contre l'abus ordinaire, pas contre un adversaire déterminé.
+
+**Hôte du stockage.** `urlImageValide` accepte le suffixe `.blob.vercel-storage.com`, ce qui
+laisse passer n'importe quel magasin Vercel, y compris celui d'un tiers. Renseigner
+`BLOB_HOSTNAME` avec l'hôte exact de nos propres envois ferme complètement la porte.
+
+### Reste à faire
+
+- **Purge des images orphelines** : une image envoyée puis abandonnée avant l'envoi du formulaire
+  reste indéfiniment dans le magasin. Le nettoyage demande de lister les blobs et de les
+  confronter aux `InspirationImage` — non implémenté, faute de pouvoir l'éprouver sans magasin
+  réel.
+- **Jeton gérante figé** : dérivé de `ADMIN_PASSWORD`, il est identique pour toutes les sessions
+  et ne tourne jamais. Un cookie exfiltré reste valable jusqu'au changement de mot de passe.
+  Acceptable pour une utilisatrice unique, à revoir si l'accès s'ouvre.
+- **Aucun test automatisé dans le dépôt** : les vérifications passent par des scripts Playwright
+  tenus hors dépôt, donc non rejoués en intégration continue.
 
 ## Référencement
 
@@ -454,8 +581,16 @@ casserait sinon la page.
 ## Ajout au calendrier
 
 `/api/calendrier/[id]` sert un fichier `.ics` (RFC 5545) ouvert par Google Agenda, Apple
-Calendrier ou Outlook. Le lien figure sur la page de confirmation, dans l'espace cliente et
-dans les e-mails de confirmation et de rappel.
+Calendrier ou Outlook.
+
+**Seulement une fois Zélia d'accord.** Une demande n'est pas un rendez-vous : l'inscrire au
+calendrier de la cliente dès l'envoi du formulaire le lui ferait croire. La route ne répond
+donc qu'aux rendez-vous `CONFIRME` ou `TERMINE` (`409` tant que la demande est en attente,
+`404` si elle est annulée), et le contrôle est là plutôt que sur les seuls liens : une adresse
+gardée de côté ou une page de confirmation restée ouverte contournerait un affichage
+conditionnel. La page de confirmation et l'espace cliente masquent le lien en conséquence et
+annoncent qu'il arrivera avec l'e-mail de confirmation ; ce sont les e-mails de confirmation
+et de rappel, envoyés une fois le rendez-vous validé, qui le portent.
 
 Un lien plutôt qu'une pièce jointe : Brevo et Resend ont des API de pièces jointes
 différentes, et un lien fonctionne aussi depuis le site. L'identifiant du rendez-vous suffit à

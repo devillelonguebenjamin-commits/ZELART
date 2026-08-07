@@ -3,7 +3,31 @@
 // Sans aucune clé, les envois sont simplement ignorés : le site fonctionne
 // normalement, sans notifications.
 
+// Un fournisseur qui ne répond pas ne doit pas figer ce qui l'a appelé : la
+// tâche quotidienne enchaîne les envois en boucle, et une réservation attend la
+// notification avant de rendre la main. Sans borne, c'est la fonction entière
+// qui meurt sur sa limite de temps, sans bilan exploitable.
+const DELAI_ENVOI_MS = 10_000;
+
 export type Fournisseur = "brevo" | "resend" | null;
+
+/**
+ * Échappe une donnée saisie par une cliente avant de l'insérer dans un e-mail.
+ *
+ * Les pages sont protégées par React, qui échappe tout seul ; les e-mails sont
+ * construits à la main par concaténation et n'ont aucune protection de ce genre.
+ * Sans cet appel, le champ « message » d'une réservation peut placer un lien ou
+ * une image de son choix dans la boîte de Zélia, sous couvert d'un message
+ * légitime venant du site.
+ */
+export function echapperHtml(texte: string): string {
+  return texte
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 export type ResultatEmail =
   | { ok: true; fournisseur: Exclude<Fournisseur, null> }
@@ -63,6 +87,7 @@ async function envoyerViaBrevo(
   const { nom, adresse } = analyserExpediteur(expediteur);
   const reponse = await fetch(process.env.BREVO_API_URL ?? "https://api.brevo.com/v3/smtp/email", {
     method: "POST",
+    signal: AbortSignal.timeout(DELAI_ENVOI_MS),
     headers: { "api-key": cle, "Content-Type": "application/json" },
     body: JSON.stringify({
       sender: { name: nom, email: adresse },
@@ -94,7 +119,11 @@ export async function verifierExpediteurBrevo(): Promise<EtatExpediteur> {
         /\/smtp\/email$/,
         "/senders"
       ),
-      { headers: { "api-key": cle, Accept: "application/json" }, cache: "no-store" }
+      {
+        headers: { "api-key": cle, Accept: "application/json" },
+        cache: "no-store",
+        signal: AbortSignal.timeout(DELAI_ENVOI_MS),
+      }
     );
     // Une clé refusée se voit ici : autant le dire plutôt que de laisser
     // découvrir le problème au premier envoi réel.
@@ -126,6 +155,7 @@ async function envoyerViaResend(
 ): Promise<ResultatEmail> {
   const reponse = await fetch(process.env.RESEND_API_URL ?? "https://api.resend.com/emails", {
     method: "POST",
+    signal: AbortSignal.timeout(DELAI_ENVOI_MS),
     headers: { Authorization: `Bearer ${cle}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       from: process.env.EMAIL_FROM ?? "Zelart Nails <onboarding@resend.dev>",
@@ -157,8 +187,14 @@ export async function envoyerEmail(
     if (!resultat.ok) console.error(resultat.erreur);
     return resultat;
   } catch (erreur) {
+    const expire = erreur instanceof Error && erreur.name === "TimeoutError";
     const message = erreur instanceof Error ? erreur.message : String(erreur);
     console.error("Envoi e-mail échoué", erreur);
-    return { ok: false, erreur: `Envoi impossible : ${message}` };
+    return {
+      ok: false,
+      erreur: expire
+        ? `Le fournisseur d'e-mail n'a pas répondu en ${DELAI_ENVOI_MS / 1000} s.`
+        : `Envoi impossible : ${message}`,
+    };
   }
 }

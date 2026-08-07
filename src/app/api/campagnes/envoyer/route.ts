@@ -61,6 +61,20 @@ export async function POST(request: Request): Promise<NextResponse> {
   let echecs = 0;
 
   for (const [index, cliente] of lot.entries()) {
+    // La destinataire est réservée **avant** l'envoi : c'est la contrainte
+    // d'unicité (campagne, cliente) qui arbitre entre deux appels simultanés —
+    // un double-clic ou deux onglets ouverts. En enregistrant après coup, les
+    // deux appels sélectionnaient le même lot et envoyaient chacun leur copie,
+    // avant qu'une des écritures n'échoue et ne rende un 500 en milieu de lot.
+    let envoi;
+    try {
+      envoi = await prisma.envoiCampagne.create({
+        data: { campagneId, clienteId: cliente.id, ok: false, erreur: "Envoi en cours…" },
+      });
+    } catch {
+      continue; // déjà pris en charge par un autre appel
+    }
+
     const resultat = await envoyerEmail(
       cliente.email,
       campagne.objet,
@@ -69,13 +83,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (resultat.ok) envoyes++;
     else echecs++;
 
-    await prisma.envoiCampagne.create({
-      data: {
-        campagneId,
-        clienteId: cliente.id,
-        ok: resultat.ok,
-        erreur: resultat.ok ? null : resultat.erreur.slice(0, 500),
-      },
+    await prisma.envoiCampagne.update({
+      where: { id: envoi.id },
+      data: { ok: resultat.ok, erreur: resultat.ok ? null : resultat.erreur.slice(0, 500) },
     });
 
     if (index < lot.length - 1) await pause(PAUSE_MS);
