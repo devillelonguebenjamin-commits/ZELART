@@ -349,12 +349,26 @@ encore, plutôt que de laisser surgir un refus au premier envoi réel.
 Formes proposées : Amande, Arrondi, Ballerine, Carré, Stiletto. Longueurs : Courte, Moyenne,
 Longue. Ce sont des suggestions (`datalist`), pas une contrainte : le champ reste libre.
 
-Un **guide de mesure** dépliable (`GuideTailles`) explique où mesurer — la largeur, jamais la
-longueur —, propose la méthode de la bande de papier à défaut de réglet, et reporte les dix
-valeurs saisies dans le champ « mesures » de la commande. Ses champs n'ont **aucun attribut
-`name`** : ils vivent dans le `<form>` de commande et seraient sinon envoyés avec elle. Le report
-passe par un bouton et non par la frappe, pour ne pas effacer une précision écrite à la main ; le
-texte composé est tronqué à 300 caractères, la limite du champ d'arrivée.
+### Demande de mesures
+
+Un **guide dépliable** (`GuideTailles`) propose deux méthodes, présentées côte à côte parce
+qu'elles ne s'adressent pas aux mêmes personnes — une cliente qui bute sur l'une abandonnerait la
+commande plutôt que d'essayer l'autre si on ne lui montrait pas les deux :
+
+- **A · Ruban adhésif + règle** — un morceau de Scotch en travers de l'ongle à l'endroit le plus
+  large, les deux bords marqués au stylo, le ruban décollé et mesuré à plat. Donne des
+  millimètres exploitables directement, reportés dans le champ « mesures » par les dix cases de
+  saisie.
+- **B · Photo avec repère** — main à plat, un objet de taille connue à côté des ongles (une pièce
+  de 2 € fait 25,75 mm), prise de vue à la verticale. Sans repère dans le cadre, une photo ne
+  donne aucune échelle. Les photos se joignent à l'étape « Votre design », qui les transporte
+  déjà ; cette étape le rappelle explicitement, faute de quoi la cliente arriverait dans une
+  section qui ne parle que d'inspiration et n'oserait pas y joindre ses mains.
+
+Les champs du guide n'ont **aucun attribut `name`** : ils vivent dans le `<form>` de commande et
+seraient sinon envoyés avec elle. Le report passe par un bouton et non par la frappe, pour ne pas
+effacer une précision écrite à la main ; le texte composé est tronqué à 300 caractères, la limite
+du champ d'arrivée.
 
 
 La vente de press-on est une activité à part entière, distincte des rendez-vous : elle a donc son
