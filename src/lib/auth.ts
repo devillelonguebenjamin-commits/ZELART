@@ -16,8 +16,17 @@ export async function estAdmin(): Promise<boolean> {
   const attendu = jetonAttendu();
   if (!attendu) return false;
   const valeur = (await cookies()).get(NOM_COOKIE)?.value;
-  if (!valeur || valeur.length !== attendu.length) return false;
-  return timingSafeEqual(Buffer.from(valeur), Buffer.from(attendu));
+  if (!valeur) return false;
+
+  // La comparaison se fait sur les octets, la longueur doit donc se mesurer sur
+  // les octets elle aussi : « é » compte pour un caractère et deux octets, et un
+  // cookie forgé de 64 caractères accentués passerait un contrôle fait sur la
+  // chaîne pour faire ensuite lever timingSafeEqual — soit une erreur 500 sur
+  // tout l'espace gérante, là où un refus était attendu.
+  const fourni = Buffer.from(valeur);
+  const cible = Buffer.from(attendu);
+  if (fourni.length !== cible.length) return false;
+  return timingSafeEqual(fourni, cible);
 }
 
 export async function exigerAdmin(): Promise<void> {

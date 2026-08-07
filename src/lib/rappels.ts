@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { envoyerEmail } from "@/lib/email";
+import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { formatPrix, totalTarifs } from "@/lib/format";
 import { reglagesAcompte, reglagesRappels } from "@/lib/parametres";
@@ -48,14 +48,19 @@ function enveloppe(contenu: string, pied?: string): string {
 
 async function envoyerRappels(): Promise<{ envoyes: number; echecs: number }> {
   const maintenant = new Date();
-  const debutFenetre = new Date(maintenant.getTime() + JOUR_MS);
   const finFenetre = new Date(maintenant.getTime() + 2 * JOUR_MS);
+  const jourDit = formatJour(maintenant);
+  const jourSuivant = formatJour(new Date(maintenant.getTime() + JOUR_MS));
 
   const rendezVous = await prisma.rendezVous.findMany({
     where: {
       statut: "CONFIRME",
       rappelEnvoyeLe: null,
-      debut: { gte: debutFenetre, lt: finFenetre },
+      // Borne basse à « maintenant » plutôt qu'à « dans 24 h » : une exécution
+      // manquée faisait sortir le rendez-vous de la fenêtre pour de bon, et le
+      // rappel n'était jamais envoyé. Un rappel tardif reste utile, et
+      // `rappelEnvoyeLe` empêche déjà le doublon.
+      debut: { gt: maintenant, lt: finFenetre },
     },
     include: {
       cliente: true,
@@ -68,14 +73,19 @@ async function envoyerRappels(): Promise<{ envoyes: number; echecs: number }> {
 
   for (const rdv of rendezVous) {
     const total = totalTarifs(rdv.lignes.map((l) => l.prestation));
+    // « Demain » n'est plus toujours exact : la fenêtre rattrape désormais les
+    // rendez-vous du jour qu'une exécution manquée avait laissés sans rappel.
+    const jourRdv = formatJour(rdv.debut);
+    const quand =
+      jourRdv === jourDit ? "aujourd'hui" : jourRdv === jourSuivant ? "demain" : jourRdv;
     const resultat = await envoyerEmail(
       rdv.cliente.email,
       `Rappel : votre rendez-vous ${formatJour(rdv.debut)} à ${formatHeure(rdv.debut)}`,
       enveloppe(
-        `<p>Bonjour ${rdv.cliente.prenom},</p>
-         <p>Petit rappel de votre rendez-vous <strong>demain</strong> :</p>
+        `<p>Bonjour ${echapperHtml(rdv.cliente.prenom)},</p>
+         <p>Petit rappel de votre rendez-vous <strong>${quand}</strong> :</p>
          <p>${rdv.lignes
-           .map((l) => `${l.prestation.nom} — ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}`)
+           .map((l) => `${echapperHtml(l.prestation.nom)} — ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}`)
            .join("<br>")}<br>
          <strong>Total : ${formatPrix(total.prixCents, total.aPartirDe)}</strong></p>
          <p><strong>${formatJour(rdv.debut)} à ${formatHeure(rdv.debut)}</strong><br>
@@ -157,7 +167,7 @@ async function envoyerRelances(
       rdv.cliente.email,
       "C'est bientôt le moment de refaire vos ongles 🌸",
       enveloppe(
-        `<p>Bonjour ${rdv.cliente.prenom},</p>
+        `<p>Bonjour ${echapperHtml(rdv.cliente.prenom)},</p>
          <p>Votre ${LIBELLE_TECHNIQUE[technique]} a maintenant ${joursEcoules} jours : c'est
          généralement le bon moment pour un remplissage ou une nouvelle pose, avant que la repousse
          ne fragilise vos ongles.</p>
@@ -225,7 +235,7 @@ async function envoyerDemandesAvis(): Promise<{ envoyees: number; echecs: number
       rdv.cliente.email,
       "Votre avis compte pour Zelart Nails 🤍",
       enveloppe(
-        `<p>Bonjour ${rdv.cliente.prenom},</p>
+        `<p>Bonjour ${echapperHtml(rdv.cliente.prenom)},</p>
          <p>J'espère que votre pose vous plaît toujours autant ! Si vous avez deux minutes, un avis
          Google m'aiderait énormément à me faire connaître.</p>
          <p style="margin:24px 0">
@@ -279,7 +289,7 @@ async function envoyerRelancesAcompte(): Promise<{ envoyees: number; echecs: num
       rdv.cliente.email,
       "Toujours partante pour votre rendez-vous ? — Zelart Nails",
       enveloppe(
-        `<p>Bonjour ${rdv.cliente.prenom},</p>
+        `<p>Bonjour ${echapperHtml(rdv.cliente.prenom)},</p>
          <p>Je n'ai pas encore reçu votre acompte de <strong>${formatPrix(montantCents)}</strong>
          pour le rendez-vous du <strong>${formatJour(rdv.debut)} à ${formatHeure(rdv.debut)}</strong>.</p>
          <p style="margin:24px 0">
@@ -377,7 +387,7 @@ async function envoyerReconquetes(): Promise<{ envoyees: number; echecs: number 
       cliente.email,
       "Vos ongles me manquent 🌸",
       enveloppe(
-        `<p>Bonjour ${cliente.prenom},</p>
+        `<p>Bonjour ${echapperHtml(cliente.prenom)},</p>
          <p>Cela fait ${mois} mois que je ne vous ai pas vue — le salon n'est plus tout à fait le
          même sans vous !</p>
          <p>Si l'envie vous reprend, votre créneau vous attend : nouvelles couleurs, nouveaux
@@ -407,6 +417,26 @@ async function envoyerReconquetes(): Promise<{ envoyees: number; echecs: number 
   return { envoyees, echecs };
 }
 
+/**
+ * Isole une étape de la tâche quotidienne.
+ *
+ * Les six étapes sont indépendantes : sans cela, une exception dans la
+ * troisième empêche les trois dernières de s'exécuter, et personne ne
+ * l'apprend avant de constater qu'aucune relance n'est partie depuis des jours.
+ * L'échec est consigné et le bilan poursuit son chemin.
+ */
+async function etape<T>(nom: string, tache: () => Promise<T>, secours: T): Promise<T> {
+  try {
+    return await tache();
+  } catch (erreur) {
+    console.error(`Étape « ${nom} » en échec`, erreur);
+    return secours;
+  }
+}
+
+const AUCUN_ENVOI = { envoyes: 0, echecs: 0 };
+const AUCUNE_ENVOYEE = { envoyees: 0, echecs: 0 };
+
 export async function executerRappels(): Promise<BilanRappels> {
   const { actifs, delais } = await reglagesRappels();
 
@@ -414,7 +444,7 @@ export async function executerRappels(): Promise<BilanRappels> {
   // comme l'envoi initial du lien, elle s'active dès qu'un lien SumUp est
   // configuré — c'est le fonctionnement attendu de l'acompte, pas un rappel
   // de confort qu'on pourrait vouloir couper séparément.
-  const acompte = await envoyerRelancesAcompte();
+  const acompte = await etape("acompte", envoyerRelancesAcompte, AUCUNE_ENVOYEE);
 
   if (!actifs) {
     return {
@@ -428,10 +458,10 @@ export async function executerRappels(): Promise<BilanRappels> {
     };
   }
 
-  const rappels = await envoyerRappels();
-  const relances = await envoyerRelances(delais);
-  const avis = await envoyerDemandesAvis();
-  const reconquete = await envoyerReconquetes();
-  const avantagesParrainage = await renouvelerAvantagesParrainage();
+  const rappels = await etape("rappels", envoyerRappels, AUCUN_ENVOI);
+  const relances = await etape("relances", () => envoyerRelances(delais), AUCUNE_ENVOYEE);
+  const avis = await etape("avis", envoyerDemandesAvis, AUCUNE_ENVOYEE);
+  const reconquete = await etape("reconquête", envoyerReconquetes, AUCUNE_ENVOYEE);
+  const avantagesParrainage = await etape("parrainage", renouvelerAvantagesParrainage, 0);
   return { actifs: true, rappels, relances, avis, acompte, reconquete, avantagesParrainage };
 }

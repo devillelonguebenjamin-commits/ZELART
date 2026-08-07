@@ -501,6 +501,71 @@ si la cliente est en train de proposer un horaire, les deux chemins s'excluant.
 > champs, qui entreraient en collision avec les `prenom`/`email` de la réservation. Les
 > valeurs sont repérées par `data-champ`, invisible des formulaires.
 
+## Sécurité et robustesse
+
+Points non évidents, issus d'un audit du code — chacun corrigeait un défaut reproduit, pas une
+inquiétude théorique.
+
+**Comparaison des cookies de session.** `auth.ts` et `cliente-auth.ts` comparent des octets avec
+`timingSafeEqual` : la longueur doit donc se mesurer en octets elle aussi. Mesurée en caractères,
+un cookie forgé de 64 caractères accentués passait le contrôle et faisait lever la comparaison —
+une erreur 500 sur l'espace gérante, l'espace cliente **et la page de réservation**, qui lit la
+session pour se pré-remplir.
+
+**Échappement des e-mails.** Les pages sont protégées par React ; les e-mails sont construits par
+concaténation et ne le sont pas. Toute donnée saisie par une cliente passe par `echapperHtml`
+(`lib/email.ts`) avant d'entrer dans un corps HTML — sans quoi le champ « message » d'une
+réservation place le lien de son choix dans la boîte de Zélia. Les **objets** d'e-mail et les
+messages rendus par React ne sont pas échappés : ils afficheraient les entités en clair.
+
+**Délais sur les appels sortants.** Brevo, Resend et Google Places sont bornés par
+`AbortSignal.timeout`. Sans cela, un fournisseur qui ne répond pas fige la tâche quotidienne, qui
+enchaîne les envois en boucle, jusqu'à ce que la fonction meure sur sa limite de temps sans
+laisser de bilan. Un dépassement est signalé comme tel, pas confondu avec un refus.
+
+**Isolation des étapes quotidiennes.** Les six étapes de `executerRappels` sont indépendantes :
+une exception dans l'une n'empêche plus les suivantes, elle est consignée et le bilan continue.
+La fenêtre de rappel part désormais de *maintenant* et non de *dans 24 h*, pour rattraper une
+exécution manquée — le libellé s'adapte (« aujourd'hui » / « demain » / la date).
+
+**Réservation d'un destinataire avant l'envoi.** Les campagnes créent la ligne `EnvoiCampagne`
+*avant* d'expédier : c'est la contrainte `(campagne, cliente)` qui arbitre entre deux appels
+simultanés. Enregistrée après coup, elle laissait deux onglets envoyer chacun leur copie avant
+qu'une des écritures n'échoue en 500 au milieu du lot.
+
+**Durée contre plage d'ouverture.** La fenêtre servait au seul contrôle de chevauchement : six
+prestations cumulées débordaient l'heure de fermeture sans alerte (9 h → 14 h pour une fermeture
+à 12 h 30). La réservation est refusée avec un message qui renvoie vers Zélia — une séance
+exceptionnellement longue reste possible, elle se convient de vive voix.
+
+**Liste d'attente.** Formulaire public : contrôle de blocage (une cliente bloquée s'y inscrivait
+et recevait les annonces), une seule inscription active par adresse, et une heure entre deux
+réinscriptions. La réponse est la même dans tous les cas — une réponse différenciée dirait qui
+figure sur la liste. `notifieeLe` est marqué **avant** chaque envoi et une par une : le
+`updateMany` final laissait, si la fonction expirait en cours de boucle, des personnes prévenues
+mais non marquées, renotifiées à l'annulation suivante.
+
+**Envoi d'images public.** `/api/inspirations/upload` n'a pas d'authentification par nécessité —
+elle sert avant que la cliente existe. Ses bornes de type, poids et nombre valent par requête ;
+un compteur en mémoire limite désormais le nombre de requêtes par IP. Ce compteur vit **par
+instance** : c'est un garde-fou contre l'abus ordinaire, pas contre un adversaire déterminé.
+
+**Hôte du stockage.** `urlImageValide` accepte le suffixe `.blob.vercel-storage.com`, ce qui
+laisse passer n'importe quel magasin Vercel, y compris celui d'un tiers. Renseigner
+`BLOB_HOSTNAME` avec l'hôte exact de nos propres envois ferme complètement la porte.
+
+### Reste à faire
+
+- **Purge des images orphelines** : une image envoyée puis abandonnée avant l'envoi du formulaire
+  reste indéfiniment dans le magasin. Le nettoyage demande de lister les blobs et de les
+  confronter aux `InspirationImage` — non implémenté, faute de pouvoir l'éprouver sans magasin
+  réel.
+- **Jeton gérante figé** : dérivé de `ADMIN_PASSWORD`, il est identique pour toutes les sessions
+  et ne tourne jamais. Un cookie exfiltré reste valable jusqu'au changement de mot de passe.
+  Acceptable pour une utilisatrice unique, à revoir si l'accès s'ouvre.
+- **Aucun test automatisé dans le dépôt** : les vérifications passent par des scripts Playwright
+  tenus hors dépôt, donc non rejoués en intégration continue.
+
 ## Référencement
 
 `sitemap.ts` et `robots.ts` produisent `/sitemap.xml` et `/robots.txt` depuis l'adresse réelle

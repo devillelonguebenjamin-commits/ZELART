@@ -96,10 +96,15 @@ export async function clienteConnectee(): Promise<string | null> {
   if (separateur <= 0) return null;
 
   const clienteId = valeur.slice(0, separateur);
-  const fournie = valeur.slice(separateur + 1);
-  const attendue = signature(clienteId, cle);
+
+  // Comparaison sur les octets, longueur mesurée sur les octets : une signature
+  // forgée en caractères multi-octets passerait un contrôle fait sur la chaîne
+  // et ferait lever timingSafeEqual. Or ce chemin sert aussi à pré-remplir le
+  // formulaire de réservation — une erreur ici empêcherait de réserver.
+  const fournie = Buffer.from(valeur.slice(separateur + 1));
+  const attendue = Buffer.from(signature(clienteId, cle));
   if (fournie.length !== attendue.length) return null;
-  if (!timingSafeEqual(Buffer.from(fournie), Buffer.from(attendue))) return null;
+  if (!timingSafeEqual(fournie, attendue)) return null;
 
   // La fiche peut avoir été supprimée entre-temps (droit à l'effacement).
   const existe = await prisma.cliente.findUnique({

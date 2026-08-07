@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { filtreDestinataires, seuilFidelite } from "@/lib/segments";
 import { urlSite } from "@/lib/site";
+import { echapperHtml } from "@/lib/email";
 
 export type Destinataire = {
   id: string;
@@ -33,18 +34,11 @@ export async function destinataires(segment: string): Promise<Destinataire[]> {
     });
 }
 
-const echapper = (texte: string) =>
-  texte
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-
 // Le contenu est saisi en texte simple : {{prenom}} est personnalisé, les
 // paragraphes sont conservés, et le pied de page légal est ajouté.
 export function corpsHtml(contenu: string, destinataire: Destinataire | null): string {
   const prenom = destinataire?.prenom ?? "Camille";
-  const texte = echapper(contenu).replace(/\{\{\s*prenom\s*\}\}/gi, echapper(prenom));
+  const texte = echapperHtml(contenu).replace(/\{\{\s*prenom\s*\}\}/gi, echapperHtml(prenom));
   const paragraphes = texte
     .split(/\n{2,}/)
     .map((p) => `<p style="margin:0 0 16px">${p.replace(/\n/g, "<br>")}</p>`)

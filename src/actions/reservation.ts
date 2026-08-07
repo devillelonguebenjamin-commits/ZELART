@@ -12,13 +12,13 @@ import {
   propositionDansLesBornes,
 } from "@/lib/creneaux";
 import { reservationSchema, urlImageValide } from "@/lib/validations";
-import { envoyerEmail } from "@/lib/email";
+import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { envoyerDemandeAcompte, estNouvelleCliente } from "@/lib/acompte";
 import { clienteBloquee, MESSAGE_BLOCAGE } from "@/lib/blocage";
 import { urlSite } from "@/lib/site";
 import { nouveauCodeUnique } from "@/lib/cliente-auth";
 import { deposeNecessaire, prestationProposee, trouverDepose } from "@/lib/regles";
-import { formatPrix, totalDuree, totalTarifs } from "@/lib/format";
+import { formatDuree, formatPrix, totalDuree, totalTarifs } from "@/lib/format";
 
 const LIBELLE_ETAT: Record<string, string> = {
   NATUREL: "ongles nus",
@@ -143,6 +143,20 @@ export async function creerReservation(
     if (!ouverte) {
       return { erreur: CRENEAU_INDISPONIBLE };
     }
+
+    // La fenêtre servait au seul contrôle de chevauchement : rien ne vérifiait
+    // que les prestations y tenaient. Six prestations cumulées débordaient donc
+    // l'heure de fermeture sans que personne en soit averti — un rendez-vous de
+    // 9 h finissant à 14 h, pause déjeuner comprise. La cliente est renvoyée
+    // vers Zélia plutôt que bloquée sèchement : une soirée exceptionnelle reste
+    // possible, mais elle se décide entre elles, pas toute seule ici.
+    const ouvertureMin = (ouverte.fin.getTime() - ouverte.debut.getTime()) / 60_000;
+    if (dureeTotale > ouvertureMin) {
+      return {
+        erreur: `Ces prestations demandent environ ${formatDuree(dureeTotale)}, plus que la plage d'ouverture de ce créneau (${formatDuree(ouvertureMin)}). Retirez-en une, ou écrivez à Zélia par SMS au 06 45 29 20 01 pour convenir d'un rendez-vous plus long.`,
+      };
+    }
+
     fenetre = ouverte;
   }
 
@@ -257,6 +271,13 @@ export async function creerReservation(
     if (e instanceof Error && e.message === "CRENEAU_PRIS") {
       return { erreur: CRENEAU_INDISPONIBLE };
     }
+    // P2034 : conflit d'écriture entre deux transactions sérialisables. Sur ce
+    // chemin, cela ne peut vouloir dire qu'une chose — deux clientes ont visé le
+    // même créneau en même temps. La transaction a bien protégé la base, mais
+    // « une erreur est survenue » laissait croire à une panne du site.
+    if (typeof e === "object" && e !== null && (e as { code?: string }).code === "P2034") {
+      return { erreur: CRENEAU_INDISPONIBLE };
+    }
     console.error("Échec de la réservation", e);
     return { erreur: "Une erreur est survenue, merci de réessayer." };
   }
@@ -286,15 +307,15 @@ export async function creerReservation(
        <p>${lignes
          .map(
            (l) =>
-             `<strong>${l.prestation.nom}</strong> — ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}${l.automatique ? " (dépose ajoutée)" : ""}`
+             `<strong>${echapperHtml(l.prestation.nom)}</strong> — ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}${l.automatique ? " (dépose ajoutée)" : ""}`
          )
          .join("<br>")}<br>
        <strong>Total : ${formatPrix(total.prixCents, total.aPartirDe)}</strong><br>
        ${formatJour(debut)} à ${formatHeure(debut)}</p>
        <p>Ongles à l'arrivée : ${LIBELLE_ETAT[etatOngles]}${typePoseActuel ? ` (${LIBELLE_POSE[typePoseActuel]})` : ""}</p>
-       <p>${donnees.prenom} ${donnees.nom}<br>
-       ${donnees.telephone} · ${donnees.email}</p>
-       ${donnees.noteCliente ? `<p>Message : ${donnees.noteCliente}</p>` : ""}
+       <p>${echapperHtml(donnees.prenom)} ${echapperHtml(donnees.nom)}<br>
+       ${echapperHtml(donnees.telephone)} · ${echapperHtml(donnees.email)}</p>
+       ${donnees.noteCliente ? `<p>Message : ${echapperHtml(donnees.noteCliente)}</p>` : ""}
        <p><a href="${urlSite()}/admin">Ouvrir l'espace gérante</a></p>`
     );
   }

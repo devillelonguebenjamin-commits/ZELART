@@ -69,6 +69,10 @@ function convertir(place: ReponsePlace): FicheAvis {
   };
 }
 
+// Google indisponible ne doit pas figer la page d'accueil : passé ce délai on
+// abandonne et on retombe sur le cache en base, prévu pour cela.
+const DELAI_GOOGLE_MS = 8_000;
+
 async function interrogerGoogle(placeId: string, cle: string): Promise<FicheAvis> {
   const reponse = await fetch(
     `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?languageCode=fr`,
@@ -77,6 +81,7 @@ async function interrogerGoogle(placeId: string, cle: string): Promise<FicheAvis
       // Le cache est tenu en base : il survit aux redémarrages et permet de
       // continuer à afficher les avis si Google devient indisponible.
       cache: "no-store",
+      signal: AbortSignal.timeout(DELAI_GOOGLE_MS),
     }
   );
   if (!reponse.ok) {
@@ -183,7 +188,11 @@ export async function detaillerEtablissement(placeId: string): Promise<Candidat>
 
   const reponse = await fetch(
     `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?languageCode=fr`,
-    { headers: { "X-Goog-Api-Key": cle, "X-Goog-FieldMask": CHAMPS_FICHE }, cache: "no-store" }
+    {
+      headers: { "X-Goog-Api-Key": cle, "X-Goog-FieldMask": CHAMPS_FICHE },
+      cache: "no-store",
+      signal: AbortSignal.timeout(DELAI_GOOGLE_MS),
+    }
   );
   if (!reponse.ok) {
     throw new Error(`Google a répondu ${reponse.status} : ${(await reponse.text()).slice(0, 200)}`);
@@ -212,6 +221,7 @@ export async function chercherEtablissement(requete: string): Promise<Candidat[]
 
   const reponse = await fetch("https://places.googleapis.com/v1/places:searchText", {
     method: "POST",
+    signal: AbortSignal.timeout(DELAI_GOOGLE_MS),
     headers: {
       "Content-Type": "application/json",
       "X-Goog-Api-Key": cle,

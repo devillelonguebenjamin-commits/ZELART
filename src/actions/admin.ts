@@ -6,7 +6,7 @@ import { del } from "@vercel/blob";
 import { optionsBlob } from "@/lib/blob";
 import { prisma } from "@/lib/prisma";
 import { exigerAdmin, fermerSessionAdmin, ouvrirSessionAdmin } from "@/lib/auth";
-import { envoyerEmail } from "@/lib/email";
+import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { z } from "zod";
 import { dateParis, formatHeure, formatJour } from "@/lib/creneaux";
 import { envoyerDemandeAcompte, estNouvelleCliente } from "@/lib/acompte";
@@ -92,12 +92,12 @@ export async function changerStatutRendezVous(
     await envoyerEmail(
       rendezVous.cliente.email,
       "Votre rendez-vous chez Zelart Nails est confirmé 🤍",
-      `<p>Bonjour ${rendezVous.cliente.prenom},</p>
+      `<p>Bonjour ${echapperHtml(rendezVous.cliente.prenom)},</p>
        <p>Votre rendez-vous est confirmé :</p>
        <p>${rendezVous.lignes
          .map(
            (l) =>
-             `<strong>${l.prestation.nom}</strong> — ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}`
+             `<strong>${echapperHtml(l.prestation.nom)}</strong> — ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}`
          )
          .join("<br>")}<br>
        <strong>Total : ${formatPrix(total.prixCents, total.aPartirDe)}</strong></p>
@@ -140,7 +140,7 @@ export async function refuserCreneauPropose(id: string): Promise<void> {
   await envoyerEmail(
     rendezVous.cliente.email,
     "Votre proposition d'horaire chez Zelart Nails",
-    `<p>Bonjour ${rendezVous.cliente.prenom},</p>
+    `<p>Bonjour ${echapperHtml(rendezVous.cliente.prenom)},</p>
      <p>Merci d'avoir proposé le <strong>${formatJour(rendezVous.debut)} à ${formatHeure(rendezVous.debut)}</strong>.
      Malheureusement je ne suis pas disponible à ce moment-là.</p>
      <p>Vous pouvez choisir un autre créneau, ou vous inscrire en liste d'attente pour être

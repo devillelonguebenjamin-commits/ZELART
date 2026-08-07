@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { envoyerEmail } from "@/lib/email";
+import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { formatPrix, totalTarifs } from "@/lib/format";
 import { reglagesAcompte } from "@/lib/parametres";
@@ -38,12 +38,12 @@ export async function envoyerDemandeAcompte(rendezVousId: string): Promise<boole
     `Votre acompte pour réserver le ${formatJour(rendezVous.debut)}`,
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
       <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
-      <p>Bonjour ${rendezVous.cliente.prenom},</p>
+      <p>Bonjour ${echapperHtml(rendezVous.cliente.prenom)},</p>
       <p>Merci pour votre demande de rendez-vous :</p>
       <p>${rendezVous.lignes
         .map(
           (l) =>
-            `<strong>${l.prestation.nom}</strong> — ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}`
+            `<strong>${echapperHtml(l.prestation.nom)}</strong> — ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}`
         )
         .join("<br>")}<br>
       <strong>Total : ${formatPrix(total.prixCents, total.aPartirDe)}</strong></p>

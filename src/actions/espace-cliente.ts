@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { envoyerEmail } from "@/lib/email";
+import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { urlSite } from "@/lib/site";
 import { coordonneesSchema, emailSchema } from "@/lib/validations";
 import {
@@ -68,7 +68,7 @@ export async function demanderLienConnexion(
     "Votre lien de connexion — Zelart Nails",
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
       <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
-      <p>Bonjour ${cliente.prenom},</p>
+      <p>Bonjour ${echapperHtml(cliente.prenom)},</p>
       <p>Voici votre lien pour accéder à votre espace. Il est valable ${VALIDITE_LIEN_MIN} minutes et ne fonctionne qu'une fois.</p>
       <p style="margin:24px 0">
         <a href="${lien}" style="background:#ec4899;color:#fff;text-decoration:none;padding:12px 24px;border-radius:999px;display:inline-block;font-weight:600">
@@ -178,7 +178,7 @@ export async function demanderChangementEmail(
     "Confirmez votre nouvelle adresse — Zelart Nails",
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
       <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
-      <p>Bonjour ${cliente.prenom},</p>
+      <p>Bonjour ${echapperHtml(cliente.prenom)},</p>
       <p>Vous souhaitez utiliser cette adresse pour votre espace Zelart. Confirmez-la en cliquant
       ci-dessous : le lien est valable ${VALIDITE_LIEN_MIN} minutes et ne sert qu'une fois.</p>
       <p style="margin:24px 0">
@@ -200,9 +200,9 @@ export async function demanderChangementEmail(
   await envoyerEmail(
     cliente.email,
     "Demande de changement d'adresse — Zelart Nails",
-    `<p>Bonjour ${cliente.prenom},</p>
+    `<p>Bonjour ${echapperHtml(cliente.prenom)},</p>
      <p>Une demande vient d'être faite depuis votre espace pour remplacer cette adresse par
-     <strong>${nouvelEmail}</strong>. Elle ne prendra effet qu'après confirmation depuis la
+     <strong>${echapperHtml(nouvelEmail)}</strong>. Elle ne prendra effet qu'après confirmation depuis la
      nouvelle boîte.</p>
      <p>Si vous n'êtes pas à l'origine de cette demande, prévenez Zélia par SMS au 06 45 29 20 01.</p>`
   );

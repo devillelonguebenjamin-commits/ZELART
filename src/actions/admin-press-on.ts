@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { exigerAdmin } from "@/lib/auth";
-import { envoyerEmail } from "@/lib/email";
+import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { formatPrix } from "@/lib/format";
 import { LIBELLE_REMISE, totalCommande } from "@/lib/press-on";
 import { reglagesAcompte } from "@/lib/parametres";
@@ -55,8 +55,8 @@ export async function changerStatutCommande(id: string, statut: string): Promise
     await envoyerEmail(
       commande.cliente.email,
       "Votre set de press-on est prêt ✨",
-      `<p>Bonjour ${commande.cliente.prenom},</p>
-       <p>Votre set <strong>${commande.modele.nom}</strong> est terminé !</p>
+      `<p>Bonjour ${echapperHtml(commande.cliente.prenom)},</p>
+       <p>Votre set <strong>${echapperHtml(commande.modele.nom)}</strong> est terminé !</p>
        <p>${
          enMainPropre
            ? "Écrivez-moi par SMS au 06 45 29 20 01 pour convenir du moment de la remise."

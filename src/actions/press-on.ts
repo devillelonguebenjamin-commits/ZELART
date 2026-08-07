@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { envoyerEmail } from "@/lib/email";
+import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { nouveauCodeUnique } from "@/lib/cliente-auth";
 import { commandePressOnSchema, urlImageValide } from "@/lib/validations";
 import { clienteBloquee, MESSAGE_BLOCAGE } from "@/lib/blocage";
@@ -105,13 +105,13 @@ export async function commanderPressOn(
       process.env.NOTIFY_EMAIL,
       `Commande press-on — ${donnees.prenom} ${donnees.nom}`,
       `<p>Nouvelle commande de press-on à chiffrer :</p>
-       <p><strong>${modele.nom}</strong> — ${formatPrix(modele.prixCents, modele.aPartirDe)}<br>
+       <p><strong>${echapperHtml(modele.nom)}</strong> — ${formatPrix(modele.prixCents, modele.aPartirDe)}<br>
        ${LIBELLE_REMISE[donnees.modeRemise]}</p>
-       ${donnees.adresse ? `<p>Adresse :<br>${donnees.adresse.replace(/\n/g, "<br>")}</p>` : ""}
-       ${donnees.mesures ? `<p>Mesures : ${donnees.mesures}</p>` : ""}
-       ${donnees.forme || donnees.longueur ? `<p>Forme : ${donnees.forme ?? "—"} · Longueur : ${donnees.longueur ?? "—"}</p>` : ""}
-       ${donnees.inspiration ? `<p>Envies : ${donnees.inspiration}</p>` : ""}
-       <p>${donnees.prenom} ${donnees.nom}<br>${donnees.telephone} · ${donnees.email}</p>
+       ${donnees.adresse ? `<p>Adresse :<br>${echapperHtml(donnees.adresse).replace(/\n/g, "<br>")}</p>` : ""}
+       ${donnees.mesures ? `<p>Mesures : ${echapperHtml(donnees.mesures)}</p>` : ""}
+       ${donnees.forme || donnees.longueur ? `<p>Forme : ${echapperHtml(donnees.forme ?? "—")} · Longueur : ${echapperHtml(donnees.longueur ?? "—")}</p>` : ""}
+       ${donnees.inspiration ? `<p>Envies : ${echapperHtml(donnees.inspiration)}</p>` : ""}
+       <p>${echapperHtml(donnees.prenom)} ${echapperHtml(donnees.nom)}<br>${echapperHtml(donnees.telephone)} · ${echapperHtml(donnees.email)}</p>
        <p><a href="${urlSite()}/admin/press-on">Ouvrir les commandes</a></p>`
     );
   }
