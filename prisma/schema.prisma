@@ -310,6 +310,13 @@ model RendezVous {
   // voir avant d'accepter.
   creneauPropose Boolean @default(false)
 
+  // Date à laquelle la cliente a été prévenue de l'annulation, quand Zélia a
+  // joint un mot. Stocké plutôt qu'affiché à chaud : en passant à « annulé », la
+  // carte change de section de l'agenda, le composant est démonté et son message
+  // disparaît avant d'être lu. Et six mois plus tard, « est-ce que je l'ai
+  // prévenue ? » reste une question qui se pose.
+  annulationNotifieeLe DateTime?
+
   // Pourcentage figé au moment de la demande, comme l'est le prix de chaque
   // ligne : le barème peut changer, ce qui a été promis à cette cliente-là ne
   // doit pas bouger sous ses yeux.

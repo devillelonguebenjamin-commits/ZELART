@@ -599,6 +599,31 @@ cliente, et les règles de palier vivent dans une fonction unique (`statutDepuis
 partagée avec l'espace cliente : deux décomptes séparés finiraient par ne plus dire la même
 chose.
 
+## Annuler ou refuser en disant pourquoi
+
+Une annulation par Zélia ne partait nulle part : la cliente découvrait le changement dans son
+espace, ou ne le découvrait pas. Acceptable pour un rendez-vous qu'elle annule elle-même, pas pour
+celui qu'on lui retire.
+
+Le bouton *Annuler* (ou *Refuser* sur une demande) ouvre désormais un panneau avec **un mot pour
+la cliente** et **une sélection de créneaux libres à lui proposer**, les deux facultatifs — le
+libellé du bouton dit ce qui va se passer, « annuler sans message » ou « annuler et prévenir », pour
+qu'on ne découvre pas après coup qu'un e-mail est parti. L'e-mail adapte son ouverture au cas :
+rendez-vous confirmé annulé, demande refusée, ou proposition d'horaire non retenue.
+
+Les créneaux cochés sont **revérifiés au moment de l'envoi** : celui qui était libre cinq minutes
+plus tôt a pu être réservé entre-temps, et proposer un horaire déjà pris ferait revenir la cliente
+sur un refus. Ceux qui ne le sont plus sont écartés, et le retour le dit.
+
+La liste d'attente n'est prévenue que si le rendez-vous était **confirmé** : une demande jamais
+confirmée n'occupait aucun créneau, il n'y a rien à libérer.
+
+**La preuve de l'envoi est stockée** (`annulationNotifieeLe`), pas affichée à chaud. En passant à
+« annulé », la carte change de section de l'agenda : le composant est démonté et son message
+disparaît avant d'être lu — le piège déjà rencontré avec la validation de venue. La carte affiche
+donc « Cliente prévenue le … » ou « Annulé sans message à la cliente », et la question « est-ce que
+je l'ai prévenue ? » trouve encore sa réponse six mois plus tard.
+
 ## Rendez-vous pris de vive voix
 
 Toutes les clientes ne passeront pas par le site : une habituée appelle, une autre prend rendez-vous

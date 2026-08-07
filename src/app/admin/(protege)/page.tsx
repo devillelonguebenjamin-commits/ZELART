@@ -5,7 +5,6 @@ import { formatPrix, totalTarifs } from "@/lib/format";
 import {
   changerStatutRendezVous,
   marquerAcompteRegle,
-  refuserCreneauPropose,
   renvoyerLienAcompte,
 } from "@/actions/admin";
 import { supprimerListeAttente } from "@/actions/liste-attente";
@@ -20,6 +19,8 @@ import { jourParis, ouvertureActive } from "@/lib/creneaux";
 import CalendrierMois from "@/components/CalendrierMois";
 import FormulaireRdvManuel from "@/components/FormulaireRdvManuel";
 import FormulaireCreneauPerso from "@/components/FormulaireCreneauPerso";
+import AnnulationAvecMessage from "@/components/AnnulationAvecMessage";
+import { getCreneauxDisponibles, type Creneau } from "@/lib/creneaux";
 
 const JOUR_MS = 24 * 60 * 60 * 1000;
 
@@ -113,11 +114,13 @@ function CarteRdv({
   nouvelle,
   lienAcompteConfigure,
   avantages,
+  creneauxLibres,
 }: {
   rdv: RdvComplet;
   nouvelle: boolean;
   lienAcompteConfigure: boolean;
   avantages: AvantageEnAttente[];
+  creneauxLibres: Creneau[];
 }) {
   const badge = BADGES[rdv.statut] ?? BADGES.EN_ATTENTE;
   const totalRdv = totalTarifs(rdv.lignes.map((l) => l.prestation));
@@ -267,6 +270,14 @@ function CarteRdv({
         </div>
       )}
 
+      {rdv.statut === "ANNULE" && (
+        <p className="mt-2 text-xs text-foreground/60">
+          {rdv.annulationNotifieeLe
+            ? `✉️ Cliente prévenue le ${formatJour(rdv.annulationNotifieeLe)}`
+            : "Annulé sans message à la cliente."}
+        </p>
+      )}
+
       <div className="mt-3 flex flex-wrap gap-2">
         {rdv.statut === "EN_ATTENTE" &&
           (rdv.creneauPropose ? (
@@ -274,19 +285,20 @@ function CarteRdv({
             // l'annulation ordinaire se contente de libérer le créneau.
             <>
               <BoutonStatut id={rdv.id} statut="CONFIRME" label="✓ Accepter l’horaire" />
-              <form action={refuserCreneauPropose.bind(null, rdv.id)}>
-                <button
-                  type="submit"
-                  className="rounded-full border border-pink-200 px-3 py-1 text-xs font-medium text-pink-600 transition hover:bg-pink-50"
-                >
-                  ✕ Refuser l&rsquo;horaire
-                </button>
-              </form>
+              <AnnulationAvecMessage
+                rendezVousId={rdv.id}
+                confirme={false}
+                creneauxLibres={creneauxLibres}
+              />
             </>
           ) : (
             <>
               <BoutonStatut id={rdv.id} statut="CONFIRME" label="✓ Confirmer" />
-              <BoutonStatut id={rdv.id} statut="ANNULE" label="✕ Annuler" />
+              <AnnulationAvecMessage
+                rendezVousId={rdv.id}
+                confirme={false}
+                creneauxLibres={creneauxLibres}
+              />
             </>
           ))}
         {/* Position unique, quel que soit le statut : la validation fait passer
@@ -304,7 +316,11 @@ function CarteRdv({
         {rdv.statut === "CONFIRME" && (
           <>
             <BoutonStatut id={rdv.id} statut="NO_SHOW" label="Absente" />
-            <BoutonStatut id={rdv.id} statut="ANNULE" label="✕ Annuler" />
+            <AnnulationAvecMessage
+              rendezVousId={rdv.id}
+              confirme
+              creneauxLibres={creneauxLibres}
+            />
           </>
         )}
         {(rdv.statut === "ANNULE" || rdv.statut === "NO_SHOW") && (
@@ -329,7 +345,7 @@ export default async function Agenda({
   const { annee, mois } = moisDemande(moisDemandeCle);
   const bornes = bornesMois(annee, mois);
 
-  const [rdvs, acompte, listeAttente, avantagesEnAttente, rdvsDuMois, congesDuMois, clientes, catalogue, ouvertures] =
+  const [rdvs, acompte, listeAttente, avantagesEnAttente, rdvsDuMois, congesDuMois, clientes, catalogue, ouvertures, creneauxLibres] =
     await Promise.all([
       prisma.rendezVous.findMany({
         where: { debut: { gte: ilYa14Jours } },
@@ -371,6 +387,7 @@ export default async function Agenda({
         orderBy: { ordre: "asc" },
       }),
       prisma.disponibilite.findMany(),
+      getCreneauxDisponibles(),
     ]);
 
   // Jours de repos : aucune ouverture ne s'applique. Les hachures du calendrier
@@ -467,6 +484,7 @@ export default async function Agenda({
                 nouvelle={estNouvelle(rdv)}
                 lienAcompteConfigure={Boolean(acompte.lien)}
                 avantages={avantagesParCliente.get(rdv.clienteId) ?? []}
+                creneauxLibres={creneauxLibres}
               />)
           )}
         </div>
@@ -544,6 +562,7 @@ export default async function Agenda({
                 nouvelle={estNouvelle(rdv)}
                 lienAcompteConfigure={Boolean(acompte.lien)}
                 avantages={avantagesParCliente.get(rdv.clienteId) ?? []}
+                creneauxLibres={creneauxLibres}
               />)
           )}
         </div>
@@ -563,6 +582,7 @@ export default async function Agenda({
                 nouvelle={estNouvelle(rdv)}
                 lienAcompteConfigure={Boolean(acompte.lien)}
                 avantages={avantagesParCliente.get(rdv.clienteId) ?? []}
+                creneauxLibres={creneauxLibres}
               />)
           )}
         </div>
