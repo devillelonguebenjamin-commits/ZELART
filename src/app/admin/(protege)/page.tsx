@@ -197,7 +197,7 @@ function CarteRdv({
           </p>
           {rdv.remiseFilleule && (
             <p className="mt-1 font-medium text-pink-800">
-              💕 −{REMISE_FILLEULE_POURCENT} % — première prestation d&rsquo;une filleule
+              💕 −{rdv.remiseFilleulePourcent ?? REMISE_FILLEULE_POURCENT} % — première prestation d&rsquo;une filleule
             </p>
           )}
           {avantages.map((avantage) => (

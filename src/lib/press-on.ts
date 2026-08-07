@@ -79,3 +79,34 @@ export function totalCommande(commande: {
     aPartirDe: commande.aPartirDe,
   };
 }
+
+/**
+ * Ce qu'on demande à régler en ligne, selon le mode de remise.
+ *
+ * Envoi postal : la totalité, port compris — le set part de chez Zélia, elle ne
+ * reverra pas la cliente. Retrait au salon : l'acompte seulement, le solde se
+ * règle sur place en espèces ou par carte, comme pour une prestation. Dans les
+ * deux cas quelque chose est réglé avant fabrication : un set sur-mesure jamais
+ * récupéré est de la matière et des heures perdues.
+ *
+ * Vit ici et non dans les actions : un module « use server » ne peut exporter
+ * que des fonctions asynchrones, et la page a besoin du calcul pour annoncer le
+ * montant avant tout envoi.
+ */
+export function montantARegler(
+  commande: {
+    modeRemise: ModeRemise;
+    prixCents: number;
+    aPartirDe: boolean;
+    fraisPortCents: number | null;
+  },
+  acompteCents: number
+): { cents: number; total: number; solde: number; acompteSeul: boolean } {
+  const total = totalCommande(commande).prixCents;
+  if (commande.modeRemise === "POSTAL") {
+    return { cents: total, total, solde: 0, acompteSeul: false };
+  }
+  // Un acompte supérieur au total n'aurait pas de sens : on encaisse alors tout.
+  const cents = Math.min(acompteCents, total);
+  return { cents, total, solde: total - cents, acompteSeul: cents < total };
+}

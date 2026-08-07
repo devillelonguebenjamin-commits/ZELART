@@ -4,6 +4,7 @@ import { formatJour } from "@/lib/creneaux";
 import { formatPrix } from "@/lib/format";
 import FormulaireNouvelleCliente from "@/components/FormulaireNouvelleCliente";
 import CelluleCommentaire from "@/components/CelluleCommentaire";
+import BoutonSupprimerCliente from "@/components/BoutonSupprimerCliente";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +76,7 @@ export default async function Clientes({
               <th className="px-5 py-3 font-medium">Dernière venue</th>
               <th className="px-5 py-3 font-medium">Offres</th>
               <th className="px-5 py-3 font-medium">Commentaire</th>
+              <th className="px-5 py-3 font-medium"><span className="sr-only">Supprimer</span></th>
             </tr>
           </thead>
           <tbody>
@@ -123,11 +125,18 @@ export default async function Clientes({
                 <td className="px-5 py-2 align-top">
                   <CelluleCommentaire clienteId={cliente.id} valeur={cliente.notes ?? ""} />
                 </td>
+                <td className="px-3 py-2 text-right align-top">
+                  <BoutonSupprimerCliente
+                    clienteId={cliente.id}
+                    nom={`${cliente.prenom} ${cliente.nom}`}
+                    nbRendezVous={cliente.nbRendezVous}
+                  />
+                </td>
               </tr>
             ))}
             {clientes.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-5 py-6 text-center text-foreground/60">
+                <td colSpan={8} className="px-5 py-6 text-center text-foreground/60">
                   {q ? "Aucune cliente ne correspond à cette recherche." : "Aucune cliente pour l’instant."}
                 </td>
               </tr>

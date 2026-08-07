@@ -8,13 +8,17 @@ import {
   ETAPES,
   LIBELLE_REMISE,
   LIBELLE_STATUT,
+  montantARegler,
   totalCommande,
 } from "@/lib/press-on";
 import {
   changerStatutCommande,
   enregistrerFraisPort,
+  enregistrerLienPaiement,
   enregistrerNoteCommande,
 } from "@/actions/admin-press-on";
+import { reglagesAcompte } from "@/lib/parametres";
+import { sumupConfigure } from "@/lib/sumup";
 import BoutonDemandePaiement from "@/components/BoutonDemandePaiement";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +37,9 @@ export default async function CommandePressOnDetail({
 
   const total = totalCommande(commande);
   const postal = commande.modeRemise === "POSTAL";
+  const { montantCents: acompteCents } = await reglagesAcompte();
+  const aRegler = montantARegler(commande, acompteCents);
+  const sumupActif = sumupConfigure();
 
   return (
     <div className="space-y-8">
@@ -170,12 +177,56 @@ export default async function CommandePressOnDetail({
             <span className="ml-2 text-xs text-amber-700">(frais d&rsquo;envoi non chiffrés)</span>
           )}
         </p>
+        {/* Ce qui sera réellement demandé en ligne : un envoi postal se règle
+            entièrement d'avance, un retrait au salon seulement pour l'acompte,
+            le solde se payant sur place. */}
+        <p className="mt-1 text-sm">
+          <span className="text-foreground/60">Demandé en ligne : </span>
+          <strong>{formatPrix(aRegler.cents)}</strong>
+          {aRegler.acompteSeul && (
+            <span className="text-foreground/60">
+              {" "}
+              (acompte) · <strong>{formatPrix(aRegler.solde)}</strong> à encaisser au salon
+            </span>
+          )}
+        </p>
         <p className="mt-1 text-xs text-foreground/60">
           {commande.paiementDemandeLe
             ? `Demande de règlement envoyée le ${formatJour(commande.paiementDemandeLe)}.`
             : "Aucune demande de règlement envoyée."}
           {commande.paiementRecuLe && ` Réglée le ${formatJour(commande.paiementRecuLe)}.`}
         </p>
+
+        {/* Lien de paiement : l'API s'en charge si elle est configurée, sinon
+            Zélia colle celui qu'elle a créé dans son application SumUp. Le lien
+            réutilisable des réglages ne convient pas, il porte le montant de
+            l'acompte des rendez-vous. */}
+        <form
+          action={enregistrerLienPaiement.bind(null, commande.id)}
+          className="mt-4 rounded-xl bg-pink-50/70 px-4 py-3"
+        >
+          <label className="block text-sm">
+            <span className="font-medium">Lien de paiement de cette commande</span>
+            <span className="mt-0.5 block text-xs text-foreground/60">
+              {sumupActif
+                ? "L'API SumUp crée le lien toute seule à l'envoi. Renseignez ce champ seulement pour imposer le vôtre."
+                : `Créez un lien de ${formatPrix(aRegler.cents)} dans votre application SumUp (Paiements par lien), puis collez-le ici.`}
+            </span>
+            <input
+              name="lienPaiement"
+              type="url"
+              defaultValue={commande.lienPaiement ?? ""}
+              placeholder="https://pay.sumup.com/…"
+              className="mt-2 w-full rounded-lg border border-pink-200 bg-white px-3 py-2 text-sm outline-none focus:border-pink-500"
+            />
+          </label>
+          <button
+            type="submit"
+            className="mt-2 rounded-full border border-pink-300 bg-white px-4 py-1.5 text-xs font-medium text-pink-700 transition hover:bg-pink-100"
+          >
+            Enregistrer le lien
+          </button>
+        </form>
 
         <div className="mt-4">
           <BoutonDemandePaiement

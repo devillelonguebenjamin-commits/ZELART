@@ -43,7 +43,7 @@ export async function recompenserMarraine(
   };
 
   // Zélia est prévenue la première : c'est elle qui honore l'avantage au salon,
-  // et elle doit pouvoir le préparer — une manucure offerte n'est pas un détail
+  // et elle doit pouvoir le préparer — une pose offerte n'est pas un détail
   // à découvrir au moment de l'encaissement. L'envoi a lieu même si la marraine
   // est bloquée ou désinscrite : ce sont ses e-mails à elle qui s'arrêtent, pas
   // le suivi de la gérante.

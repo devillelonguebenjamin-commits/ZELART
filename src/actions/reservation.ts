@@ -18,6 +18,7 @@ import { clienteBloquee, MESSAGE_BLOCAGE } from "@/lib/blocage";
 import { urlSite } from "@/lib/site";
 import { nouveauCodeUnique } from "@/lib/cliente-auth";
 import { deposeNecessaire, prestationProposee, trouverDepose } from "@/lib/regles";
+import { REMISE_FILLEULE_POURCENT } from "@/lib/parrainage";
 import { formatDuree, formatPrix, totalDuree, totalTarifs } from "@/lib/format";
 
 const LIBELLE_ETAT: Record<string, string> = {
@@ -252,6 +253,10 @@ export async function creerReservation(
             consentementSante: true,
             creneauPropose: propose,
             remiseFilleule: marrainee && dejaVenue === 0,
+            // Le taux est figé ici, comme le prix de chaque ligne : le barème
+            // peut évoluer, ce qui a été annoncé à cette cliente ne bouge pas.
+            remiseFilleulePourcent:
+              marrainee && dejaVenue === 0 ? REMISE_FILLEULE_POURCENT : null,
             lignes: {
               create: lignes.map((ligne, ordre) => ({
                 prestationId: ligne.prestation.id,

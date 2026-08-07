@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { REMISE_FILLEULE_POURCENT } from "@/lib/parrainage-bareme";
 
 // Le partage natif ouvre la feuille du système — WhatsApp, SMS, Instagram,
 // tout ce que la personne a installé. Il n'existe pas partout, surtout sur
@@ -37,7 +38,7 @@ export default function PartageCodeParrainage({
     };
   }, []);
 
-  const message = `Je vais chez Zelart Nails à Saint-Nazaire 💅 Avec mon code ${code}, tu as −15 % sur ta première prestation : ${lien}`;
+  const message = `Je vais chez Zelart Nails à Saint-Nazaire 💅 Avec mon code ${code}, tu as −${REMISE_FILLEULE_POURCENT} % sur ta première prestation : ${lien}`;
 
   async function copier() {
     try {

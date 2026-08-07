@@ -11,6 +11,8 @@ export type LigneCliente = {
   desabonneLe: Date | null;
   creeLe: Date;
   nbHonores: number;
+  /** Tous statuts confondus : ce que la suppression de la fiche emporterait. */
+  nbRendezVous: number;
   dernierRdv: Date | null;
   totalCents: number;
 };
@@ -59,6 +61,7 @@ export async function listerClientes(recherche = ""): Promise<LigneCliente[]> {
       desabonneLe: cliente.desabonneLe,
       creeLe: cliente.creeLe,
       nbHonores: honores.length,
+      nbRendezVous: cliente.rendezVous.length,
       dernierRdv: cliente.rendezVous[0]?.debut ?? null,
       totalCents: honores.reduce(
         (somme, r) => somme + r.lignes.reduce((s, l) => s + l.prestation.prixCents, 0),

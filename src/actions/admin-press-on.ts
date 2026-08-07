@@ -6,8 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { exigerAdmin } from "@/lib/auth";
 import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { formatPrix } from "@/lib/format";
-import { LIBELLE_REMISE, totalCommande } from "@/lib/press-on";
-import { reglagesAcompte } from "@/lib/parametres";
+import { LIBELLE_REMISE, montantARegler } from "@/lib/press-on";
+import { lienSumUpValide, reglagesAcompte } from "@/lib/parametres";
+import { creerLienPaiement, sumupConfigure } from "@/lib/sumup";
 import type { StatutCommandePressOn } from "@/generated/prisma/client";
 
 const STATUTS: StatutCommandePressOn[] = [
@@ -103,18 +104,10 @@ export async function enregistrerNoteCommande(id: string, formData: FormData): P
 
 export type EtatEnvoiPaiement = { ok?: boolean; message?: string };
 
-// Envoie le montant à régler et le lien SumUp, et bascule la commande en
-// « en attente de règlement ». Sans lien configuré, rien n'est envoyé.
+// Envoie le montant à régler et le lien de paiement, et bascule la commande en
+// « en attente de règlement ».
 export async function envoyerDemandePaiement(id: string): Promise<EtatEnvoiPaiement> {
   await exigerAdmin();
-
-  const { lien } = await reglagesAcompte();
-  if (!lien) {
-    return {
-      ok: false,
-      message: "Renseignez d'abord votre lien de paiement SumUp dans les réglages.",
-    };
-  }
 
   const commande = await prisma.commandePressOn.findUnique({
     where: { id },
@@ -125,27 +118,57 @@ export async function envoyerDemandePaiement(id: string): Promise<EtatEnvoiPaiem
     return { ok: false, message: "Chiffrez les frais de port avant de demander le règlement." };
   }
 
-  const total = totalCommande(commande);
+  const { montantCents: acompteCents } = await reglagesAcompte();
+  const montant = montantARegler(commande, acompteCents);
+
+  // Trois sources possibles, dans cet ordre : le lien collé à la main sur la
+  // commande — Zélia a tranché elle-même —, puis l'API SumUp si elle est
+  // configurée. Sans l'une ni l'autre, on ne devine pas : le lien des réglages
+  // porte le montant de l'acompte des rendez-vous, pas celui de cette commande.
+  let lien = commande.lienPaiement;
+  if (!lien) {
+    if (!sumupConfigure()) {
+      return {
+        ok: false,
+        message:
+          "Aucun lien de paiement pour cette commande. Créez-en un dans votre application SumUp au montant indiqué, collez-le ci-dessous — ou configurez l'API SumUp pour que le site s'en charge.",
+      };
+    }
+    const checkout = await creerLienPaiement(
+      montant.cents,
+      `Press-on ${commande.modele.nom} — ${commande.cliente.prenom} ${commande.cliente.nom}`,
+      commande.id
+    );
+    if (!checkout.ok) return { ok: false, message: checkout.erreur };
+    lien = checkout.url;
+  }
+
   const resultat = await envoyerEmail(
     commande.cliente.email,
-    `Votre commande de press-on — ${formatPrix(total.prixCents, total.aPartirDe)}`,
+    `Votre commande de press-on — ${formatPrix(montant.cents)} à régler`,
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
       <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
-      <p>Bonjour ${commande.cliente.prenom},</p>
+      <p>Bonjour ${echapperHtml(commande.cliente.prenom)},</p>
       <p>Merci pour votre commande :</p>
-      <p><strong>${commande.modele.nom}</strong> — ${formatPrix(commande.prixCents, commande.aPartirDe)}<br>
+      <p><strong>${echapperHtml(commande.modele.nom)}</strong> — ${formatPrix(commande.prixCents, commande.aPartirDe)}<br>
       ${
         commande.fraisPortCents !== null
           ? `Frais d'envoi — ${formatPrix(commande.fraisPortCents)}<br>`
           : ""
       }
-      <strong>Total : ${formatPrix(total.prixCents, total.aPartirDe)}</strong><br>
+      <strong>Total : ${formatPrix(montant.total, commande.aPartirDe)}</strong><br>
       ${LIBELLE_REMISE[commande.modeRemise]}</p>
-      <p>Les press-on étant réalisés sur-mesure, le règlement est demandé
-      <strong>avant la fabrication</strong>.</p>
+      ${
+        montant.acompteSeul
+          ? `<p>Les press-on étant réalisés sur-mesure, un <strong>acompte de ${formatPrix(montant.cents)}</strong>
+             est demandé avant la fabrication. Le solde de <strong>${formatPrix(montant.solde)}</strong> se règle
+             au salon lors de la remise, en espèces ou par carte.</p>`
+          : `<p>Les press-on étant réalisés sur-mesure, le règlement est demandé
+             <strong>avant la fabrication</strong>.</p>`
+      }
       <p style="margin:24px 0">
         <a href="${lien}" style="background:#ec4899;color:#fff;text-decoration:none;padding:12px 24px;border-radius:999px;display:inline-block;font-weight:600">
-          Régler ma commande
+          Régler ${formatPrix(montant.cents)}
         </a>
       </p>
       <p style="font-size:13px;color:#8a6274">Le paiement est traité par SumUp. Votre set est lancé
@@ -162,10 +185,36 @@ export async function envoyerDemandePaiement(id: string): Promise<EtatEnvoiPaiem
 
   await prisma.commandePressOn.update({
     where: { id },
-    data: { statut: "A_PAYER", paiementDemandeLe: new Date() },
+    data: {
+      statut: "A_PAYER",
+      paiementDemandeLe: new Date(),
+      lienPaiement: lien,
+      montantDemandeCents: montant.cents,
+    },
   });
   rafraichir(id);
-  return { ok: true, message: `Demande de règlement envoyée à ${commande.cliente.email}.` };
+  return {
+    ok: true,
+    message: `Demande de ${formatPrix(montant.cents)} envoyée à ${commande.cliente.email}.`,
+  };
+}
+
+// Lien de paiement collé à la main, quand l'API SumUp n'est pas configurée.
+export async function enregistrerLienPaiement(
+  id: string,
+  formData: FormData
+): Promise<void> {
+  await exigerAdmin();
+  const brut = String(formData.get("lienPaiement") ?? "").trim();
+
+  // Un lien vide efface : c'est le moyen de repartir sur un lien créé par l'API.
+  if (brut && !lienSumUpValide(brut)) return;
+
+  await prisma.commandePressOn.update({
+    where: { id },
+    data: { lienPaiement: brut || null },
+  });
+  rafraichir(id);
 }
 
 // --- Catalogue ---

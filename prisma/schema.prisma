@@ -55,10 +55,18 @@ model Cliente {
 // diverge de la réalité. Seuls les avantages accordés sont conservés, car ils
 // se consomment.
 enum TypeAvantage {
-  BESTIE_REMISE // −15 % sur la prochaine prestation (1 filleule)
-  SQUAD_MANUCURE // une manucure offerte (3 filleules)
-  ICONE_CHOIX // nail art niveau 2 ou press-on, au choix (5 filleules)
+  // Barème en vigueur.
+  BESTIE_HUILE // une huile à cuticule (1 filleule)
+  SQUAD_REMISE // −10 % sur la prochaine prestation (3 filleules)
+  ICONE_NAIL_ART // un nail art niveau 2 (5 filleules)
   DIVA_POSE_ANNUELLE // une pose offerte par année de statut Ambassadrice (10 filleules)
+
+  // Barème précédent, conservé pour les avantages déjà accordés : une cliente
+  // qui a gagné −15 % garde −15 %. Ces valeurs ne sont plus attribuées, mais
+  // les supprimer réécrirait ce qui lui a été promis.
+  BESTIE_REMISE // −15 % sur la prochaine prestation
+  SQUAD_MANUCURE // une manucure offerte
+  ICONE_CHOIX // nail art niveau 2 ou press-on, au choix
 }
 
 model AvantageParrainage {
@@ -295,6 +303,11 @@ model RendezVous {
   // voir avant d'accepter.
   creneauPropose Boolean @default(false)
 
+  // Pourcentage figé au moment de la demande, comme l'est le prix de chaque
+  // ligne : le barème peut changer, ce qui a été promis à cette cliente-là ne
+  // doit pas bouger sous ses yeux.
+  remiseFilleulePourcent Int?
+
   // Mot laissé au moment de valider la venue. Distinct de la fiche technique :
   // celle-ci décrit la pose pour la reproduire, celui-ci raconte la visite —
   // ponctualité, envies exprimées, ce qu'il faudra retenir la prochaine fois.
@@ -421,6 +434,14 @@ model CommandePressOn {
 
   statut StatutCommandePressOn @default(DEMANDE)
   note   String? // note interne de Zélia
+
+  // Lien de règlement propre à cette commande, au bon montant. Créé par l'API
+  // SumUp quand elle est configurée, sinon collé à la main par Zélia depuis un
+  // lien de paiement créé dans son application. Le lien réutilisable des
+  // réglages ne peut pas servir ici : il porte le montant de l'acompte des
+  // rendez-vous, pas celui du set.
+  lienPaiement       String?
+  montantDemandeCents Int? // ce qui a réellement été demandé, acompte ou total
 
   paiementDemandeLe DateTime?
   paiementRecuLe    DateTime?

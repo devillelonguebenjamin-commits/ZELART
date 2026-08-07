@@ -49,8 +49,9 @@ export default async function PressOn() {
           {[
             { titre: "Sur-mesure", texte: "Chaque set est taillé d'après vos mesures." },
             {
-              titre: "Paiement avant fabrication",
-              texte: "Par carte (SumUp) ou en espèces à la remise en main propre.",
+              titre: "Réglé avant fabrication",
+              texte:
+                "En envoi postal : la totalité d'avance, par lien SumUp. En retrait au salon : un acompte, le solde en espèces ou par carte à la remise.",
             },
             {
               titre: "Remise ou envoi",
