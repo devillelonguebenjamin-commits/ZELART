@@ -104,7 +104,7 @@ export default async function Confirmation({
             {rendezVous.remiseFilleule && (
               <p className="rounded-2xl bg-pink-50 px-5 py-4 font-medium text-pink-800">
                 💕 Bienvenue dans la squad ! Vous bénéficiez de{" "}
-                <strong>−{REMISE_FILLEULE_POURCENT} %</strong> sur cette première prestation, déduits
+                <strong>−{rendezVous.remiseFilleulePourcent ?? REMISE_FILLEULE_POURCENT} %</strong> sur cette première prestation, déduits
                 par Zélia au moment du règlement.
               </p>
             )}

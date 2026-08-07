@@ -1,4 +1,9 @@
-import { LIBELLE_AVANTAGE, PALIERS, type StatutParrainage } from "@/lib/parrainage";
+import {
+  LIBELLE_AVANTAGE,
+  PALIERS,
+  REMISE_FILLEULE_POURCENT,
+} from "@/lib/parrainage-bareme";
+import type { StatutParrainage } from "@/lib/parrainage";
 import PartageCodeParrainage from "@/components/PartageCodeParrainage";
 import type { TypeAvantage } from "@/generated/prisma/client";
 
@@ -39,7 +44,7 @@ export default function CarteSquad({
 
       <p className="mt-2 text-sm text-foreground/75">
         Partagez votre code : la personne le saisit à sa première réservation, elle repart avec{" "}
-        <strong>−15 %</strong>, et votre squad s&rsquo;agrandit.
+        <strong>−{REMISE_FILLEULE_POURCENT} %</strong>, et votre squad s&rsquo;agrandit.
       </p>
 
       <p className="mt-4 inline-block rounded-2xl border-2 border-dashed border-pink-300 bg-white px-6 py-3 font-display text-2xl font-bold tracking-wider text-pink-600">

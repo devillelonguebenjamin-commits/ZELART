@@ -1,6 +1,15 @@
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
+import {
+  LIBELLE_AVANTAGE,
+  PALIERS,
+  REMISE_FILLEULE_POURCENT,
+  type Palier,
+} from "@/lib/parrainage-bareme";
 import type { TypeAvantage } from "@/generated/prisma/client";
+
+// Réexportés pour que les appelants côté serveur n'aient qu'une porte d'entrée.
+export { LIBELLE_AVANTAGE, PALIERS, REMISE_FILLEULE_POURCENT, type Palier };
 
 // Programme « Squad ».
 //
@@ -13,60 +22,19 @@ import type { TypeAvantage } from "@/generated/prisma/client";
 // consomment. Une valeur figée finirait par diverger de la réalité — une
 // filleule dont le rendez-vous repasse en annulé, par exemple.
 
-export const REMISE_FILLEULE_POURCENT = 15;
-
-export type Palier = {
-  cle: "AUCUN" | "BESTIE" | "SQUAD" | "ICONE" | "DIVA";
-  nom: string;
-  seuil: number;
-  avantage: string;
-  emoji: string;
-};
-
-export const PALIERS: Palier[] = [
-  { cle: "AUCUN", nom: "Squad en formation", seuil: 0, avantage: "", emoji: "✨" },
-  {
-    cle: "BESTIE",
-    nom: "Bestie",
-    seuil: 1,
-    avantage: "−15 % sur votre prochaine prestation",
-    emoji: "💕",
-  },
-  { cle: "SQUAD", nom: "Squad", seuil: 3, avantage: "Une manucure offerte", emoji: "🌟" },
-  {
-    cle: "ICONE",
-    nom: "Icône",
-    seuil: 5,
-    avantage: "Un nail art niveau 2 ou un set de press-on, au choix",
-    emoji: "👑",
-  },
-  {
-    cle: "DIVA",
-    nom: "DIVA",
-    seuil: 10,
-    avantage: "Statut Ambassadrice : une pose offerte par an et la dépose offerte",
-    emoji: "💎",
-  },
-];
-
 // Le statut Ambassadrice se mérite chaque année : sans une filleule venue dans
 // les douze derniers mois, il redescend au palier précédent jusqu'à
 // réactivation. Les paliers inférieurs, eux, restent acquis.
 const FENETRE_MAINTIEN_MS = 365 * 24 * 60 * 60 * 1000;
 
 const AVANTAGE_DU_PALIER: Partial<Record<Palier["cle"], TypeAvantage>> = {
-  BESTIE: "BESTIE_REMISE",
-  SQUAD: "SQUAD_MANUCURE",
-  ICONE: "ICONE_CHOIX",
+  BESTIE: "BESTIE_HUILE",
+  SQUAD: "SQUAD_REMISE",
+  ICONE: "ICONE_NAIL_ART",
   DIVA: "DIVA_POSE_ANNUELLE",
 };
 
-export const LIBELLE_AVANTAGE: Record<TypeAvantage, string> = {
-  BESTIE_REMISE: "−15 % sur une prestation",
-  SQUAD_MANUCURE: "Une manucure offerte",
-  ICONE_CHOIX: "Un nail art niveau 2 ou un set de press-on, au choix",
-  DIVA_POSE_ANNUELLE: "Une pose offerte",
-};
+
 
 export type StatutParrainage = {
   filleulesVenues: number;
@@ -77,7 +45,6 @@ export type StatutParrainage = {
   ambassadriceEnSommeil: boolean;
   suivant: Palier | null;
   restantes: number;
-  deposeOfferte: boolean;
 };
 
 function palierPourNombre(nombre: number): Palier {
@@ -152,8 +119,6 @@ export function statutDepuisDecompte(
     ambassadriceEnSommeil,
     suivant,
     restantes: suivant ? suivant.seuil - nombre : 0,
-    // Suspendue avec le statut : elle n'est donc jamais annoncée « à vie ».
-    deposeOfferte: palier.cle === "DIVA",
   };
 }
 
@@ -218,6 +183,23 @@ function nouveauCodeAvantage(): string {
   return `SQUAD-${code}`;
 }
 
+/**
+ * Avantages qui récompensent le même palier, barèmes confondus.
+ *
+ * Les valeurs de l'ancien barème sont conservées pour que ce qui a été promis
+ * reste lisible ; il faut en contrepartie savoir qu'elles occupent la place du
+ * nouvel avantage correspondant.
+ */
+const EQUIVALENTS: Record<TypeAvantage, TypeAvantage[]> = {
+  BESTIE_HUILE: ["BESTIE_HUILE", "BESTIE_REMISE"],
+  BESTIE_REMISE: ["BESTIE_REMISE", "BESTIE_HUILE"],
+  SQUAD_REMISE: ["SQUAD_REMISE", "SQUAD_MANUCURE"],
+  SQUAD_MANUCURE: ["SQUAD_MANUCURE", "SQUAD_REMISE"],
+  ICONE_NAIL_ART: ["ICONE_NAIL_ART", "ICONE_CHOIX"],
+  ICONE_CHOIX: ["ICONE_CHOIX", "ICONE_NAIL_ART"],
+  DIVA_POSE_ANNUELLE: ["DIVA_POSE_ANNUELLE"],
+};
+
 /** Vrai quand l'échec vient du couple (cliente, type, période) déjà présent. */
 function dejaAccorde(e: unknown): boolean {
   const cible = (e as { code?: string; meta?: { target?: unknown } })?.meta?.target;
@@ -238,6 +220,19 @@ export async function attribuerAvantages(
   const statut = await statutParrainage(clienteId);
   const accordes: { type: TypeAvantage; code: string }[] = [];
 
+  // Ce que la cliente a déjà, ancien barème compris. La contrainte d'unicité ne
+  // porte que sur le type exact : sans ce contrôle, une marraine qui avait
+  // gagné « −15 % » sous l'ancien barème recevrait en plus l'huile à cuticule
+  // à la venue suivante, deux fois récompensée pour un palier franchi une fois.
+  const dejaObtenus = new Set(
+    (
+      await prisma.avantageParrainage.findMany({
+        where: { clienteId },
+        select: { type: true, periode: true },
+      })
+    ).map((a) => `${a.type}|${a.periode}`)
+  );
+
   // Tous les paliers franchis, pas seulement le dernier : une cliente qui
   // amène trois filleules d'un coup ne doit pas perdre le palier Bestie.
   for (const palier of PALIERS) {
@@ -248,6 +243,12 @@ export async function attribuerAvantages(
     // statut tient.
     if (type === "DIVA_POSE_ANNUELLE" && statut.palier.cle !== "DIVA") continue;
     const periode = type === "DIVA_POSE_ANNUELLE" ? String(new Date().getFullYear()) : "";
+
+    // Un palier franchi une fois ne se récompense qu'une fois, quel que soit le
+    // barème en vigueur ce jour-là.
+    if (EQUIVALENTS[type].some((equivalent) => dejaObtenus.has(`${equivalent}|${periode}`))) {
+      continue;
+    }
 
     // Deux échecs possibles, à ne pas confondre : l'avantage est déjà accordé —
     // le cas normal, la contrainte fait son travail — ou le code tiré existe

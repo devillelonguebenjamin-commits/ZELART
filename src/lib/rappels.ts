@@ -5,6 +5,7 @@ import { formatPrix, totalTarifs } from "@/lib/format";
 import { reglagesAcompte, reglagesRappels } from "@/lib/parametres";
 import { lienDemandeAvis } from "@/lib/avis";
 import { attribuerAvantages } from "@/lib/parrainage";
+import { compterEnAttente } from "@/lib/en-attente";
 import { urlSite } from "@/lib/site";
 import type { TypePose } from "@/generated/prisma/client";
 
@@ -16,6 +17,7 @@ export type BilanRappels = {
   acompte: { envoyees: number; echecs: number };
   reconquete: { envoyees: number; echecs: number };
   avantagesParrainage: number;
+  recapEnAttente: boolean;
 };
 
 const JOUR_MS = 24 * 60 * 60 * 1000;
@@ -316,6 +318,53 @@ async function envoyerRelancesAcompte(): Promise<{ envoyees: number; echecs: num
   return { envoyees, echecs };
 }
 
+// --- Ce qui attend Zélia ----------------------------------------------------
+
+// Une demande de rendez-vous et une commande de press-on déclenchent déjà un
+// e-mail sur-le-champ. Ce récapitulatif ne les remplace pas : il rattrape ceux
+// qu'on n'a pas vus passer. Sans lui, un message manqué le mardi ne se rappelle
+// à personne, et une cliente attend une confirmation qui ne vient pas.
+async function envoyerRecapEnAttente(): Promise<{ envoye: boolean }> {
+  if (!process.env.NOTIFY_EMAIL) return { envoye: false };
+
+  const attente = await compterEnAttente();
+  // Rien à faire : pas de message. Un récapitulatif quotidien vide finirait par
+  // se lire sans être ouvert, et celui qui compte avec.
+  if (attente.total === 0) return { envoye: false };
+
+  const lignes = [
+    attente.agenda > 0
+      ? `<li><strong>${attente.agenda} demande${attente.agenda > 1 ? "s" : ""} de rendez-vous</strong> à confirmer — <a href="${urlSite()}/admin">ouvrir l'agenda</a></li>`
+      : "",
+    attente.pressOn > 0
+      ? `<li><strong>${attente.pressOn} commande${attente.pressOn > 1 ? "s" : ""} de press-on</strong> à chiffrer et confirmer — <a href="${urlSite()}/admin/press-on">ouvrir les commandes</a></li>`
+      : "",
+    attente.parrainage > 0
+      ? `<li><strong>${attente.parrainage} avantage${attente.parrainage > 1 ? "s" : ""} de parrainage</strong> à honorer — <a href="${urlSite()}/admin/parrainage">ouvrir le parrainage</a></li>`
+      : "",
+    attente.listeAttente > 0
+      ? `<li>${attente.listeAttente} personne${attente.listeAttente > 1 ? "s" : ""} en liste d'attente, prévenue${attente.listeAttente > 1 ? "s" : ""} à la prochaine annulation</li>`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("");
+
+  const resultat = await envoyerEmail(
+    process.env.NOTIFY_EMAIL,
+    `À traiter aujourd'hui : ${attente.total} demande${attente.total > 1 ? "s" : ""}`,
+    `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
+      <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
+      <p>Bonjour Zélia,</p>
+      <p>Voici ce qui attend une réponse de votre part :</p>
+      <ul>${lignes}</ul>
+      <p style="font-size:13px;color:#8a6274">Ce récapitulatif ne part que les jours où quelque
+      chose est en attente.</p>
+    </div>`
+  );
+
+  return { envoye: resultat.ok };
+}
+
 // --- Renouvellement du statut Ambassadrice ---------------------------------
 
 // La pose offerte des Ambassadrices se renouvelle au changement d'année : rien
@@ -446,6 +495,12 @@ export async function executerRappels(): Promise<BilanRappels> {
   // de confort qu'on pourrait vouloir couper séparément.
   const acompte = await etape("acompte", envoyerRelancesAcompte, AUCUNE_ENVOYEE);
 
+  // Comme la relance d'acompte, le récapitulatif ne dépend pas du réglage des
+  // envois automatiques : celui-ci gouverne ce que reçoivent les clientes, pas
+  // ce que Zélia se doit à elle-même de traiter. Le couper reviendrait à ne plus
+  // être prévenue qu'une cliente attend une réponse.
+  const recap = await etape("récapitulatif", envoyerRecapEnAttente, { envoye: false });
+
   if (!actifs) {
     return {
       actifs: false,
@@ -455,6 +510,7 @@ export async function executerRappels(): Promise<BilanRappels> {
       acompte,
       reconquete: { envoyees: 0, echecs: 0 },
       avantagesParrainage: 0,
+      recapEnAttente: recap.envoye,
     };
   }
 
@@ -463,5 +519,14 @@ export async function executerRappels(): Promise<BilanRappels> {
   const avis = await etape("avis", envoyerDemandesAvis, AUCUNE_ENVOYEE);
   const reconquete = await etape("reconquête", envoyerReconquetes, AUCUNE_ENVOYEE);
   const avantagesParrainage = await etape("parrainage", renouvelerAvantagesParrainage, 0);
-  return { actifs: true, rappels, relances, avis, acompte, reconquete, avantagesParrainage };
+  return {
+    actifs: true,
+    rappels,
+    relances,
+    avis,
+    acompte,
+    reconquete,
+    avantagesParrainage,
+    recapEnAttente: recap.envoye,
+  };
 }

@@ -6,6 +6,7 @@ import ListeAttenteForm from "@/components/ListeAttenteForm";
 import InfoPrestation from "@/components/InfoPrestation";
 import PropositionCreneau from "@/components/PropositionCreneau";
 import type { Creneau } from "@/lib/creneaux";
+import { REMISE_FILLEULE_POURCENT } from "@/lib/parrainage-bareme";
 import { formatDuree, formatPrix, totalDuree, totalTarifs } from "@/lib/format";
 import {
   aUnePose,
@@ -497,7 +498,8 @@ export default function ReservationWizard({
               <span className="text-sm font-medium">
                 Code de parrainage{" "}
                 <span className="text-foreground/50">
-                  (facultatif — une cliente vous a recommandée ? vous gagnez −15 %)
+                  (facultatif — une cliente vous a recommandée ? vous gagnez −
+                  {REMISE_FILLEULE_POURCENT} %)
                 </span>
               </span>
               <input

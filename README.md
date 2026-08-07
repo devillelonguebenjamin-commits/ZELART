@@ -160,7 +160,9 @@ Protégé par la variable d'environnement `ADMIN_PASSWORD` (session par cookie s
   et créneaux perdus. Le prix est figé sur chaque ligne de prestation au moment de la demande
   (`LignePrestation.prixCents`) : modifier un tarif ne réécrit pas l'historique.
 - **Clientes** : liste complète avec recherche, nombre de poses honorées, total dépensé et état du
-  consentement ; ajout manuel d'une fiche, export CSV (`/api/clientes/export`, séparateur
+  consentement ; ajout manuel d'une fiche, suppression directe par la croix en bout de ligne —
+  en deux temps, la confirmation rappelant combien de rendez-vous disparaîtraient avec la fiche —,
+  export CSV (`/api/clientes/export`, séparateur
   point-virgule et BOM UTF-8 pour Excel en français), fiche détaillée avec historique, notes
   privées, accord aux offres et suppression définitive.
 - **Prestations** : édition des prix, durées, visibilité.
@@ -445,15 +447,34 @@ Ni la reconquête ni la demande d'avis ne partent à une cliente désinscrite ; 
 
 ## Programme de parrainage « Squad »
 
-La filleule saisit le code de sa marraine à sa première réservation : elle obtient **−15 % sur
+La filleule saisit le code de sa marraine à sa première réservation : elle obtient **−10 % sur
 sa première prestation**, cumulables avec les autres offres. La marraine gravit des paliers.
 
 | Palier | Filleules venues | Avantage |
 | --- | --- | --- |
-| Bestie 💕 | 1 | −15 % sur une prestation |
-| Squad 🌟 | 3 | Une manucure offerte |
-| Icône 👑 | 5 | Un nail art niveau 2 ou un set de press-on, au choix |
-| DIVA 💎 | 10 | Statut Ambassadrice : une pose offerte par an, dépose offerte |
+| Bestie 💕 | 1 | Une huile à cuticule offerte |
+| Squad 🌟 | 3 | −10 % sur une prestation |
+| Icône 👑 | 5 | Un nail art niveau 2 offert |
+| DIVA 💎 | 10 | Statut Ambassadrice : une pose offerte par an |
+
+### Changer le barème sans trahir ce qui a été promis
+
+Le barème a déjà évolué une fois, et deux précautions en découlent.
+
+Les anciennes valeurs de `TypeAvantage` (`BESTIE_REMISE`, `SQUAD_MANUCURE`, `ICONE_CHOIX`) sont
+**conservées** avec leurs libellés d'origine, suffixés « ancien barème ». Réutiliser les mêmes
+valeurs pour de nouvelles récompenses aurait transformé rétroactivement un « −15 % » gagné en
+« huile à cuticule » : la cliente aurait vu changer, dans son espace, ce qui lui avait été promis.
+
+La remise filleule était un simple drapeau, le pourcentage vivant dans le code : passer de 15 à
+10 aurait réduit après coup la remise annoncée aux demandes déjà envoyées. Le taux est désormais
+**figé sur le rendez-vous** (`remiseFilleulePourcent`), au même titre que le prix de chaque ligne
+de prestation, et l'existant a été rattrapé à 15 % par la migration.
+
+Le taux vit dans `lib/parrainage-bareme.ts`, un module **sans dépendance d'exécution** : les
+composants qui l'affichent tournent dans le navigateur, et importer `parrainage.ts` y
+entraînerait Prisma. Il y était jusqu'ici recopié en dur dans trois composants — il a suffi d'en
+changer un pour que les autres mentent.
 
 **Une filleule ne compte que lorsqu'elle est venue** (rendez-vous passé en *Terminé*). Sans
 cette règle, trois inscriptions jamais honorées offriraient une manucure.
@@ -487,9 +508,8 @@ même si les deux déclencheurs se croisent. Tous les paliers franchis sont attr
 seulement le dernier : trois filleules d'un coup rapportent Bestie *et* Squad.
 
 **Maintien du statut Ambassadrice** — sans filleule venue depuis douze mois, le statut redescend
-à Icône jusqu'à réactivation. Les avantages déjà gagnés restent acquis ; seuls la pose annuelle
-et la dépose offerte sont suspendues. C'est pourquoi la dépose n'est **jamais annoncée « à
-vie »** aux clientes : promettre puis reprendre serait pire que de ne rien promettre.
+à Icône jusqu'à réactivation. Les avantages déjà gagnés restent acquis ; seule la pose annuelle
+est suspendue.
 
 Le site n'encaisse pas : les remises sont **affichées** à la cliente et **rappelées à Zélia** sur
 la carte du rendez-vous, sous « À déduire à l'encaissement », avec un bouton *Utilisé* qui
@@ -526,6 +546,27 @@ Le classement charge toutes les marraines en **une requête** plutôt qu'un `sta
 cliente, et les règles de palier vivent dans une fonction unique (`statutDepuisDecompte`)
 partagée avec l'espace cliente : deux décomptes séparés finiraient par ne plus dire la même
 chose.
+
+## Ce qui attend Zélia
+
+`lib/en-attente.ts` compte, en un seul endroit, ce qui réclame un geste : demandes de rendez-vous
+à confirmer, commandes de press-on à chiffrer, avantages de parrainage à honorer. Deux
+consommateurs s'en servent — les **pastilles** de la barre de navigation, visibles depuis
+n'importe quel onglet, et le **récapitulatif quotidien**. Un décompte par consommateur finirait
+par ne pas dire la même chose, et c'est exactement ce qui fait cesser de regarder une pastille.
+
+Une pastille ne s'affiche que là où une action est possible : un compteur purement informatif
+deviendrait un décor.
+
+Une demande de rendez-vous et une commande déclenchent **déjà** un e-mail sur-le-champ
+(`creerReservation`, `commanderPressOn`, vers `NOTIFY_EMAIL`). Le récapitulatif ne les remplace
+pas : il rattrape ceux qu'on n'a pas vus passer, faute de quoi un message manqué le mardi ne se
+rappelle plus à personne pendant qu'une cliente attend. Il ne part **que** les jours où quelque
+chose est en attente — un envoi quotidien vide finirait par se lire sans être ouvert, et celui
+qui compte avec.
+
+Comme la relance d'acompte, il ne dépend **pas** du réglage « envois automatiques » : celui-ci
+gouverne ce que reçoivent les clientes, pas ce que la gérante se doit de traiter.
 
 ## Blocage de clientes (`/admin/bouffonnes`)
 
