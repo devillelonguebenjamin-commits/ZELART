@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { urlSite } from "@/lib/site";
+import { CLE_ECHEC_CONNEXION, enregistrerParametre } from "@/lib/parametres";
 import { coordonneesSchema, emailSchema } from "@/lib/validations";
 import {
   clienteConnectee,
@@ -63,7 +64,7 @@ export async function demanderLienConnexion(
   });
 
   const lien = `${urlSite()}/mon-espace/connexion/${jeton}`;
-  await envoyerEmail(
+  const envoi = await envoyerEmail(
     cliente.email,
     "Votre lien de connexion — Zelart Nails",
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
@@ -79,6 +80,27 @@ export async function demanderLienConnexion(
       <p>À très vite,<br>Zélia ✨</p>
     </div>`
   );
+
+  // Le résultat de l'envoi était jeté. Or la réponse faite à la cliente est la
+  // même dans tous les cas : un échec ressemblait donc trait pour trait à un
+  // succès, et une cliente pouvait attendre indéfiniment un lien jamais parti.
+  if (!envoi.ok) {
+    // Le jeton est retiré : sans cela, le verrou anti-renvoi d'une minute
+    // considérerait qu'un lien vient d'être envoyé et refuserait la nouvelle
+    // tentative — la cliente réessaierait sans que rien ne reparte.
+    await prisma.jetonConnexion.deleteMany({ where: { jeton } });
+    console.error("Lien de connexion non envoyé", cliente.email, envoi.erreur);
+    await enregistrerParametre(
+      CLE_ECHEC_CONNEXION,
+      JSON.stringify({
+        date: new Date().toISOString(),
+        adresse: cliente.email,
+        erreur: envoi.erreur.slice(0, 300),
+      })
+    );
+  } else {
+    await enregistrerParametre(CLE_ECHEC_CONNEXION, "");
+  }
 
   return reponseNeutre;
 }

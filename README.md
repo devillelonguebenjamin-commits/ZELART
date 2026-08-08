@@ -177,6 +177,17 @@ affiche la marraine et les filleules, à charge pour Zélia d'accorder la contre
 Pour ne pas révéler qui est cliente, la demande de lien répond toujours la même chose, que
 l'adresse existe ou non, et un envoi n'est possible qu'une fois par minute.
 
+**Contrepartie de cette neutralité** : un envoi raté ressemblait trait pour trait à un envoi
+réussi. Le résultat de `envoyerEmail` était ignoré, la cliente lisait « un lien vient d'être
+envoyé » et attendait un e-mail jamais parti — sans que personne l'apprenne. C'est le scénario
+« je n'arrive plus à me connecter » sans cause visible.
+
+Désormais, un échec d'envoi : retire le jeton créé (sans quoi le verrou d'une minute
+considérerait qu'un lien vient de partir et refuserait la nouvelle tentative), et s'inscrit dans
+les réglages, où il s'affiche en alerte avec l'adresse concernée et le motif. Le message
+disparaît au premier envoi réussi. La réponse faite à la cliente, elle, ne change pas : elle
+révélerait sinon quelles adresses sont connues.
+
 ### Roue de fidélité
 
 Une pose marquée `TERMINE` fait progresser la jauge de la cliente ; à chaque palier (réglable,
