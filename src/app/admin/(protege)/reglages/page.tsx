@@ -23,6 +23,8 @@ import ReglagesReseauxForm from "@/components/ReglagesReseauxForm";
 import ReglagesAvisForm from "@/components/ReglagesAvisForm";
 import { CLE_ETABLISSEMENT, cleGoogle } from "@/lib/avis";
 import { verifierSumUp } from "@/lib/sumup";
+import { dernierEchecConnexion } from "@/lib/parametres";
+import { formatJour } from "@/lib/creneaux";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +60,7 @@ function Ligne({
 }
 
 export default async function Reglages() {
-  const [acompte, rappels, expediteurBrevo, parametresReseaux, sumup] = await Promise.all([
+  const [acompte, rappels, expediteurBrevo, parametresReseaux, sumup, echecConnexion] = await Promise.all([
     reglagesAcompte(),
     reglagesRappels(),
     verifierExpediteurBrevo(),
@@ -76,6 +78,7 @@ export default async function Reglages() {
       },
     }),
     verifierSumUp(),
+    dernierEchecConnexion(),
   ]);
   const reseau = (cle: string) => parametresReseaux.find((p) => p.cle === cle)?.valeur ?? "";
   const etablissementGoogle = reseau(CLE_ETABLISSEMENT);
@@ -201,6 +204,24 @@ export default async function Reglages() {
           aide={blob ? modeStockage() : "onglet Storage de Vercel"}
         />
       </section>
+
+      {/* Une cliente qui n'a pas reçu son lien ne peut pas le signaler autrement :
+          la réponse qu'elle a lue annonçait un envoi réussi. */}
+      {echecConnexion && (
+        <div className="rounded-2xl bg-red-50 px-5 py-4 text-sm text-red-800">
+          <p className="font-semibold">Un lien de connexion n&rsquo;a pas pu être envoyé</p>
+          <p className="mt-1">
+            Le {formatJour(new Date(echecConnexion.date))}, à destination de{" "}
+            <strong>{echecConnexion.adresse}</strong>. La cliente a lu que le lien était parti :
+            elle attend un e-mail qui n&rsquo;arrivera pas.
+          </p>
+          <p className="mt-1 text-xs">{echecConnexion.erreur}</p>
+          <p className="mt-2 text-xs">
+            Corrigez l&rsquo;envoi d&rsquo;e-mails ci-dessus, puis demandez-lui de refaire une
+            demande de lien. Ce message disparaîtra au premier envoi réussi.
+          </p>
+        </div>
+      )}
 
       {!blob && (
         <div className="rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900">

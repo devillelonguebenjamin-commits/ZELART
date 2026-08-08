@@ -45,6 +45,25 @@ Les créneaux libres sont **calculés à la volée** (`src/lib/creneaux.ts`) : f
 moins les indisponibilités et les rendez-vous actifs. Les horaires sont interprétés dans le
 fuseau `Europe/Paris` quel que soit le fuseau du serveur.
 
+### Horizon de réservation
+
+Les créneaux sont proposés sur **deux mois** (`HORIZON_JOURS`). Quatre semaines suffisaient tant
+que l'agenda se libérait vite ; sur un agenda qui se remplit, elles donnaient l'impression qu'il ne
+restait plus rien alors que le mois suivant était entièrement libre. Les jours en question
+n'étaient pas perdus par le calcul — vérifié jour par jour — ils étaient hors champ.
+
+Une limite à connaître si l'horizon devait encore s'allonger : l'affichage regroupe les créneaux
+par libellé de jour **sans année** (« lundi 10 août »). Au-delà d'un an, deux dates se
+confondraient. Deux mois en restent très loin.
+
+### Une cliente par fenêtre
+
+Un rendez-vous, même court, occupe **toute la fenêtre d'ouverture** où il tombe : un rendez-vous
+de 16 h retire le créneau de 14 h de la liste, alors que l'après-midi est libre jusque-là. C'est
+voulu — Zélia ne reçoit qu'une cliente à la fois et garde de la marge — mais c'est la première
+chose qui surprend en regardant un agenda presque vide dont peu de créneaux sont proposés. Les
+trois créneaux quotidiens d'octobre atténuent l'effet en découpant la journée plus finement.
+
 ### Jours d'ouverture et jours de repos
 
 Ouverture du **mardi au samedi**, 9h–12h30 et 14h–18h. Le dimanche est fermé de longue date ; le
@@ -157,6 +176,47 @@ affiche la marraine et les filleules, à charge pour Zélia d'accorder la contre
 
 Pour ne pas révéler qui est cliente, la demande de lien répond toujours la même chose, que
 l'adresse existe ou non, et un envoi n'est possible qu'une fois par minute.
+
+### Mot de passe facultatif
+
+Le lien par e-mail reste la voie normale, et la seule pour qui ne veut rien créer ni retenir.
+Celles qui reviennent souvent peuvent se définir un mot de passe **depuis leur espace connecté** —
+le seul endroit où il se choisit. La conséquence est voulue : il faut déjà être entrée pour en
+créer un, et l'on n'entre que par le lien reçu sur sa propre boîte. **La possession de l'adresse
+est donc toujours prouvée avant qu'un mot de passe existe**, sans écran de validation
+supplémentaire à traverser.
+
+Sur la page de connexion, l'entrée « J'ai un mot de passe » est repliée : la mettre à côté du
+formulaire habituel obligerait chaque visiteuse à choisir, alors que la plupart n'ont pas de mot
+de passe et n'en veulent pas. Oublié, il ne bloque personne : le lien par e-mail connecte sans
+lui, et un nouveau se définit depuis l'espace.
+
+Hachage par **`scrypt`** (`src/lib/mot-de-passe.ts`), présent dans Node : lent et gourmand en
+mémoire par construction, donc coûteux à attaquer, et sans dépendance native à installer sur
+l'hébergement. Sel tiré au hasard pour chacune — deux clientes ayant choisi le même mot de passe
+n'ont pas la même empreinte. La comparaison passe par `timingSafeEqual`, et une empreinte abîmée
+refuse l'accès au lieu de rendre une erreur 500.
+
+Le refus dit toujours « adresse ou mot de passe incorrect », que l'adresse soit inconnue, sans mot
+de passe, ou le mot de passe faux : distinguer révélerait qui est cliente. Les tentatives sont
+freinées par adresse (8 sur 10 minutes), en mémoire donc par instance — un garde-fou contre
+l'essai répété à la main, pas contre une attaque distribuée.
+
+> Les bornes (`LONGUEUR_MIN`) vivent dans `mot-de-passe-bornes.ts`, sans dépendance. Importées
+> depuis `mot-de-passe.ts`, elles entraînaient `crypto` et `util.promisify` dans le paquet du
+> navigateur, où `scrypt` n'existe pas : `promisify` échouait au chargement et **toute la page
+> cessait de s'afficher**. Même précaution que pour `creneaux-bornes.ts`.
+
+**Contrepartie de cette neutralité** : un envoi raté ressemblait trait pour trait à un envoi
+réussi. Le résultat de `envoyerEmail` était ignoré, la cliente lisait « un lien vient d'être
+envoyé » et attendait un e-mail jamais parti — sans que personne l'apprenne. C'est le scénario
+« je n'arrive plus à me connecter » sans cause visible.
+
+Désormais, un échec d'envoi : retire le jeton créé (sans quoi le verrou d'une minute
+considérerait qu'un lien vient de partir et refuserait la nouvelle tentative), et s'inscrit dans
+les réglages, où il s'affiche en alerte avec l'adresse concernée et le motif. Le message
+disparaît au premier envoi réussi. La réponse faite à la cliente, elle, ne change pas : elle
+révélerait sinon quelles adresses sont connues.
 
 ### Roue de fidélité
 
@@ -349,12 +409,26 @@ encore, plutôt que de laisser surgir un refus au premier envoi réel.
 Formes proposées : Amande, Arrondi, Ballerine, Carré, Stiletto. Longueurs : Courte, Moyenne,
 Longue. Ce sont des suggestions (`datalist`), pas une contrainte : le champ reste libre.
 
-Un **guide de mesure** dépliable (`GuideTailles`) explique où mesurer — la largeur, jamais la
-longueur —, propose la méthode de la bande de papier à défaut de réglet, et reporte les dix
-valeurs saisies dans le champ « mesures » de la commande. Ses champs n'ont **aucun attribut
-`name`** : ils vivent dans le `<form>` de commande et seraient sinon envoyés avec elle. Le report
-passe par un bouton et non par la frappe, pour ne pas effacer une précision écrite à la main ; le
-texte composé est tronqué à 300 caractères, la limite du champ d'arrivée.
+### Demande de mesures
+
+Un **guide dépliable** (`GuideTailles`) propose deux méthodes, présentées côte à côte parce
+qu'elles ne s'adressent pas aux mêmes personnes — une cliente qui bute sur l'une abandonnerait la
+commande plutôt que d'essayer l'autre si on ne lui montrait pas les deux :
+
+- **A · Ruban adhésif + règle** — un morceau de Scotch en travers de l'ongle à l'endroit le plus
+  large, les deux bords marqués au stylo, le ruban décollé et mesuré à plat. Donne des
+  millimètres exploitables directement, reportés dans le champ « mesures » par les dix cases de
+  saisie.
+- **B · Photo avec repère** — main à plat, un objet de taille connue à côté des ongles (une pièce
+  de 2 € fait 25,75 mm), prise de vue à la verticale. Sans repère dans le cadre, une photo ne
+  donne aucune échelle. Les photos se joignent à l'étape « Votre design », qui les transporte
+  déjà ; cette étape le rappelle explicitement, faute de quoi la cliente arriverait dans une
+  section qui ne parle que d'inspiration et n'oserait pas y joindre ses mains.
+
+Les champs du guide n'ont **aucun attribut `name`** : ils vivent dans le `<form>` de commande et
+seraient sinon envoyés avec elle. Le report passe par un bouton et non par la frappe, pour ne pas
+effacer une précision écrite à la main ; le texte composé est tronqué à 300 caractères, la limite
+du champ d'arrivée.
 
 
 La vente de press-on est une activité à part entière, distincte des rendez-vous : elle a donc son
@@ -585,6 +659,31 @@ cliente, et les règles de palier vivent dans une fonction unique (`statutDepuis
 partagée avec l'espace cliente : deux décomptes séparés finiraient par ne plus dire la même
 chose.
 
+## Annuler ou refuser en disant pourquoi
+
+Une annulation par Zélia ne partait nulle part : la cliente découvrait le changement dans son
+espace, ou ne le découvrait pas. Acceptable pour un rendez-vous qu'elle annule elle-même, pas pour
+celui qu'on lui retire.
+
+Le bouton *Annuler* (ou *Refuser* sur une demande) ouvre désormais un panneau avec **un mot pour
+la cliente** et **une sélection de créneaux libres à lui proposer**, les deux facultatifs — le
+libellé du bouton dit ce qui va se passer, « annuler sans message » ou « annuler et prévenir », pour
+qu'on ne découvre pas après coup qu'un e-mail est parti. L'e-mail adapte son ouverture au cas :
+rendez-vous confirmé annulé, demande refusée, ou proposition d'horaire non retenue.
+
+Les créneaux cochés sont **revérifiés au moment de l'envoi** : celui qui était libre cinq minutes
+plus tôt a pu être réservé entre-temps, et proposer un horaire déjà pris ferait revenir la cliente
+sur un refus. Ceux qui ne le sont plus sont écartés, et le retour le dit.
+
+La liste d'attente n'est prévenue que si le rendez-vous était **confirmé** : une demande jamais
+confirmée n'occupait aucun créneau, il n'y a rien à libérer.
+
+**La preuve de l'envoi est stockée** (`annulationNotifieeLe`), pas affichée à chaud. En passant à
+« annulé », la carte change de section de l'agenda : le composant est démonté et son message
+disparaît avant d'être lu — le piège déjà rencontré avec la validation de venue. La carte affiche
+donc « Cliente prévenue le … » ou « Annulé sans message à la cliente », et la question « est-ce que
+je l'ai prévenue ? » trouve encore sa réponse six mois plus tard.
+
 ## Rendez-vous pris de vive voix
 
 Toutes les clientes ne passeront pas par le site : une habituée appelle, une autre prend rendez-vous
@@ -602,6 +701,27 @@ Le contrôle de chevauchement, lui, demeure : une double réservation en reste u
 du site ou du carnet. **Fiche cliente et rendez-vous sont créés dans la même transaction** — créer
 la fiche d'abord laissait, sur un créneau déjà pris, une cliente sans rendez-vous à nettoyer à la
 main.
+
+### Bloquer un créneau personnel
+
+Le bouton **« Bloquer un créneau »** de l'agenda pose un rendez-vous à soi : intitulé, date, heure,
+durée. Rien d'autre — ce n'est pas un rendez-vous, il n'y a ni cliente ni tarif.
+
+Il crée une `Indisponibilite`, **la même chose qu'un congé** : c'est elle que lisent déjà le calcul
+des créneaux libres et le contrôle de réservation. Rien de nouveau à faire respecter, donc rien
+à oublier de faire respecter. Les congés, eux, se posent en journées entières (`ajouterConge`) —
+bloquer un rendez-vous de 14 h par ce biais aurait fermé la journée.
+
+Deux garde-fous symétriques, parce que le double-booking peut venir des deux côtés :
+
+- bloquer un créneau où une cliente a déjà rendez-vous est **refusé**, en nommant la cliente : le
+  blocage ne l'aurait pas annulée, et Zélia se serait retrouvée avec les deux ;
+- noter un rendez-vous sur un créneau bloqué est **refusé** aussi — ce contrôle manquait à la
+  saisie manuelle, qui ne regardait que les rendez-vous.
+
+Le calendrier affiche l'heure d'un créneau personnel et le pictogramme 🚫 d'un congé : l'heure ne
+veut rien dire sur une absence de plusieurs jours, et c'est la seule chose utile sur un
+rendez-vous de deux heures. Un clic mène à l'onglet Congés, d'où le blocage se retire.
 
 ### Clientes sans adresse e-mail
 

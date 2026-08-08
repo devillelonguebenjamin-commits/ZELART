@@ -4,8 +4,17 @@ import { HORIZON_PROPOSITION_JOURS, PREAVIS_MS } from "@/lib/creneaux-bornes";
 
 const PARIS_TZ = "Europe/Paris";
 
-// Fenêtre de réservation proposée aux clientes
-const HORIZON_JOURS = 28;
+// Fenêtre de réservation proposée aux clientes : deux mois.
+//
+// Quatre semaines suffisaient tant que les créneaux se libéraient vite ; sur un
+// agenda qui se remplit, elles donnaient l'impression qu'il ne restait plus rien
+// alors que le mois suivant était entièrement libre — les jours en question
+// n'étaient pas manquants, ils étaient hors champ.
+//
+// Le regroupement d'affichage se fait sur un libellé sans année (« lundi
+// 10 août ») : au-delà d'un an d'horizon, deux dates se confondraient. Deux mois
+// restent très loin de cette limite.
+export const HORIZON_JOURS = 61;
 
 // Réexportées pour que les appelants n'aient qu'une porte d'entrée.
 export { HORIZON_PROPOSITION_JOURS, PREAVIS_MS };
@@ -284,12 +293,13 @@ export async function fenetrePourDebut(debut: Date): Promise<{ debut: Date; fin:
   const jourSemaine = ((new Date(Date.UTC(p.annee, p.mois - 1, p.jour, 12)).getUTCDay() + 6) % 7) + 1;
   const heureDebut = `${String(p.heure).padStart(2, "0")}:${String(p.minute).padStart(2, "0")}`;
 
-  // Le contrôle des bornes compte surtout ici : c'est le seul endroit qui
-  // décide si une réservation passe. Un formulaire gardé ouvert la veille d'une
-  // fermeture proposerait sinon encore un créneau devenu invalide.
-  const dispo = await prisma.disponibilite.findFirst({ where: { jourSemaine, heureDebut } });
+  // Toutes les ouvertures de ce jour et de cette heure, pas la première venue :
+  // un changement d'horaires fait coexister l'ancienne ligne et la nouvelle sur
+  // la même heure de début, et `findFirst` aurait pu renvoyer celle qui vient
+  // d'expirer — refusant alors une réservation parfaitement valide.
+  const candidates = await prisma.disponibilite.findMany({ where: { jourSemaine, heureDebut } });
+  const dispo = candidates.find((d) => ouvertureActive(d, jourParis(debut)));
   if (!dispo) return null;
-  if (!ouvertureActive(dispo, jourParis(debut))) return null;
 
   const [hf, mf] = dispo.heureFin.split(":").map(Number);
   return { debut, fin: dateParis(p.annee, p.mois, p.jour, hf, mf) };

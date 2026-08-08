@@ -6,6 +6,13 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { urlSite } from "@/lib/site";
+import { CLE_ECHEC_CONNEXION, enregistrerParametre } from "@/lib/parametres";
+import {
+  hacherMotDePasse,
+  motDePasseAcceptable,
+  motDePasseCorrespond,
+} from "@/lib/mot-de-passe";
+import { ouvrirSessionCliente } from "@/lib/cliente-auth";
 import { coordonneesSchema, emailSchema } from "@/lib/validations";
 import {
   clienteConnectee,
@@ -63,7 +70,7 @@ export async function demanderLienConnexion(
   });
 
   const lien = `${urlSite()}/mon-espace/connexion/${jeton}`;
-  await envoyerEmail(
+  const envoi = await envoyerEmail(
     cliente.email,
     "Votre lien de connexion — Zelart Nails",
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
@@ -79,6 +86,27 @@ export async function demanderLienConnexion(
       <p>À très vite,<br>Zélia ✨</p>
     </div>`
   );
+
+  // Le résultat de l'envoi était jeté. Or la réponse faite à la cliente est la
+  // même dans tous les cas : un échec ressemblait donc trait pour trait à un
+  // succès, et une cliente pouvait attendre indéfiniment un lien jamais parti.
+  if (!envoi.ok) {
+    // Le jeton est retiré : sans cela, le verrou anti-renvoi d'une minute
+    // considérerait qu'un lien vient d'être envoyé et refuserait la nouvelle
+    // tentative — la cliente réessaierait sans que rien ne reparte.
+    await prisma.jetonConnexion.deleteMany({ where: { jeton } });
+    console.error("Lien de connexion non envoyé", cliente.email, envoi.erreur);
+    await enregistrerParametre(
+      CLE_ECHEC_CONNEXION,
+      JSON.stringify({
+        date: new Date().toISOString(),
+        adresse: cliente.email,
+        erreur: envoi.erreur.slice(0, 300),
+      })
+    );
+  } else {
+    await enregistrerParametre(CLE_ECHEC_CONNEXION, "");
+  }
 
   return reponseNeutre;
 }
@@ -230,5 +258,109 @@ export async function changerAccordOffres(accepter: boolean): Promise<void> {
       ? { consentementMarketing: true, consentementLe: new Date(), desabonneLe: null }
       : { consentementMarketing: false, desabonneLe: new Date() },
   });
+  revalidatePath("/mon-espace");
+}
+
+
+// --- Mot de passe facultatif ------------------------------------------------
+//
+// Un raccourci, pas une obligation : le lien reçu par e-mail reste la voie
+// normale, et la seule pour qui ne veut rien créer ni retenir. Celles qui
+// reviennent souvent s'évitent l'aller-retour par la boîte mail.
+
+export type EtatMotDePasse = { ok?: boolean; message?: string };
+
+const MESSAGE_REFUS = "Adresse ou mot de passe incorrect.";
+
+/**
+ * Freinage des tentatives, par adresse.
+ *
+ * En mémoire, donc par instance : sur un hébergement qui en démarre plusieurs,
+ * la limite réelle est un multiple de celle-ci. C'est un garde-fou contre
+ * l'essai répété à la main, pas contre une attaque distribuée — celle-là
+ * demanderait un compteur partagé.
+ */
+const ESSAIS_MAX = 8;
+const FENETRE_ESSAIS_MS = 10 * 60 * 1000;
+const essais = new Map<string, { debut: number; nombre: number }>();
+
+function tropDEssais(cle: string): boolean {
+  const maintenant = Date.now();
+  for (const [k, v] of essais) if (maintenant - v.debut > FENETRE_ESSAIS_MS) essais.delete(k);
+
+  const compte = essais.get(cle);
+  if (!compte || maintenant - compte.debut > FENETRE_ESSAIS_MS) {
+    essais.set(cle, { debut: maintenant, nombre: 1 });
+    return false;
+  }
+  compte.nombre++;
+  return compte.nombre > ESSAIS_MAX;
+}
+
+export async function connexionParMotDePasse(
+  _etatPrecedent: EtatMotDePasse,
+  formData: FormData
+): Promise<EtatMotDePasse> {
+  const analyse = emailSchema.safeParse(formData.get("email"));
+  const motDePasse = String(formData.get("motDePasse") ?? "");
+  if (!analyse.success || !motDePasse) {
+    return { ok: false, message: MESSAGE_REFUS };
+  }
+
+  if (tropDEssais(analyse.data)) {
+    return {
+      ok: false,
+      message: "Trop de tentatives. Patientez quelques minutes, ou demandez un lien par e-mail.",
+    };
+  }
+
+  const cliente = await prisma.cliente.findUnique({
+    where: { email: analyse.data },
+    select: { id: true, motDePasseHash: true },
+  });
+
+  // Le même message dans tous les cas — adresse inconnue, aucun mot de passe
+  // défini, mot de passe faux : distinguer dirait qui est cliente chez Zélia.
+  if (!(await motDePasseCorrespond(motDePasse, cliente?.motDePasseHash ?? null))) {
+    return { ok: false, message: MESSAGE_REFUS };
+  }
+
+  await ouvrirSessionCliente(cliente!.id);
+  redirect("/mon-espace");
+}
+
+export async function definirMotDePasse(
+  _etatPrecedent: EtatMotDePasse,
+  formData: FormData
+): Promise<EtatMotDePasse> {
+  const clienteId = await clienteConnectee();
+  if (!clienteId) {
+    return { ok: false, message: "Connectez-vous pour définir un mot de passe." };
+  }
+
+  const motDePasse = String(formData.get("motDePasse") ?? "");
+  const confirmation = String(formData.get("confirmation") ?? "");
+  const refus = motDePasseAcceptable(motDePasse);
+  if (refus) return { ok: false, message: refus };
+  if (motDePasse !== confirmation) {
+    return { ok: false, message: "Les deux saisies ne correspondent pas." };
+  }
+
+  await prisma.cliente.update({
+    where: { id: clienteId },
+    data: { motDePasseHash: await hacherMotDePasse(motDePasse) },
+  });
+
+  revalidatePath("/mon-espace");
+  return {
+    ok: true,
+    message: "Mot de passe enregistré. Vous pourrez désormais vous connecter directement.",
+  };
+}
+
+export async function supprimerMotDePasse(): Promise<void> {
+  const clienteId = await clienteConnectee();
+  if (!clienteId) return;
+  await prisma.cliente.update({ where: { id: clienteId }, data: { motDePasseHash: null } });
   revalidatePath("/mon-espace");
 }

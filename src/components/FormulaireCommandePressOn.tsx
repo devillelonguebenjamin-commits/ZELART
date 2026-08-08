@@ -124,8 +124,9 @@ export default function FormulaireCommandePressOn({
       <section>
         <h2 className="font-display text-2xl font-bold">2. Vos ongles</h2>
         <p className="mt-1 text-sm text-foreground/70">
-          Zélia taille chaque capsule à votre main. Le guide ci-dessous vous explique comment
-          mesurer vos ongles en deux minutes — et reporte vos mesures dans la commande.
+          Zélia taille chaque capsule à votre main : ce sont vos mesures qui font la différence entre
+          un set qui tient et un set qui décolle. Le guide ci-dessous propose deux méthodes — le
+          ruban adhésif, précis au millimètre, ou une simple photo avec un repère.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="block text-sm">
@@ -171,7 +172,7 @@ export default function FormulaireCommandePressOn({
             name="mesures"
             rows={2}
             maxLength={300}
-            placeholder="Ex. : pouce 15 mm, index 12 mm… ou « je ne les connais pas »"
+            placeholder="Ex. : pouce 15 mm, index 12 mm… ou « photo jointe » / « je ne les connais pas »"
             value={champs.mesures}
             onChange={(e) => majChamp("mesures", e.target.value)}
             className={CLASSE_CHAMP}
@@ -187,6 +188,13 @@ export default function FormulaireCommandePressOn({
           {modele?.surMesure
             ? "Votre set est dessiné pour vous : décrivez vos envies, joignez des photos qui vous plaisent."
             : "Une envie de variante sur ce modèle ? Dites-le ici."}
+        </p>
+        {/* Le guide des mesures renvoie ici pour la méthode photo : sans ce
+            rappel, la cliente qui suit la méthode B arrive dans une section qui
+            ne parle que d'inspiration et n'ose pas y joindre ses mains. */}
+        <p className="mt-1 text-sm text-foreground/70">
+          C&rsquo;est aussi ici que vous joignez la <strong>photo de vos ongles avec le repère</strong>,
+          si vous avez choisi cette méthode de mesure.
         </p>
         <ChampInspiration actif={envoiImagesActif} />
       </section>

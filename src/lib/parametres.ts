@@ -6,6 +6,8 @@ export const CLE_LIEN_ACOMPTE = "lienAcompte";
 export const CLE_MONTANT_ACOMPTE = "montantAcompteCents";
 export const CLE_POSES_PAR_TOUR = "posesParTour";
 export const CLE_RAPPELS_ACTIFS = "rappelsActifs";
+/** Dernier échec d'envoi d'un lien de connexion, pour le signaler dans les Réglages. */
+export const CLE_ECHEC_CONNEXION = "dernierEchecConnexion";
 export const CLE_INSTAGRAM = "reseauInstagram";
 export const CLE_TIKTOK = "reseauTikTok";
 export const CLE_AUTRE_RESEAU = "reseauAutre";
@@ -178,5 +180,27 @@ export function lienSumUpValide(url: string): boolean {
     );
   } catch {
     return false;
+  }
+}
+
+export type EchecConnexion = { date: string; adresse: string; erreur: string };
+
+/**
+ * Dernier échec d'envoi d'un lien de connexion.
+ *
+ * La réponse faite à la cliente est volontairement neutre — elle ne dit pas si
+ * l'adresse est connue —, ce qui rend un envoi raté strictement indiscernable
+ * d'un envoi réussi. Une cliente attend alors un e-mail qui ne viendra jamais,
+ * et personne ne l'apprend. Ce relevé est le seul endroit où le problème
+ * devient visible.
+ */
+export async function dernierEchecConnexion(): Promise<EchecConnexion | null> {
+  const ligne = await prisma.parametre.findUnique({ where: { cle: CLE_ECHEC_CONNEXION } });
+  if (!ligne?.valeur) return null;
+  try {
+    const donnees = JSON.parse(ligne.valeur) as EchecConnexion;
+    return donnees.date ? donnees : null;
+  } catch {
+    return null;
   }
 }

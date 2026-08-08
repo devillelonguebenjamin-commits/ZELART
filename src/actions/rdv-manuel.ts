@@ -112,6 +112,16 @@ export async function creerRendezVousManuel(
           );
         }
 
+        // Les créneaux bloqués comptent aussi : sans ce contrôle, Zélia pouvait
+        // noter une cliente par-dessus son propre rendez-vous personnel — le
+        // double-booking que le blocage sert précisément à éviter.
+        const indispo = await tx.indisponibilite.findFirst({
+          where: { debut: { lt: fin }, fin: { gt: debut } },
+        });
+        if (indispo) {
+          throw new Error(`BLOQUE:${indispo.motif ?? "sans intitulé"} à ${formatHeure(indispo.debut)}`);
+        }
+
         let retenue = clienteExistante
           ? await tx.cliente.findUnique({
               where: { id: clienteExistante },
@@ -176,6 +186,14 @@ export async function creerRendezVousManuel(
         message: `Ce créneau chevauche déjà un rendez-vous : ${message.slice(8)}.`,
       };
     }
+    // Un créneau bloqué n'est pas un rendez-vous : le dire autrement, sinon
+    // Zélia cherche une cliente qui n'existe pas.
+    if (message.startsWith("BLOQUE:")) {
+      return {
+        ok: false,
+        message: `Vous avez bloqué ce créneau : ${message.slice(7)}. Retirez le blocage depuis l'onglet Congés si vous voulez y prendre une cliente.`,
+      };
+    }
     if (message === "SANS_CLIENTE") {
       return { ok: false, message: "Choisissez une cliente ou renseignez ses coordonnées." };
     }
@@ -188,5 +206,58 @@ export async function creerRendezVousManuel(
   return {
     ok: true,
     message: `Rendez-vous noté pour ${cliente.prenom} ${cliente.nom}, le ${formatJour(debut)} à ${formatHeure(debut)}.`,
+  };
+}
+
+
+export type EtatBlocageCreneau = { ok?: boolean; message?: string };
+
+/**
+ * Créneau personnel : rendez-vous chez le médecin, enfant à récupérer, livraison.
+ *
+ * Enregistré comme une `Indisponibilite`, la même chose que les congés — c'est
+ * elle que le calcul des créneaux libres et le contrôle de réservation lisent
+ * déjà. Rien de nouveau à faire respecter, donc rien à oublier de faire
+ * respecter.
+ *
+ * Les congés se posent en journées entières ; ici il faut l'heure près, sans
+ * quoi bloquer un rendez-vous de 14 h fermerait la journée entière.
+ */
+export async function bloquerCreneauPerso(
+  _etatPrecedent: EtatBlocageCreneau,
+  formData: FormData
+): Promise<EtatBlocageCreneau> {
+  await exigerAdmin();
+
+  const intitule = String(formData.get("intitule") ?? "").trim().slice(0, 200);
+  if (!intitule) return { ok: false, message: "Donnez un intitulé à ce créneau." };
+
+  const debut = creneauProposeDepuisSaisie(String(formData.get("debut") ?? ""));
+  if (!debut) return { ok: false, message: "Indiquez une date et une heure valides." };
+
+  const saisie = Number(formData.get("dureeMin"));
+  const duree = Number.isFinite(saisie) && saisie > 0 ? Math.min(saisie, 12 * 60) : 60;
+  const fin = new Date(debut.getTime() + duree * 60_000);
+
+  // Un rendez-vous déjà pris sur ce créneau doit être signalé : le bloquer
+  // n'annulerait pas la cliente, et Zélia se retrouverait avec les deux.
+  const conflit = await prisma.rendezVous.findFirst({
+    where: { statut: { not: "ANNULE" }, debut: { lt: fin }, fin: { gt: debut } },
+    include: { cliente: { select: { prenom: true, nom: true } } },
+  });
+  if (conflit) {
+    return {
+      ok: false,
+      message: `${conflit.cliente.prenom} ${conflit.cliente.nom} a déjà rendez-vous à ${formatHeure(conflit.debut)}. Annulez-le d'abord si vous devez vous libérer.`,
+    };
+  }
+
+  await prisma.indisponibilite.create({ data: { debut, fin, motif: intitule } });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/conges");
+  return {
+    ok: true,
+    message: `« ${intitule} » bloqué le ${formatJour(debut)} de ${formatHeure(debut)} à ${formatHeure(fin)}.`,
   };
 }
