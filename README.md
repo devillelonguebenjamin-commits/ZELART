@@ -372,37 +372,41 @@ la progression est visible, aucune requête ne dépasse le temps d'exécution au
 campagne interrompue reprend là où elle s'était arrêtée — chaque destinataire n'étant traité
 qu'une fois grâce à la contrainte d'unicité sur `EnvoiCampagne`.
 
-## À FAIRE : nom de domaine et adresse e-mail de Zélia
+## Nom de domaine (`zelart.fr`)
 
-Configuration actuelle (provisoire) : Resend sans domaine vérifié, ce qui impose deux limites —
-expéditeur figé à `onboarding@resend.dev`, et envoi possible uniquement vers l'adresse du compte
-Resend. Les notifications ne peuvent donc pas encore partir vers la boîte de Zélia.
+Le code n'a **rien à changer** le jour du branchement : `urlSite()` suit
+`VERCEL_PROJECT_PRODUCTION_URL`, qui pointe automatiquement sur le domaine de production. Les
+liens des e-mails, le sitemap, `robots.txt` et les fichiers `.ics` suivent donc tout seuls.
+`SITE_URL` n'existe que pour forcer une autre adresse en développement.
 
-Marche à suivre le jour de l'achat du domaine (ex. `zelart.fr`, ~10 €/an chez OVH ou Gandi,
-~15 €/an directement dans Vercel — cette dernière option évite toute manipulation DNS) :
+**Où l'acheter.** Deux voies, le choix se fait sur le confort et non sur le résultat :
 
-1. **Brancher le domaine au site** — Vercel → Settings → Domains → *Add*. Vercel affiche alors les
-   enregistrements DNS **propres à ce projet** : les recopier tels quels chez le registrar (ne pas
-   réutiliser des valeurs trouvées ailleurs, elles varient d'un projet à l'autre). Le certificat
-   HTTPS est automatique une fois la propagation faite.
-2. **Vérifier le domaine chez Resend** — resend.com → *Domains* → *Add Domain* → ajouter les
-   enregistrements DKIM/SPF fournis chez le registrar → attendre la validation.
-3. **Mettre à jour les variables Vercel** :
-   - `EMAIL_FROM` = `Zelart Nails <contact@zelart.fr>`
-   - `NOTIFY_EMAIL` = `Zelia.barreteaupro@outlook.fr`
-   - `SITE_URL` n'a pas à être renseignée : les liens des e-mails suivent automatiquement le
-     domaine de production (`src/lib/site.ts`).
-4. **Redéployer**, puis vérifier via `/admin/reglages` (test d'envoi vers l'adresse de Zélia) et
-   par une réservation réelle de bout en bout.
+- **Depuis Vercel** (Settings → Domains → *Buy*) : le domaine est branché et le DNS configuré
+  sans manipulation. Un peu plus cher, et le registrar est lié à l'hébergeur.
+- **Chez un registrar** (OVHcloud, Gandi, Infomaniak…) : moins cher, indépendant de
+  l'hébergement, mais il faut recopier chez lui les enregistrements DNS que Vercel affiche.
 
-Alternative sans achat de domaine : basculer sur [Brevo](https://brevo.com) (`BREVO_API_KEY`), qui
-autorise l'envoi vers n'importe quel destinataire ; l'adresse expéditrice se valide en cliquant un
-lien reçu dans la boîte concernée.
+`.fr` est géré par l'AFNIC : il faut résider ou être établi dans l'UE — le SIRET de Zélia suffit.
+Comptez une dizaine d'euros par an, à vérifier au moment de l'achat.
 
-`EMAIL_FROM` s'écrit indifféremment `zelia@exemple.fr` ou `Zelart Nails <zelia@exemple.fr>` : Brevo
-exige l'adresse et le nom séparément, la conversion est faite à l'envoi. L'onglet **Réglages**
-interroge la liste des expéditeurs validés chez Brevo et signale une adresse qui ne l'est pas
-encore, plutôt que de laisser surgir un refus au premier envoi réel.
+**Marche à suivre :**
+
+1. **Brancher le domaine** — Vercel → Settings → Domains → *Add*. Vercel affiche les
+   enregistrements DNS **propres à ce projet** : les recopier tels quels chez le registrar. Ne
+   jamais réutiliser des valeurs trouvées ailleurs, elles varient d'un projet à l'autre. Le
+   certificat HTTPS est automatique une fois la propagation faite.
+2. **Authentifier le domaine chez Brevo** — brevo.com → *Expéditeurs, domaines* → ajouter
+   `zelart.fr` → recopier les enregistrements DKIM et SPF chez le registrar. Sans cela, les
+   e-mails partent quand même mais atterrissent plus volontiers en indésirables.
+3. **Mettre à jour la variable Vercel** : `EMAIL_FROM` = `Zelart Nails <contact@zelart.fr>`.
+   `NOTIFY_EMAIL` reste l'adresse que Zélia relève réellement.
+4. **Redéployer**, puis vérifier dans `/admin/reglages` : la ligne « Adresse expéditrice » doit
+   passer au vert, l'écran interrogeant la liste des expéditeurs validés chez Brevo.
+
+> **Un domaine ne fournit pas de boîte aux lettres.** Brevo *envoie* depuis `contact@zelart.fr`
+> sans qu'elle existe, mais une réponse de cliente se perdrait. Prévoir chez le registrar une
+> **redirection** de `contact@zelart.fr` vers la boîte réelle de Zélia — gratuit chez la plupart —
+> ou une vraie messagerie si elle en veut une.
 
 ## Commandes de press-on (`/press-on`)
 
