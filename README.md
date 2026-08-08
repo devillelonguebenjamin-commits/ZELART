@@ -177,6 +177,36 @@ affiche la marraine et les filleules, à charge pour Zélia d'accorder la contre
 Pour ne pas révéler qui est cliente, la demande de lien répond toujours la même chose, que
 l'adresse existe ou non, et un envoi n'est possible qu'une fois par minute.
 
+### Mot de passe facultatif
+
+Le lien par e-mail reste la voie normale, et la seule pour qui ne veut rien créer ni retenir.
+Celles qui reviennent souvent peuvent se définir un mot de passe **depuis leur espace connecté** —
+le seul endroit où il se choisit. La conséquence est voulue : il faut déjà être entrée pour en
+créer un, et l'on n'entre que par le lien reçu sur sa propre boîte. **La possession de l'adresse
+est donc toujours prouvée avant qu'un mot de passe existe**, sans écran de validation
+supplémentaire à traverser.
+
+Sur la page de connexion, l'entrée « J'ai un mot de passe » est repliée : la mettre à côté du
+formulaire habituel obligerait chaque visiteuse à choisir, alors que la plupart n'ont pas de mot
+de passe et n'en veulent pas. Oublié, il ne bloque personne : le lien par e-mail connecte sans
+lui, et un nouveau se définit depuis l'espace.
+
+Hachage par **`scrypt`** (`src/lib/mot-de-passe.ts`), présent dans Node : lent et gourmand en
+mémoire par construction, donc coûteux à attaquer, et sans dépendance native à installer sur
+l'hébergement. Sel tiré au hasard pour chacune — deux clientes ayant choisi le même mot de passe
+n'ont pas la même empreinte. La comparaison passe par `timingSafeEqual`, et une empreinte abîmée
+refuse l'accès au lieu de rendre une erreur 500.
+
+Le refus dit toujours « adresse ou mot de passe incorrect », que l'adresse soit inconnue, sans mot
+de passe, ou le mot de passe faux : distinguer révélerait qui est cliente. Les tentatives sont
+freinées par adresse (8 sur 10 minutes), en mémoire donc par instance — un garde-fou contre
+l'essai répété à la main, pas contre une attaque distribuée.
+
+> Les bornes (`LONGUEUR_MIN`) vivent dans `mot-de-passe-bornes.ts`, sans dépendance. Importées
+> depuis `mot-de-passe.ts`, elles entraînaient `crypto` et `util.promisify` dans le paquet du
+> navigateur, où `scrypt` n'existe pas : `promisify` échouait au chargement et **toute la page
+> cessait de s'afficher**. Même précaution que pour `creneaux-bornes.ts`.
+
 **Contrepartie de cette neutralité** : un envoi raté ressemblait trait pour trait à un envoi
 réussi. Le résultat de `envoyerEmail` était ignoré, la cliente lisait « un lien vient d'être
 envoyé » et attendait un e-mail jamais parti — sans que personne l'apprenne. C'est le scénario

@@ -35,6 +35,9 @@ model Cliente {
   // Espace cliente (facultatif) : connexion par lien envoyé par e-mail,
   // sans mot de passe à créer ni à retenir.
   codeParrainage String  @unique
+  // Mot de passe facultatif : un raccourci pour celles qui reviennent souvent.
+  // Le lien par e-mail reste la voie normale, et la seule pour qui n'en veut pas.
+  motDePasseHash String?
   parraine       Cliente?  @relation("Parrainage", fields: [parraineParId], references: [id])
   parraineParId  String?
   filleules      Cliente[] @relation("Parrainage")

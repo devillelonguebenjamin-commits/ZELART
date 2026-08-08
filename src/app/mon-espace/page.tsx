@@ -8,6 +8,8 @@ import { deconnexionCliente } from "@/actions/espace-cliente";
 import FormulaireLienConnexion from "@/components/FormulaireLienConnexion";
 import BoutonAccordOffres from "@/components/BoutonAccordOffres";
 import MesInformations from "@/components/MesInformations";
+import ConnexionMotDePasse from "@/components/ConnexionMotDePasse";
+import MotDePasseCliente from "@/components/MotDePasseCliente";
 import BoutonAnnulation from "@/components/BoutonAnnulation";
 import { annulationPossible, DELAI_ANNULATION_H } from "@/lib/annulation";
 import RoueFidelite from "@/components/RoueFidelite";
@@ -96,6 +98,7 @@ export default async function MonEspace({
             <div className="mt-4">
               <FormulaireLienConnexion />
             </div>
+            <ConnexionMotDePasse />
           </div>
 
           <p className="mt-6 text-center text-sm text-foreground/60">
@@ -352,6 +355,8 @@ export default async function MonEspace({
       </section>
 
       {/* Informations personnelles */}
+      <MotDePasseCliente enPlace={Boolean(cliente.motDePasseHash)} />
+
       <MesInformations
         prenom={cliente.prenom}
         nom={cliente.nom}
