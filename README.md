@@ -45,6 +45,25 @@ Les créneaux libres sont **calculés à la volée** (`src/lib/creneaux.ts`) : f
 moins les indisponibilités et les rendez-vous actifs. Les horaires sont interprétés dans le
 fuseau `Europe/Paris` quel que soit le fuseau du serveur.
 
+### Horizon de réservation
+
+Les créneaux sont proposés sur **deux mois** (`HORIZON_JOURS`). Quatre semaines suffisaient tant
+que l'agenda se libérait vite ; sur un agenda qui se remplit, elles donnaient l'impression qu'il ne
+restait plus rien alors que le mois suivant était entièrement libre. Les jours en question
+n'étaient pas perdus par le calcul — vérifié jour par jour — ils étaient hors champ.
+
+Une limite à connaître si l'horizon devait encore s'allonger : l'affichage regroupe les créneaux
+par libellé de jour **sans année** (« lundi 10 août »). Au-delà d'un an, deux dates se
+confondraient. Deux mois en restent très loin.
+
+### Une cliente par fenêtre
+
+Un rendez-vous, même court, occupe **toute la fenêtre d'ouverture** où il tombe : un rendez-vous
+de 16 h retire le créneau de 14 h de la liste, alors que l'après-midi est libre jusque-là. C'est
+voulu — Zélia ne reçoit qu'une cliente à la fois et garde de la marge — mais c'est la première
+chose qui surprend en regardant un agenda presque vide dont peu de créneaux sont proposés. Les
+trois créneaux quotidiens d'octobre atténuent l'effet en découpant la journée plus finement.
+
 ### Jours d'ouverture et jours de repos
 
 Ouverture du **mardi au samedi**, 9h–12h30 et 14h–18h. Le dimanche est fermé de longue date ; le

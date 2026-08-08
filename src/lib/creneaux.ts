@@ -4,8 +4,17 @@ import { HORIZON_PROPOSITION_JOURS, PREAVIS_MS } from "@/lib/creneaux-bornes";
 
 const PARIS_TZ = "Europe/Paris";
 
-// Fenêtre de réservation proposée aux clientes
-const HORIZON_JOURS = 28;
+// Fenêtre de réservation proposée aux clientes : deux mois.
+//
+// Quatre semaines suffisaient tant que les créneaux se libéraient vite ; sur un
+// agenda qui se remplit, elles donnaient l'impression qu'il ne restait plus rien
+// alors que le mois suivant était entièrement libre — les jours en question
+// n'étaient pas manquants, ils étaient hors champ.
+//
+// Le regroupement d'affichage se fait sur un libellé sans année (« lundi
+// 10 août ») : au-delà d'un an d'horizon, deux dates se confondraient. Deux mois
+// restent très loin de cette limite.
+export const HORIZON_JOURS = 61;
 
 // Réexportées pour que les appelants n'aient qu'une porte d'entrée.
 export { HORIZON_PROPOSITION_JOURS, PREAVIS_MS };

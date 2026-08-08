@@ -336,7 +336,7 @@ export default function ReservationWizard({
         )}
         {jours.length === 0 ? (
           <p className="mt-6 rounded-2xl bg-pink-50 px-5 py-4 text-foreground/80">
-            Aucun créneau disponible sur les 4 prochaines semaines. Réessayez un peu plus tard ou
+            Aucun créneau disponible sur les deux prochains mois. Réessayez un peu plus tard ou
             contactez directement Zélia.
           </p>
         ) : (
