@@ -147,10 +147,24 @@ export default async function Reglages() {
           }
         />
         <Ligne
-          label="Rappels automatiques"
-          valeur={rappels.actifs ? (planificationPrete ? "activés" : "activés, secret manquant") : "désactivés"}
-          ok={rappels.actifs && planificationPrete}
-          aide="CRON_SECRET — nécessaire à l'exécution quotidienne"
+          label="Rappels automatiques aux clientes"
+          valeur={rappels.actifs ? "activés" : "désactivés"}
+          ok={rappels.actifs}
+          aide="Rappel de la veille, relance de repousse, demande d'avis, reconquête"
+        />
+        {/* Signalé à part, et quel que soit l'état du réglage ci-dessus : sans
+            ce secret, la tâche quotidienne ne s'exécute pas du tout — donc ni
+            les rappels aux clientes, ni le récapitulatif de ce qui vous attend,
+            qui lui ne dépend pourtant pas de ce réglage. */}
+        <Ligne
+          label="Exécution quotidienne (7 h)"
+          valeur={planificationPrete ? "en place" : "secret manquant"}
+          ok={planificationPrete}
+          aide={
+            planificationPrete
+              ? "CRON_SECRET — porte aussi le récapitulatif quotidien des demandes en attente"
+              : "CRON_SECRET absent : aucune tâche ne s'exécute, y compris le récapitulatif des demandes en attente"
+          }
         />
         <Ligne
           label="Envoi automatique de l'acompte"
