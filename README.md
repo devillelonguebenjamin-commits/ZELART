@@ -408,6 +408,35 @@ Comptez une dizaine d'euros par an, à vérifier au moment de l'achat.
 > **redirection** de `contact@zelart.fr` vers la boîte réelle de Zélia — gratuit chez la plupart —
 > ou une vraie messagerie si elle en veut une.
 
+### Quand Vercel affiche « Invalid Configuration »
+
+Le message ne dit qu'une chose : *l'adresse annoncée par le DNS n'est pas la mienne*. Il ne
+distingue pas les trois causes possibles, qu'il faut donc séparer soi-même. Le diagnostic tient en
+une résolution du nom : si `zelart.fr` ne renvoie **aucune** adresse, l'enregistrement manque ou la
+délégation n'est pas encore faite ; s'il en renvoie une qui n'est pas celle de Vercel, l'ancien
+enregistrement du registrar est toujours là.
+
+1. **Le domaine est-il livré ?** Chez OVH, un `.fr` fraîchement commandé reste quelques heures « en
+   cours de création » : la zone DNS existe mais n'est pas encore déléguée, et rien ne résout. Rien
+   à corriger, il faut attendre.
+2. **L'enregistrement de parking est-il parti ?** À la livraison, OVH pose un `A` sur `@` vers sa
+   page de parking, et souvent un `CNAME` sur `www`. Tant qu'ils sont là, ils gagnent contre ceux
+   de Vercel — ce sont les mêmes noms. Il faut les **supprimer**, pas en ajouter d'autres à côté.
+3. **Les valeurs viennent-elles bien de ce projet-ci ?** Le bouton *View DNS configuration* de
+   chaque ligne rouge affiche l'`A` de `@` et le `CNAME` de `www` **propres au projet**. Ils
+   changent d'un projet à l'autre et dans le temps : les recopier depuis l'écran, jamais depuis un
+   tutoriel.
+
+Deux pièges de forme : l'apex (`@`) se configure en `A`, **jamais** en `CNAME` — la zone d'un `.fr`
+porte déjà ses `NS` et `SOA` à la racine, un `CNAME` y est refusé ; et un `TXT` `v=spf1` déjà
+présent se **complète**, il ne se double pas (deux SPF valent SPF cassé). Le reste de la zone —
+`NS`, `MX`, `DKIM` — ne se touche pas.
+
+Compter de quelques minutes à quelques heures de propagation. Vercel revérifie tout seul ; le
+bouton *Refresh* de la ligne force le contrôle. Pendant ce temps le site reste servi par
+`zelart.vercel.app`, et la redirection 308 de `zelart.fr` vers `www.zelart.fr` visible dans Vercel
+est normale : elle indique seulement que `www` est le domaine de production.
+
 ## Commandes de press-on (`/press-on`)
 
 Formes proposées : Amande, Arrondi, Ballerine, Carré, Stiletto. Longueurs : Courte, Moyenne,
