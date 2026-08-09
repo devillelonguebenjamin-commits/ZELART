@@ -408,34 +408,55 @@ Comptez une dizaine d'euros par an, à vérifier au moment de l'achat.
 > **redirection** de `contact@zelart.fr` vers la boîte réelle de Zélia — gratuit chez la plupart —
 > ou une vraie messagerie si elle en veut une.
 
+### Zone DNS d'OVH : l'état visé
+
+Le branchement est fait. La zone ne doit contenir que **deux** enregistrements pour le site — les
+valeurs venant de *View DNS configuration* chez Vercel, qui varient d'un projet à l'autre :
+
+```
+@      A      216.198.79.1
+www    CNAME  2b7d7a4c12b1a30f.vercel-dns-017.com.
+```
+
+Le reste de la zone (`NS`, `MX`, `SPF`, `ftp`) n'a rien à voir avec le site et se laisse tranquille.
+
 ### Quand Vercel affiche « Invalid Configuration »
 
-Le message ne dit qu'une chose : *l'adresse annoncée par le DNS n'est pas la mienne*. Il ne
-distingue pas les trois causes possibles, qu'il faut donc séparer soi-même. Le diagnostic tient en
-une résolution du nom : si `zelart.fr` ne renvoie **aucune** adresse, l'enregistrement manque ou la
-délégation n'est pas encore faite ; s'il en renvoie une qui n'est pas celle de Vercel, l'ancien
-enregistrement du registrar est toujours là.
+Le message ne dit qu'une chose : *l'adresse annoncée par le DNS n'est pas la mienne*. Il ne nomme
+pas la cause. Les cinq rencontrées au branchement, du plus fréquent au plus discret — les quatre
+premières sont des vestiges qu'OVH pose lui-même :
 
-1. **Le domaine est-il livré ?** Chez OVH, un `.fr` fraîchement commandé reste quelques heures « en
-   cours de création » : la zone DNS existe mais n'est pas encore déléguée, et rien ne résout. Rien
-   à corriger, il faut attendre.
-2. **L'enregistrement de parking est-il parti ?** À la livraison, OVH pose un `A` sur `@` vers sa
-   page de parking, et souvent un `CNAME` sur `www`. Tant qu'ils sont là, ils gagnent contre ceux
-   de Vercel — ce sont les mêmes noms. Il faut les **supprimer**, pas en ajouter d'autres à côté.
-3. **Les valeurs viennent-elles bien de ce projet-ci ?** Le bouton *View DNS configuration* de
-   chaque ligne rouge affiche l'`A` de `@` et le `CNAME` de `www` **propres au projet**. Ils
-   changent d'un projet à l'autre et dans le temps : les recopier depuis l'écran, jamais depuis un
-   tutoriel.
+1. **Le domaine n'est pas encore livré.** Un `.fr` fraîchement commandé reste quelques heures « en
+   cours de création » : la zone existe dans le manager mais n'est pas déléguée, et le nom ne
+   résout vers rien du tout. Rien à corriger, il faut attendre.
+2. **Une redirection web d'OVH tient l'apex.** Elle se reconnaît à un `TXT` de la forme
+   `"1|www.zelart.fr"`, avec un `A` sur `@` vers l'infrastructure de redirection. Tant qu'elle
+   existe, supprimer le `A` ne tient pas : il faut d'abord retirer la redirection dans l'onglet
+   **Redirection**, qui n'est pas la zone DNS. Aucune perte — c'est Vercel qui redirige ensuite
+   `zelart.fr` vers `www` (le `308` visible dans son écran).
+3. **Un `A` de parking subsiste**, ou cohabite avec celui de Vercel. Deux `A` sur `@`, c'est une
+   réponse fausse une fois sur deux : un seul doit rester.
+4. **Des `AAAA` d'OVH traînent** sur `@` et sur `www`. Ce sont les plus discrets, parce qu'un
+   navigateur en IPv4 ne les voit jamais — mais l'IPv6 est prioritaire là où elle existe, donc une
+   partie des visiteuses (mobile surtout) atterrirait chez OVH avec un `A` pourtant correct. À
+   supprimer.
+5. **`www` refuse le `CNAME`.** Un `CNAME` est le seul type qui ne cohabite avec **rien** sur le
+   même nom : tant qu'un `A`, un `AAAA` ou un `TXT` (le `"3|welcome"` d'OVH) porte `www`, OVH
+   rejette l'ajout. Vider `www` d'abord, créer le `CNAME` ensuite.
 
-Deux pièges de forme : l'apex (`@`) se configure en `A`, **jamais** en `CNAME` — la zone d'un `.fr`
-porte déjà ses `NS` et `SOA` à la racine, un `CNAME` y est refusé ; et un `TXT` `v=spf1` déjà
-présent se **complète**, il ne se double pas (deux SPF valent SPF cassé). Le reste de la zone —
-`NS`, `MX`, `DKIM` — ne se touche pas.
+Trois pièges de forme, tous vérifiés sur place : l'apex se configure en `A`, **jamais** en `CNAME`
+(la racine d'un `.fr` porte déjà ses `NS` et son `SOA`) ; le champ *Sous-domaine* du manager OVH
+refuse le vide et attend **`@`** ; et la cible d'un `CNAME` se termine par un **point**, sans quoi
+OVH la lit comme relative et fabrique `…vercel-dns-017.com.zelart.fr`. Copier la valeur au bouton
+plutôt qu'à la main : c'est une suite hexadécimale où `0` et `O` se confondent.
 
-Compter de quelques minutes à quelques heures de propagation. Vercel revérifie tout seul ; le
-bouton *Refresh* de la ligne force le contrôle. Pendant ce temps le site reste servi par
-`zelart.vercel.app`, et la redirection 308 de `zelart.fr` vers `www.zelart.fr` visible dans Vercel
-est normale : elle indique seulement que `www` est le domaine de production.
+Un `TXT` `v=spf1` est déjà présent (celui d'OVH). Le jour de Brevo il se **complète** ; on n'en crée
+pas un second, deux SPF valent SPF cassé.
+
+Compter de quelques minutes à quelques heures de propagation — et les deux serveurs d'OVH,
+`dns106` et `ns106`, ne se synchronisent pas ensemble : pendant la transition ils répondent des
+choses différentes et Vercel clignote rouge/vert sans que la zone soit en cause. Le bouton
+*Refresh* force la vérification. Pendant ce temps le site reste servi par `zelart.vercel.app`.
 
 ## Commandes de press-on (`/press-on`)
 
