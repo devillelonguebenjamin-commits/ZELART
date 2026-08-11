@@ -11,7 +11,7 @@ import Vagues, { TraitVagues } from "@/components/Vagues";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Les prestations expliquées — Zelart Nails",
+  title: "Les prestations expliquées · Zelart Nails",
   description:
     "Gainage, pose Gel X, Pop-it, vernis semi-permanent : ce que chaque prestation veut dire, ce qu'elle coûte, combien de temps elle tient, et laquelle choisir. Zelart Nails, Saint-Nazaire.",
 };
@@ -51,7 +51,7 @@ export default async function Prestations() {
           <h2 className="font-display text-2xl font-bold">Les quatre techniques</h2>
           <p className="mt-2 text-sm text-foreground/70">
             Elles se distinguent par ce qu&rsquo;on pose sur l&rsquo;ongle, et par la longueur
-            qu&rsquo;elles permettent d&rsquo;ajouter — ou non.
+            qu&rsquo;elles permettent d&rsquo;ajouter, ou non.
           </p>
 
           <div className="mt-6 grid gap-5 sm:grid-cols-2">
@@ -150,13 +150,13 @@ export default async function Prestations() {
           <p className="mt-3 leading-relaxed text-amber-900/90">
             Une pose ne se recouvre jamais : elle est <strong>soit remplie, soit retirée</strong>.
             Au moment de réserver, on vous demande donc d&rsquo;abord ce que vous portez, et la
-            dépose est ajoutée automatiquement à votre demande quand elle s&rsquo;impose — inutile
+            dépose est ajoutée automatiquement à votre demande quand elle s&rsquo;impose. Inutile
             d&rsquo;y penser, et aucune surprise sur le tarif le jour même.
           </p>
           <ul className="mt-4 space-y-2 text-sm text-amber-900/90">
             <li>
               <strong>Pose faite ailleurs :</strong> elle est retirée avant la nouvelle. Je ne
-              reprends pas le travail d&rsquo;une autre prothésiste — c&rsquo;est la seule façon de
+              reprends pas le travail d&rsquo;une autre prothésiste : c&rsquo;est la seule façon de
               garantir ce que je pose.
             </li>
             <li>

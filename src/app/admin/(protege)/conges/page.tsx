@@ -30,7 +30,7 @@ export default async function Conges() {
             />
           </label>
           <label className="block text-sm">
-            <span className="text-foreground/70">Au (inclus — laisser vide pour un seul jour)</span>
+            <span className="text-foreground/70">Au (inclus ; laisser vide pour un seul jour)</span>
             <input
               type="date"
               name="dateFin"

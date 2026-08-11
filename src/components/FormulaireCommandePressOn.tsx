@@ -136,7 +136,7 @@ export default function FormulaireCommandePressOn({
         <h2 className="font-display text-2xl font-bold">2. Vos ongles</h2>
         <p className="mt-1 text-sm text-foreground/70">
           Je taille chaque capsule à votre main : ce sont vos mesures qui font la différence entre
-          un set qui tient et un set qui décolle. Le guide ci-dessous propose deux méthodes — le
+          un set qui tient et un set qui décolle. Le guide ci-dessous propose deux méthodes : le
           ruban adhésif, précis au millimètre, ou une simple photo avec un repère.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">

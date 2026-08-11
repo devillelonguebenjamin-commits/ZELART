@@ -54,7 +54,7 @@ export default function ValidationVenue({
     <form action={action} className="mt-2 rounded-xl border border-pink-200 bg-white p-4">
       {prenomMarraine && !dejaValide && (
         <p className="mb-2 rounded-lg bg-pink-50 px-3 py-2 text-xs text-pink-800">
-          💕 Filleule de <strong>{prenomMarraine}</strong> — valider sa venue peut débloquer un
+          💕 Filleule de <strong>{prenomMarraine}</strong>, valider sa venue peut débloquer un
           palier de parrainage.
         </p>
       )}

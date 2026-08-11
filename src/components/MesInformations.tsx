@@ -110,7 +110,7 @@ export default function MesInformations({
             <p className="text-sm font-medium">Adresse e-mail</p>
             <p className="mt-1 text-sm text-foreground/70">
               {email}
-              {" — c’est elle qui reçoit vos confirmations et vos liens de connexion."}
+              {". C’est elle qui reçoit vos confirmations et vos liens de connexion."}
             </p>
 
             {!changerEmail ? (

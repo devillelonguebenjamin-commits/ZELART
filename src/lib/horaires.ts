@@ -118,7 +118,7 @@ export async function horaires(reference = new Date()): Promise<Horaires> {
     bref: ouvert
       ? `Rendez-vous ${libelleJours(actuel.jours)}, à ${listeFrancaise(
           actuel.heures.map(heureCourte)
-        )} — sur réservation uniquement.`
+        )}, sur réservation uniquement.`
       : "",
     aVenir,
   };

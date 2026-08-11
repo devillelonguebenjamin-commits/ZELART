@@ -88,7 +88,7 @@ export default async function Accueil() {
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-foreground/80">
             Je m&rsquo;appelle <strong>Zélia</strong>, prothésiste ongulaire et nail artist
             certifiée, passionnée par le dessin et la mode. Spécialisée dans le nail art, je crée
-            des designs originaux, du plus discret au plus audacieux — chaque pose est unique,
+            des designs originaux, du plus discret au plus audacieux. Chaque pose est unique,
             pensée avec vous, selon vos envies et votre style.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
@@ -117,7 +117,7 @@ export default async function Accueil() {
           <h2 className="font-display text-center text-3xl font-bold">Prestations &amp; tarifs 🌸</h2>
           <TraitVagues className="mx-auto mt-4" />
           <p className="mx-auto mt-3 max-w-2xl text-center text-foreground/70">
-            Gainage, pose Gel X, Pop-it et vernis semi-permanent — avec ou sans nail art. Le niveau de
+            Gainage, pose Gel X, Pop-it et vernis semi-permanent, avec ou sans nail art. Le niveau de
             nail art (1 à 3) dépend de la complexité du design souhaité.
           </p>
           {/* Seul point d'entrée visible sur téléphone : les liens secondaires
@@ -262,7 +262,7 @@ export default async function Accueil() {
               // recopiée ici resterait vraie jusqu'au jour où elle ne le serait
               // plus, sans que personne s'en aperçoive.
               [ouverture.actuel, ouverture.aVenir].filter(Boolean).join(" "),
-              "Il faut avoir 18 ans ou plus — aucune pose sur les pieds.",
+              "Il faut avoir 18 ans ou plus. Aucune pose sur les pieds.",
               "Après votre demande, je vous envoie un message de confirmation (je ne réponds pas aux appels).",
               "Nouvelles clientes : un acompte de 15 € est demandé via SumUp pour valider le rendez-vous ; il est déduit du montant final.",
               "Paiement sur place en espèces ou par carte bancaire (SumUp).",

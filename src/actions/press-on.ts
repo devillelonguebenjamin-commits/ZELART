@@ -84,13 +84,13 @@ export async function commanderPressOn(
   if (process.env.NOTIFY_EMAIL) {
     await envoyerEmail(
       process.env.NOTIFY_EMAIL,
-      `Commande press-on — ${donnees.prenom} ${donnees.nom}`,
+      `Commande press-on · ${donnees.prenom} ${donnees.nom}`,
       `<p>Nouvelle commande de press-on à chiffrer :</p>
-       <p><strong>${echapperHtml(modele.nom)}</strong> — ${formatPrix(modele.prixCents, modele.aPartirDe)}<br>
+       <p><strong>${echapperHtml(modele.nom)}</strong> : ${formatPrix(modele.prixCents, modele.aPartirDe)}<br>
        ${LIBELLE_REMISE[donnees.modeRemise]}</p>
        ${donnees.adresse ? `<p>Adresse :<br>${echapperHtml(donnees.adresse).replace(/\n/g, "<br>")}</p>` : ""}
        ${donnees.mesures ? `<p>Mesures : ${echapperHtml(donnees.mesures)}</p>` : ""}
-       ${donnees.forme || donnees.longueur ? `<p>Forme : ${echapperHtml(donnees.forme ?? "—")} · Longueur : ${echapperHtml(donnees.longueur ?? "—")}</p>` : ""}
+       ${donnees.forme || donnees.longueur ? `<p>Forme : ${echapperHtml(donnees.forme ?? "non précisée")} · Longueur : ${echapperHtml(donnees.longueur ?? "non précisée")}</p>` : ""}
        ${donnees.inspiration ? `<p>Envies : ${echapperHtml(donnees.inspiration)}</p>` : ""}
        <p>${echapperHtml(donnees.prenom)} ${echapperHtml(donnees.nom)}<br>${echapperHtml(donnees.telephone)} · ${echapperHtml(donnees.email)}</p>
        <p><a href="${urlSite()}/admin/press-on">Ouvrir les commandes</a></p>`

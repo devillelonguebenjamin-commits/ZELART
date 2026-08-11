@@ -97,12 +97,12 @@ export async function changerStatutRendezVous(
        <p>${rendezVous.lignes
          .map(
            (l) =>
-             `<strong>${echapperHtml(l.prestation.nom)}</strong> — ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}`
+             `<strong>${echapperHtml(l.prestation.nom)}</strong> : ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}`
          )
          .join("<br>")}<br>
        <strong>Total : ${formatPrix(total.prixCents, total.aPartirDe)}</strong></p>
        <p>${formatJour(rendezVous.debut)} à ${formatHeure(rendezVous.debut)}<br>
-       L'Atelier du Regard — 108 avenue de la République, 44600 Saint-Nazaire</p>
+       L'Atelier du Regard, 108 avenue de la République, 44600 Saint-Nazaire</p>
        <p><a href="${urlSite()}/api/calendrier/${rendezVous.id}">📅 Ajouter à mon calendrier</a></p>
        <p>À très vite,<br>Zélia ✨</p>
        ${await reseauxPourEmail()}`
@@ -281,7 +281,7 @@ export async function enregistrerReglagesAcompte(
   return {
     ok: true,
     message: lien
-      ? "Réglages enregistrés — le lien partira automatiquement aux nouvelles clientes."
+      ? "Réglages enregistrés. Le lien partira automatiquement aux nouvelles clientes."
       : "Lien retiré : plus aucun envoi automatique d'acompte.",
   };
 }
@@ -333,8 +333,8 @@ export async function enregistrerReseaux(
     ok: true,
     message:
       actifs > 0
-        ? `Enregistré — ${actifs} lien${actifs > 1 ? "s" : ""} affiché${actifs > 1 ? "s" : ""} sur le site.`
-        : "Enregistré — aucun réseau n'est affiché pour le moment.",
+        ? `Enregistré : ${actifs} lien${actifs > 1 ? "s" : ""} affiché${actifs > 1 ? "s" : ""} sur le site.`
+        : "Enregistré : aucun réseau n'est affiché pour le moment.",
   };
 }
 
@@ -372,7 +372,7 @@ export async function gererAvisGoogle(
     await oublierCacheAvis();
     revalidatePath("/");
     revalidatePath("/admin/reglages");
-    return { ok: true, message: "Établissement connecté — les avis apparaissent sur l'accueil." };
+    return { ok: true, message: "Établissement connecté : les avis apparaissent sur l'accueil." };
   }
 
   const cible = normaliserRechercheAvis(String(formData.get("requete") ?? ""));
@@ -422,7 +422,7 @@ export async function envoyerEmailTest(
 
   const resultat = await envoyerEmail(
     destinataire.data,
-    "Test d'envoi — Zelart Nails",
+    "Test d'envoi · Zelart Nails",
     `<p>Bonjour,</p>
      <p>Ceci est un e-mail de test envoyé depuis l'espace gérante du site Zelart Nails.</p>
      <p>Si vous le recevez, les notifications de rendez-vous fonctionnent ✨</p>`

@@ -79,7 +79,7 @@ export default async function AdminChiffres() {
                 />
               </span>
               <span className="w-24 shrink-0 text-right font-medium text-pink-600">
-                {mois.totalCents > 0 ? formatPrix(mois.totalCents) : "—"}
+                {mois.totalCents > 0 ? formatPrix(mois.totalCents) : "0 €"}
               </span>
               <span className="hidden w-32 shrink-0 text-right text-xs text-foreground/50 sm:block">
                 {mois.poses > 0 && `${mois.poses} pose${mois.poses > 1 ? "s" : ""}`}

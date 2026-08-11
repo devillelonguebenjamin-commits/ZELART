@@ -151,7 +151,7 @@ function CarteRdv({
         {rdv.lignes.map((ligne) => (
           <li key={ligne.id}>
             {ligne.prestation.nom}
-            {ligne.automatique && <span className="text-foreground/50"> (dépose ajoutée)</span>} —{" "}
+            {ligne.automatique && <span className="text-foreground/50"> (dépose ajoutée)</span>} ·{" "}
             <span className="font-medium text-pink-600">
               {formatPrix(ligne.prestation.prixCents, ligne.prestation.aPartirDe)}
             </span>
@@ -159,7 +159,7 @@ function CarteRdv({
         ))}
         {rdv.lignes.length > 1 && (
           <li className="mt-0.5 font-semibold">
-            Total —{" "}
+            Total ·{" "}
             <span className="text-pink-600">
               {formatPrix(totalRdv.prixCents, totalRdv.aPartirDe)}
             </span>
@@ -214,7 +214,7 @@ function CarteRdv({
             <>
               <span className="text-violet-900">
                 {rdv.acompteDemandeLe
-                  ? `💳 Lien d'acompte envoyé le ${formatJour(rdv.acompteDemandeLe)} — en attente de paiement`
+                  ? `💳 Lien d'acompte envoyé le ${formatJour(rdv.acompteDemandeLe)}, en attente de paiement`
                   : "💳 Acompte à demander"}
               </span>
               <form action={marquerAcompteRegle.bind(null, rdv.id, true)}>
@@ -258,7 +258,7 @@ function CarteRdv({
           </p>
           {rdv.remiseFilleule && (
             <p className="mt-1 font-medium text-pink-800">
-              💕 −{rdv.remiseFilleulePourcent ?? REMISE_FILLEULE_POURCENT} % — première prestation d&rsquo;une filleule
+              💕 −{rdv.remiseFilleulePourcent ?? REMISE_FILLEULE_POURCENT} % sur la première prestation d&rsquo;une filleule
             </p>
           )}
           {avantages.map((avantage) => (

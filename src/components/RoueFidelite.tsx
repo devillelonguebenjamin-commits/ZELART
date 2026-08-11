@@ -116,8 +116,8 @@ export default function RoueFidelite({
           </div>
           <p className="mt-2 text-sm font-medium">
             {tours > 0
-              ? `Jauge pleine — ${tours} tour${tours > 1 ? "s" : ""} vous attend${tours > 1 ? "ent" : ""} !`
-              : `${remplissage} / ${posesParTour} poses — plus que ${posesParTour - remplissage} avant votre tour de roue`}
+              ? `Jauge pleine : ${tours} tour${tours > 1 ? "s" : ""} vous attend${tours > 1 ? "ent" : ""} !`
+              : `${remplissage} / ${posesParTour} poses, plus que ${posesParTour - remplissage} avant votre tour de roue`}
           </p>
         </>
       )}
@@ -194,7 +194,7 @@ export default function RoueFidelite({
           <p className="font-display mt-2 text-xl font-bold text-pink-600">{gagne.lot.libelle}</p>
           {essai ? (
             <p className="mt-3 text-sm text-foreground/70">
-              Tirage d&rsquo;essai — rien n&rsquo;a été enregistré.
+              Tirage d&rsquo;essai : rien n&rsquo;a été enregistré.
             </p>
           ) : (
             <>

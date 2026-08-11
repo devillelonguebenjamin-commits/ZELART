@@ -29,7 +29,7 @@ export const MESSAGE_CLIENTE: Record<StatutCommandePressOn, string> = {
   PAYEE: "Règlement reçu, la fabrication va commencer 🤍",
   EN_FABRICATION: "Votre set est en cours de création.",
   PRETE: "Votre set est prêt !",
-  REMISE: "Set remis — merci et à bientôt ✨",
+  REMISE: "Set remis. Merci et à bientôt ✨",
   ANNULEE: "Cette commande a été annulée.",
 };
 

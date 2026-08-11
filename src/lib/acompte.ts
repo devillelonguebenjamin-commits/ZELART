@@ -41,7 +41,7 @@ async function lienAcompte(
     if (existant?.etat === "PAID") return null; // déjà réglé : plus rien à demander
   }
 
-  const description = `Acompte — ${rendezVous.cliente.prenom} ${rendezVous.cliente.nom}`;
+  const description = `Acompte ${rendezVous.cliente.prenom} ${rendezVous.cliente.nom}`;
   const resultat = await creerLienPaiement(
     montantCents,
     description,
@@ -159,12 +159,12 @@ export async function envoyerDemandeAcompte(rendezVousId: string): Promise<boole
       <p>${rendezVous.lignes
         .map(
           (l) =>
-            `<strong>${echapperHtml(l.prestation.nom)}</strong> — ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}`
+            `<strong>${echapperHtml(l.prestation.nom)}</strong> : ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}`
         )
         .join("<br>")}<br>
       <strong>Total : ${formatPrix(total.prixCents, total.aPartirDe)}</strong></p>
       <p>${formatJour(rendezVous.debut)} à ${formatHeure(rendezVous.debut)}<br>
-      L'Atelier du Regard — 108 avenue de la République, 44600 Saint-Nazaire</p>
+      L'Atelier du Regard, 108 avenue de la République, 44600 Saint-Nazaire</p>
       <p>S'agissant de votre premier rendez-vous, un acompte de
       <strong>${formatPrix(montantCents)}</strong> est demandé pour le confirmer. Il sera
       <strong>déduit du montant final</strong> le jour de votre pose.</p>

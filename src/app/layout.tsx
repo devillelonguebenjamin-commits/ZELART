@@ -17,7 +17,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Zelart Nails — Prothésiste ongulaire à Saint-Nazaire",
+  title: "Zelart Nails · Prothésiste ongulaire à Saint-Nazaire",
   description:
     "Zélia, prothésiste ongulaire et nail artist certifiée à Saint-Nazaire. Prenez rendez-vous en ligne : vernis semi-permanent, gainage, pose Gel X, pose Pop-it et nail art.",
 };
@@ -96,7 +96,7 @@ export default async function RootLayout({
           <div className="mx-auto grid max-w-5xl gap-6 px-4 pb-8 text-sm text-foreground/70 sm:grid-cols-3 sm:px-6">
             <div>
               <p className="font-display text-lg font-bold text-pink-500">Zelart Nails</p>
-              <p className="mt-1">Zélia — prothésiste ongulaire &amp; nail artist certifiée</p>
+              <p className="mt-1">Zélia, prothésiste ongulaire &amp; nail artist certifiée</p>
               <p className="mt-1">SIRET 903 178 101 00015</p>
               {reseaux.length > 0 && (
                 <div className="mt-4">

@@ -146,7 +146,7 @@ export default async function Reglages() {
             !expediteurBrevo.verifiable
               ? "EMAIL_FROM"
               : expediteurBrevo.valide
-                ? "EMAIL_FROM — vérifiée chez Brevo"
+                ? "EMAIL_FROM, vérifiée chez Brevo"
                 : `Non vérifiée chez Brevo. Adresses validées : ${expediteurBrevo.connus.join(", ") || "aucune"}`
           }
         />
@@ -157,7 +157,7 @@ export default async function Reglages() {
           aide="Rappel de la veille, relance de repousse, demande d'avis, reconquête"
         />
         {/* Signalé à part, et quel que soit l'état du réglage ci-dessus : sans
-            ce secret, la tâche quotidienne ne s'exécute pas du tout — donc ni
+            ce secret, la tâche quotidienne ne s'exécute pas du tout, donc ni
             les rappels aux clientes, ni le récapitulatif de ce qui vous attend,
             qui lui ne dépend pourtant pas de ce réglage. */}
         <Ligne
@@ -166,7 +166,7 @@ export default async function Reglages() {
           ok={planificationPrete}
           aide={
             planificationPrete
-              ? "CRON_SECRET — porte aussi le récapitulatif quotidien des demandes en attente"
+              ? "CRON_SECRET, qui porte aussi le récapitulatif quotidien des demandes en attente"
               : "CRON_SECRET absent : aucune tâche ne s'exécute, y compris le récapitulatif des demandes en attente"
           }
         />
@@ -187,7 +187,7 @@ export default async function Reglages() {
           aide={
             sumupPret
               ? "chaque acompte porte sa propre référence : le règlement se coche tout seul"
-              : "sans l'API SumUp, un paiement est anonyme — aucun nom, aucune adresse, aucun téléphone ne circule avec une transaction. Le règlement reste à cocher à la main."
+              : "sans l'API SumUp, un paiement est anonyme : aucun nom, aucune adresse, aucun téléphone ne circule avec une transaction. Le règlement reste à cocher à la main."
           }
         />
         <Ligne
@@ -212,13 +212,13 @@ export default async function Reglages() {
               ? // Nom et drapeau « test » plutôt que des codes nus : avec deux
                 // comptes rattachés à la même clé, un code seul ne permet pas
                 // de choisir.
-                `${sumup.marchands.length > 1 ? "Cette clé ouvre plusieurs comptes — " : ""}${sumup.marchands
+                `${sumup.marchands.length > 1 ? "Cette clé ouvre plusieurs comptes : " : ""}${sumup.marchands
                   .map(
                     (m) =>
                       `${m.nom} : ${m.code}${m.bacASable ? " (compte de test, n'encaisse rien)" : ""}`
                   )
                   .join(" · ")}`
-              : "SUMUP_API_KEY + SUMUP_MERCHANT_CODE — sans elles, vous collez le lien de paiement à la main sur chaque commande")
+              : "SUMUP_API_KEY + SUMUP_MERCHANT_CODE. Sans elles, vous collez le lien de paiement à la main sur chaque commande")
           }
         />
         <Ligne

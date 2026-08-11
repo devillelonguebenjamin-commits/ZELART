@@ -31,7 +31,7 @@ export default function FormulaireCampagne({ segments }: Props) {
         >
           {segments.map((s) => (
             <option key={s.id} value={s.id}>
-              {s.libelle} — {s.nombre} cliente{s.nombre > 1 ? "s" : ""}
+              {s.libelle} · {s.nombre} cliente{s.nombre > 1 ? "s" : ""}
             </option>
           ))}
         </select>

@@ -138,7 +138,7 @@ export default function FormulaireRdvManuel({
               </span>
               <input name="email" type="email" className={CHAMP} />
               <span className="mt-1 block text-xs text-foreground/60">
-                Sans adresse, elle ne recevra ni rappel ni offre — c&rsquo;est prévu.
+                Sans adresse, elle ne recevra ni rappel ni offre, c&rsquo;est prévu.
               </span>
             </label>
           </div>
@@ -182,7 +182,7 @@ export default function FormulaireRdvManuel({
                 ))}
                 {trouvees.length === 0 && (
                   <span className="text-xs text-foreground/60">
-                    Personne ne correspond — passez par « Nouvelle cliente ».
+                    Personne ne correspond. Passez par « Nouvelle cliente ».
                   </span>
                 )}
               </div>

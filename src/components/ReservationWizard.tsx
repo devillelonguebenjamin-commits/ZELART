@@ -213,7 +213,7 @@ export default function ReservationWizard({
           <p className="mt-5 rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900">
             <strong>Votre pose actuelle doit être traitée.</strong>{" "}
             {remplissageAutorise(etatOngles, typePoseActuel)
-              ? "À l'étape suivante, choisissez soit un remplissage, soit une nouvelle pose — dans ce dernier cas, la dépose est ajoutée automatiquement."
+              ? "À l'étape suivante, choisissez soit un remplissage, soit une nouvelle pose. Dans ce dernier cas, la dépose est ajoutée automatiquement."
               : `Une dépose est donc prévue : ${motifDepose(etatOngles, typePoseActuel)}`}
           </p>
         )}
@@ -259,7 +259,7 @@ export default function ReservationWizard({
             ) : (
               <>
                 Vous portez une pose : choisissez un remplissage, une dépose seule, ou une nouvelle
-                pose — la dépose sera alors ajoutée automatiquement.
+                pose. La dépose sera alors ajoutée automatiquement.
               </>
             )}
           </p>
@@ -332,7 +332,7 @@ export default function ReservationWizard({
         <h2 className="font-display text-2xl font-bold">Choisissez votre créneau</h2>
         {lignes.length > 0 && (
           <p className="mt-2 text-sm text-foreground/70">
-            Pour : {lignes.map((l) => l.nom).join(" + ")} —{" "}
+            Pour : {lignes.map((l) => l.nom).join(" + ")} ·{" "}
             <span className="font-medium text-pink-600">
               {formatPrix(total.prixCents, total.aPartirDe)}
             </span>
@@ -414,7 +414,7 @@ export default function ReservationWizard({
         <h2 className="font-display text-2xl font-bold">Vos coordonnées</h2>
         {cliente && (
           <p className="mt-3 rounded-2xl bg-emerald-50 px-5 py-3 text-sm text-emerald-800">
-            Vos informations sont déjà remplies — corrigez-les si besoin, la modification sera
+            Vos informations sont déjà remplies. Corrigez-les si besoin, la modification sera
             enregistrée sur votre fiche.
           </p>
         )}
@@ -446,7 +446,7 @@ export default function ReservationWizard({
             ) : (
               <p className="mt-2 text-foreground/70">
                 Horaire proposé :{" "}
-                <strong>{dateProposee.replace("T", " à ")}</strong> — à confirmer de ma part.
+                <strong>{dateProposee.replace("T", " à ")}</strong>, à confirmer de ma part.
               </p>
             )}
           </div>
@@ -502,7 +502,7 @@ export default function ReservationWizard({
               <span className="text-sm font-medium">
                 Code de parrainage{" "}
                 <span className="text-foreground/50">
-                  (facultatif — une cliente vous a recommandée ? vous gagnez −
+                  (facultatif : une cliente vous a recommandée ? vous gagnez −
                   {REMISE_FILLEULE_POURCENT} %)
                 </span>
               </span>

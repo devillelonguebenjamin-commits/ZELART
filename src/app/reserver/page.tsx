@@ -12,7 +12,7 @@ import Vagues from "@/components/Vagues";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Prendre rendez-vous — Zelart Nails",
+  title: "Prendre rendez-vous · Zelart Nails",
 };
 
 export default async function Reserver() {

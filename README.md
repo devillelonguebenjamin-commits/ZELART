@@ -130,6 +130,30 @@ le corps des e-mails. Quatre exceptions, chacune pour une raison :
 Les commentaires du code, eux, parlent de Zélia à la troisième personne : ils s'adressent à qui
 reprendra le projet, pas à une cliente.
 
+## Ponctuation
+
+**Pas de tiret cadratin dans ce que lisent les clientes.** Il était devenu un tic, présent dans
+presque chaque paragraphe, et une incise entre tirets sonne « écrit par une machine » avant même
+qu'on en lise le contenu. Les 150 occurrences ont été reprises une à une, et la règle vaut aussi
+pour l'espace gérante.
+
+Ce n'est pas un remplacement mécanique : chaque phrase a été rejouée avec la ponctuation qui
+convient à ce qu'elle fait.
+
+| Ce que le tiret faisait | Ce qui le remplace |
+| --- | --- |
+| une incise explicative | des parenthèses, ou une virgule |
+| l'annonce d'une cause ou d'une précision | deux-points |
+| deux idées collées | un point, et deux phrases |
+| séparer un libellé de sa valeur (`Gainage — 45 €`) | deux-points |
+| séparer deux données de même rang (titre d'onglet, nom et adresse) | un point médian `·` |
+| marquer une case vide dans un tableau | le mot qui convient (`sans légende`, `jamais venue`) |
+
+Restent en place, parce que ce sont d'autres caractères et d'autres usages : le trait d'union des
+mots composés (`rendez-vous`, `press-on`, `sur-mesure`), le tiret demi-cadratin des plages horaires
+(`9h–13h`) et le signe moins des remises (`−15 %`). Les commentaires du code gardent les leurs :
+ils s'adressent à qui reprendra le projet.
+
 ## Parcours de réservation
 
 1. `/` — page d'accueil publique : présentation, prestations & tarifs, infos pratiques.

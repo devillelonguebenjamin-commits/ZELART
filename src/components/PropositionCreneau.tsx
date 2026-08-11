@@ -40,7 +40,7 @@ export default function PropositionCreneau({
       <p className="text-sm font-medium">Proposer un horaire</p>
       <p className="mt-1 text-xs text-foreground/60">
         Indiquez le moment qui vous arrangerait. Je vous réponds pour accepter ou proposer
-        autre chose — ce n&rsquo;est pas encore un rendez-vous confirmé.
+        autre chose. Ce n&rsquo;est pas encore un rendez-vous confirmé.
       </p>
       <label className="mt-3 block text-sm">
         <span className="font-medium">Date et heure souhaitées</span>

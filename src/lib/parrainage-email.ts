@@ -50,13 +50,13 @@ export async function recompenserMarraine(
   if (process.env.NOTIFY_EMAIL) {
     await envoyerEmail(
       process.env.NOTIFY_EMAIL,
-      `${statutFinal.palier.emoji} Palier ${statutFinal.palier.nom} atteint — ${bilan.marraine}`,
+      `${statutFinal.palier.emoji} Palier ${statutFinal.palier.nom} atteint : ${bilan.marraine}`,
       `<p><strong>${echapperHtml(bilan.marraine)}</strong> vient d'atteindre le palier
        <strong>${statutFinal.palier.nom}</strong> : ${echapperHtml(filleule.prenom)} est venue grâce à elle.</p>
        <p>Sa squad compte <strong>${statutFinal.filleulesVenues} filleule${statutFinal.filleulesVenues > 1 ? "s" : ""} venue${statutFinal.filleulesVenues > 1 ? "s" : ""}</strong>.</p>
        <p>À honorer :</p>
-       <ul>${accordes.map((a) => `<li><strong>${LIBELLE_AVANTAGE[a.type]}</strong> — code <code>${a.code}</code></li>`).join("")}</ul>
-       ${marraine?.bloqueeLe ? "<p><strong>⚠ Cette cliente est bloquée</strong> — l'avantage est enregistré, à vous de voir.</p>" : ""}
+       <ul>${accordes.map((a) => `<li><strong>${LIBELLE_AVANTAGE[a.type]}</strong>, code <code>${a.code}</code></li>`).join("")}</ul>
+       ${marraine?.bloqueeLe ? "<p><strong>⚠ Cette cliente est bloquée</strong> : l'avantage est enregistré, à vous de voir.</p>" : ""}
        <p><a href="${urlSite()}/admin/parrainage">Ouvrir l'onglet Parrainage</a></p>`
     );
   }
@@ -68,7 +68,7 @@ export async function recompenserMarraine(
   if (marraine.desabonneLe) return bilan;
 
   const lignes = accordes
-    .map((a) => `<li><strong>${LIBELLE_AVANTAGE[a.type]}</strong> — code <code>${a.code}</code></li>`)
+    .map((a) => `<li><strong>${LIBELLE_AVANTAGE[a.type]}</strong>, code <code>${a.code}</code></li>`)
     .join("");
 
   await envoyerEmail(
@@ -77,12 +77,12 @@ export async function recompenserMarraine(
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
       <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
       <p>Bonjour ${echapperHtml(marraine.prenom)},</p>
-      <p>${echapperHtml(filleule.prenom)} est venue grâce à vous — votre squad compte maintenant
+      <p>${echapperHtml(filleule.prenom)} est venue grâce à vous : votre squad compte maintenant
       <strong>${statutFinal.filleulesVenues} filleule${statutFinal.filleulesVenues > 1 ? "s" : ""}</strong> !</p>
       <p>Vous débloquez :</p>
       <ul>${lignes}</ul>
       <p style="font-size:13px;color:#8a6274">Présentez-moi simplement votre code lors de votre
-      prochain rendez-vous — vos avantages sont aussi listés dans votre espace.</p>
+      prochain rendez-vous. Vos avantages sont aussi listés dans votre espace.</p>
       <p style="margin:24px 0">
         <a href="${urlSite()}/mon-espace" style="background:#ec4899;color:#fff;text-decoration:none;padding:12px 24px;border-radius:999px;display:inline-block;font-weight:600">
           Voir ma squad

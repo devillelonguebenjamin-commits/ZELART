@@ -68,7 +68,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
       <p className="mt-10 text-center text-xs text-foreground/40">
         Version en ligne : <code>{version.sha}</code>
-        {version.message && ` — ${version.message}`}
+        {version.message && ` · ${version.message}`}
       </p>
     </div>
   );

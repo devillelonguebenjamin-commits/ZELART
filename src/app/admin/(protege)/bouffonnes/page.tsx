@@ -34,7 +34,7 @@ export default async function Bouffonnes() {
       <section className="rounded-2xl border border-pink-100 bg-white p-5">
         <h2 className="font-semibold">Bloquer une cliente</h2>
         <p className="mt-1 text-xs text-foreground/60">
-          Reprenez l&rsquo;adresse exacte de sa fiche — retrouvable dans l&rsquo;onglet{" "}
+          Reprenez l&rsquo;adresse exacte de sa fiche, retrouvable dans l&rsquo;onglet{" "}
           <Link href="/admin/clientes" className="font-medium text-pink-600 hover:underline">
             Clientes
           </Link>
@@ -89,7 +89,7 @@ export default async function Bouffonnes() {
                   {cliente.rendezVous.length > 0 && (
                     <p className="mt-1 text-xs font-medium text-amber-800">
                       ⚠ {cliente.rendezVous.length} rendez-vous encore à venir (
-                      {cliente.rendezVous.map((r) => formatJour(r.debut)).join(", ")}) — à annuler
+                      {cliente.rendezVous.map((r) => formatJour(r.debut)).join(", ")}), à annuler
                       depuis l&rsquo;agenda si besoin.
                     </p>
                   )}

@@ -17,7 +17,7 @@ export default function ReglagesAvisForm({
       <h2 className="font-semibold">Avis Google</h2>
       <p className="mt-1 text-sm text-foreground/70">
         Vos avis Google s&rsquo;affichent en bas de la page d&rsquo;accueil. Google n&rsquo;en
-        transmet que <strong>cinq à la fois</strong>, et c&rsquo;est lui qui les choisit — ce
+        transmet que <strong>cinq à la fois</strong>, et c&rsquo;est lui qui les choisit. Ce
         n&rsquo;est pas un réglage du site.
       </p>
 
@@ -67,7 +67,7 @@ export default function ReglagesAvisForm({
               {etablissement ? "Changer d’établissement" : "Votre établissement sur Google"}
             </span>
             <span className="mt-0.5 block text-xs text-foreground/60">
-              Le nom tel qu&rsquo;il apparaît sur Google — ou collez simplement le lien de votre
+              Le nom tel qu&rsquo;il apparaît sur Google, ou collez simplement le lien de votre
               page Google, on s&rsquo;occupe du reste.
             </span>
             <input
@@ -106,7 +106,7 @@ export default function ReglagesAvisForm({
                 <form action={action}>
                   <input type="hidden" name="intention" value="connecter" />
                   <input type="hidden" name="placeId" value={candidat.placeId} />
-                  <input type="hidden" name="nom" value={`${candidat.nom} — ${candidat.adresse}`} />
+                  <input type="hidden" name="nom" value={`${candidat.nom} · ${candidat.adresse}`} />
                   <button
                     type="submit"
                     disabled={enCours}

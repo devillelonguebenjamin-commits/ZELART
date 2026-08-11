@@ -107,7 +107,7 @@ export default async function Prestations() {
           n&rsquo;a pas vu : ce sont surtout les <strong>photos</strong> qui répondent.
         </p>
         <p className="mt-1 max-w-3xl text-sm text-foreground/60">
-          Les textes ci-dessous sont un point de départ, écrits prudemment — vous seule savez ce
+          Les textes ci-dessous sont un point de départ, écrits prudemment : vous seule savez ce
           qui sépare un niveau 2 d&rsquo;un niveau 3. Remplacez-les par vos mots. Vider un champ
           fait revenir la formulation par défaut plutôt qu&rsquo;un blanc.
         </p>

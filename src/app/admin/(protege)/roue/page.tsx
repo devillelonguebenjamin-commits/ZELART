@@ -60,7 +60,7 @@ export default async function AdminRoue() {
         <p className="mt-1 text-sm text-foreground/60">
           La <strong>chance</strong> est un poids, pas forcément un pourcentage : la part réelle est
           calculée sur le total des lots actifs (actuellement {total}). Vous pouvez donc mettre 1,
-          10, 30 et 59 comme aujourd&rsquo;hui, ou 1, 2, 3 — seule la proportion compte.
+          10, 30 et 59 comme aujourd&rsquo;hui, ou 1, 2, 3 : seule la proportion compte.
         </p>
 
         <div className="mt-4 space-y-3">

@@ -7,7 +7,7 @@ import Vagues from "@/components/Vagues";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Press-on nails — Zelart Nails",
+  title: "Press-on nails · Zelart Nails",
   description:
     "Commandez vos press-on nails : sets sur-mesure dessinés selon vos envies ou collections déjà prêtes. Remise en main propre à Saint-Nazaire ou envoi postal.",
 };

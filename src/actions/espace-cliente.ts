@@ -73,7 +73,7 @@ export async function demanderLienConnexion(
   const lien = `${urlSite()}/mon-espace/connexion/${jeton}`;
   const envoi = await envoyerEmail(
     cliente.email,
-    "Votre lien de connexion — Zelart Nails",
+    "Votre lien de connexion · Zelart Nails",
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
       <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
       <p>Bonjour ${echapperHtml(cliente.prenom)},</p>
@@ -207,7 +207,7 @@ export async function demanderChangementEmail(
   const lien = `${urlSite()}/mon-espace/email/${jeton}`;
   const envoi = await envoyerEmail(
     nouvelEmail,
-    "Confirmez votre nouvelle adresse — Zelart Nails",
+    "Confirmez votre nouvelle adresse · Zelart Nails",
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
       <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
       <p>Bonjour ${echapperHtml(cliente.prenom)},</p>
@@ -231,7 +231,7 @@ export async function demanderChangementEmail(
   // ordinateur partagé ne doit pas permettre une reprise silencieuse du compte.
   await envoyerEmail(
     cliente.email,
-    "Demande de changement d'adresse — Zelart Nails",
+    "Demande de changement d'adresse · Zelart Nails",
     `<p>Bonjour ${echapperHtml(cliente.prenom)},</p>
      <p>Une demande vient d'être faite depuis votre espace pour remplacer cette adresse par
      <strong>${echapperHtml(nouvelEmail)}</strong>. Elle ne prendra effet qu'après confirmation depuis la

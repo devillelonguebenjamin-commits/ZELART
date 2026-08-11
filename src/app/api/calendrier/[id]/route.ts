@@ -36,9 +36,9 @@ export async function GET(
     uid: `${rendezVous.id}@${new URL(urlSite()).hostname}`,
     debut: rendezVous.debut,
     fin: rendezVous.fin,
-    titre: `Zelart Nails — ${rendezVous.lignes.map((l) => l.prestation.nom).join(" + ")}`,
+    titre: `Zelart Nails · ${rendezVous.lignes.map((l) => l.prestation.nom).join(" + ")}`,
     lieu: "L'Atelier du Regard, 108 avenue de la République, 44600 Saint-Nazaire",
-    description: "Rendez-vous chez Zelart — Zélia, prothésiste ongulaire. Un empêchement ? SMS au 06 45 29 20 01.",
+    description: "Rendez-vous chez Zelart, avec Zélia, prothésiste ongulaire. Un empêchement ? SMS au 06 45 29 20 01.",
   });
 
   return new NextResponse(ics, {

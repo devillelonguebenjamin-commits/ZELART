@@ -75,7 +75,7 @@ export default function AvisGoogle({ fiche }: { fiche: FicheAvis | null }) {
               {fiche.note.toString().replace(".", ",")}
             </strong>{" "}
             sur 5
-            {fiche.nombre !== null && ` — ${fiche.nombre} avis sur Google`}
+            {fiche.nombre !== null && ` · ${fiche.nombre} avis sur Google`}
           </span>
         </p>
       )}

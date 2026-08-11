@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Protection des données — Zelart Nails",
+  title: "Protection des données · Zelart Nails",
 };
 
 export default function Confidentialite() {
@@ -17,7 +17,7 @@ export default function Confidentialite() {
         <section>
           <h2 className="font-display text-xl font-bold text-foreground">Qui gère vos données</h2>
           <p className="mt-2">
-            Zélia Barreteau — Zelart (SIRET 903 178 101 00015), 108 avenue de la République, 44600
+            Zélia Barreteau, Zelart (SIRET 903 178 101 00015), 108 avenue de la République, 44600
             Saint-Nazaire. Pour toute question : Zelia.barreteaupro@outlook.fr.
           </p>
         </section>
@@ -28,20 +28,20 @@ export default function Confidentialite() {
           </h2>
           <ul className="mt-2 list-disc space-y-2 pl-5">
             <li>
-              <strong>Prénom, nom, e-mail et téléphone</strong> — pour gérer votre rendez-vous et
+              <strong>Prénom, nom, e-mail et téléphone</strong> : pour gérer votre rendez-vous et
               vous en confirmer la date. Ces données sont nécessaires : sans elles, la réservation
               n&rsquo;est pas possible.
             </li>
             <li>
               <strong>Message laissé à la réservation et notes de suivi</strong> (préférences,
-              allergies éventuelles) — pour adapter la prestation et garantir votre sécurité. Ces
+              allergies éventuelles) : pour adapter la prestation et garantir votre sécurité. Ces
               notes ne sont visibles que de moi.
             </li>
             <li>
-              <strong>Historique de vos rendez-vous</strong> — pour assurer le suivi de vos poses.
+              <strong>Historique de vos rendez-vous</strong> : pour assurer le suivi de vos poses.
             </li>
             <li>
-              <strong>Votre accord pour recevoir des offres</strong>, si vous l&rsquo;avez donné —
+              <strong>Votre accord pour recevoir des offres</strong>, si vous l&rsquo;avez donné :
               pour vous informer des nouveautés et offres de fidélité. Cet accord est facultatif et
               révocable à tout moment.
             </li>
@@ -74,7 +74,7 @@ export default function Confidentialite() {
           <p className="mt-2">
             Vous pouvez à tout moment demander à consulter, corriger ou supprimer vos données, vous
             opposer à leur utilisation, ou retirer votre accord pour les offres. Il suffit
-            d&rsquo;écrire à Zelia.barreteaupro@outlook.fr — la demande est traitée dans un délai
+            d&rsquo;écrire à Zelia.barreteaupro@outlook.fr. La demande est traitée dans un délai
             d&rsquo;un mois. Chaque e-mail d&rsquo;offre contient également un lien de désinscription
             immédiate.
           </p>

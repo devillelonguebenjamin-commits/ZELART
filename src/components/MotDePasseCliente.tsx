@@ -26,7 +26,7 @@ export default function MotDePasseCliente({ enPlace }: { enPlace: boolean }) {
           <p className="mt-1 text-sm text-foreground/70">
             {enPlace
               ? "Vous pouvez vous connecter directement, sans passer par votre boîte mail."
-              : "Facultatif. Sans lui, vous continuez à recevoir un lien de connexion par e-mail — ce qui marche très bien."}
+              : "Facultatif. Sans lui, vous continuez à recevoir un lien de connexion par e-mail, ce qui marche très bien."}
           </p>
         </div>
         {!ouvert && (

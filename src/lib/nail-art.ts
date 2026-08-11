@@ -29,7 +29,7 @@ export const TEXTE_PAR_DEFAUT: Record<Niveau, { titre: string; texte: string }> 
   3: {
     titre: "Sur-mesure",
     texte:
-      "Une création détaillée, dessinée à main levée, souvent sur l'ensemble des ongles : relief, incrustations, motifs fins. C'est le niveau des occasions et des envies précises — comptez plus de temps sur place.",
+      "Une création détaillée, dessinée à main levée, souvent sur l'ensemble des ongles : relief, incrustations, motifs fins. C'est le niveau des occasions et des envies précises. Comptez plus de temps sur place.",
   },
 };
 

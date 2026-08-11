@@ -67,7 +67,7 @@ export default function FormulairePhoto() {
           <span className="text-foreground/70">Légende (facultatif)</span>
           <input
             name="legende"
-            placeholder="Pose Gel X — nail art fleuri"
+            placeholder="Pose Gel X, nail art fleuri"
             className="mt-1 block w-full min-w-40 rounded-xl border border-pink-200 px-3 py-2 outline-none focus:border-pink-500"
           />
         </label>
@@ -81,7 +81,7 @@ export default function FormulairePhoto() {
       </form>
 
       <p className="mt-2 text-xs text-foreground/60">
-        Les photos sont réduites automatiquement avant l&rsquo;envoi — inutile de les préparer.
+        Les photos sont réduites automatiquement avant l&rsquo;envoi, inutile de les préparer.
       </p>
 
       {etat && (

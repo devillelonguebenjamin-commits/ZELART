@@ -139,8 +139,8 @@ export default function GuideTailles({ onReporter }: { onReporter: (texte: strin
               </li>
               <li>
                 <strong>2.</strong>{" "}
-                Marquez les <strong>deux bords latéraux</strong> — à la jonction entre l&rsquo;ongle
-                et la peau — avec un stylo fin.
+                Marquez les <strong>deux bords latéraux</strong>, à la jonction entre
+                l&rsquo;ongle et la peau, avec un stylo fin.
               </li>
               <li>
                 <strong>3.</strong>{" "}
@@ -243,7 +243,7 @@ export default function GuideTailles({ onReporter }: { onReporter: (texte: strin
               <li>
                 <strong>3.</strong>{" "}
                 Photographiez <strong>à la verticale</strong>, l&rsquo;appareil au-dessus de la main
-                et non en biais — un angle fausse toutes les proportions.
+                et non en biais : un angle fausse toutes les proportions.
               </li>
               <li>
                 <strong>4.</strong> Une photo par main, à la lumière du jour de préférence.

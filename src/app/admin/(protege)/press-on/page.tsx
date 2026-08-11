@@ -65,7 +65,7 @@ export default async function AdminPressOn() {
                       <span className="font-medium">
                         {commande.cliente.prenom} {commande.cliente.nom}
                         <span className="ml-2 font-normal text-foreground/60">
-                          — {commande.modele.nom}
+                          · {commande.modele.nom}
                         </span>
                       </span>
                       <span className="font-semibold text-pink-500">
@@ -107,7 +107,7 @@ export default async function AdminPressOn() {
                 >
                   <span>
                     {commande.cliente.prenom} {commande.cliente.nom}
-                    <span className="ml-2 text-foreground/60">— {commande.modele.nom}</span>
+                    <span className="ml-2 text-foreground/60">· {commande.modele.nom}</span>
                   </span>
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-semibold ${COULEUR_STATUT[commande.statut]}`}
@@ -128,7 +128,7 @@ export default async function AdminPressOn() {
             <h2 className="font-display text-xl font-bold">Le catalogue</h2>
             <p className="mt-1 text-sm text-foreground/60">
               Décochez « en vitrine » pour retirer un set du site sans le supprimer. Cliquez sur
-              une vignette pour ajouter ou changer sa photo — c&rsquo;est elle que les clientes
+              une vignette pour ajouter ou changer sa photo : c&rsquo;est elle que les clientes
               voient au moment de choisir.
             </p>
           </div>

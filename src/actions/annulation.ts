@@ -50,7 +50,7 @@ export async function annulerParCliente(rendezVousId: string): Promise<EtatAnnul
   if (process.env.NOTIFY_EMAIL) {
     await envoyerEmail(
       process.env.NOTIFY_EMAIL,
-      `Annulation — ${rdv.cliente.prenom} ${rdv.cliente.nom} le ${formatJour(rdv.debut)}`,
+      `Annulation · ${rdv.cliente.prenom} ${rdv.cliente.nom} le ${formatJour(rdv.debut)}`,
       `<p>${echapperHtml(rdv.cliente.prenom)} ${echapperHtml(rdv.cliente.nom)} vient d'annuler depuis son espace :</p>
        <p><strong>${formatJour(rdv.debut)} à ${formatHeure(rdv.debut)}</strong><br>
        ${echapperHtml(rdv.lignes.map((l) => l.prestation.nom).join(" + "))}</p>

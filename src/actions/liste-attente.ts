@@ -11,7 +11,7 @@ export type EtatListeAttente = { ok?: boolean; message?: string };
 // Réponse unique, que l'inscription vienne d'être créée ou qu'elle existe déjà :
 // la cliente n'a pas à savoir laquelle des deux, et une réponse différenciée
 // dirait qui figure sur la liste.
-const MESSAGE_INSCRITE = "C'est noté — je vous préviens dès qu'une place se libère 🤍";
+const MESSAGE_INSCRITE = "C'est noté, je vous préviens dès qu'une place se libère 🤍";
 
 /** Délai avant qu'une même adresse puisse se réinscrire. */
 const DELAI_REINSCRIPTION_MS = 60 * 60 * 1000;

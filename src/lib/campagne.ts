@@ -54,7 +54,7 @@ export function corpsHtml(contenu: string, destinataire: Destinataire | null): s
   <p style="margin:24px 0 0">Zélia ✨</p>
   <hr style="border:none;border-top:1px solid #f6d9e7;margin:28px 0 12px">
   <p style="font-size:12px;color:#8a6274;margin:0">
-    Zelart — Zélia Barreteau, prothésiste ongulaire, 108 avenue de la République, 44600 Saint-Nazaire.<br>
+    Zelart · Zélia Barreteau, prothésiste ongulaire, 108 avenue de la République, 44600 Saint-Nazaire.<br>
     Vous recevez ce message parce que vous avez accepté de recevoir les offres de Zelart Nails.<br>
     <a href="${lienDesabo}" style="color:#8a6274">Se désinscrire en un clic</a>
   </p>

@@ -55,7 +55,7 @@ export async function fusionnerClientes(
       ok: true,
       message:
         `Fiches fusionnées sur ${resume.nom}` +
-        (details.length > 0 ? ` — ${details.join(", ")} rattaché${details.length > 1 ? "s" : ""}.` : ".") +
+        (details.length > 0 ? ` : ${details.join(", ")} rattaché${details.length > 1 ? "s" : ""}.` : ".") +
         (resume.adresseReprise ? " L'adresse e-mail réelle a été conservée." : ""),
     };
   } catch (erreur) {

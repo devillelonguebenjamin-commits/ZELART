@@ -119,7 +119,7 @@ export default async function Clientes({
                   {formatPrix(cliente.totalCents)}
                 </td>
                 <td className="px-5 py-3 capitalize text-foreground/75">
-                  {cliente.dernierRdv ? formatJour(cliente.dernierRdv) : "—"}
+                  {cliente.dernierRdv ? formatJour(cliente.dernierRdv) : "jamais venue"}
                 </td>
                 <td className="px-5 py-3">
                   {cliente.desabonneLe ? (

@@ -298,13 +298,13 @@ export async function creerReservation(
   if (process.env.NOTIFY_EMAIL) {
     await envoyerEmail(
       process.env.NOTIFY_EMAIL,
-      `${propose ? "Créneau proposé" : "Nouvelle demande de RDV"} — ${donnees.prenom} ${donnees.nom}`,
+      `${propose ? "Créneau proposé" : "Nouvelle demande de RDV"} · ${donnees.prenom} ${donnees.nom}`,
       `<p>Nouvelle demande de rendez-vous à confirmer :</p>
-       ${propose ? "<p><strong>⚠ Horaire proposé par la cliente</strong>, hors de vos créneaux habituels — à accepter ou refuser.</p>" : ""}
+       ${propose ? "<p><strong>⚠ Horaire proposé par la cliente</strong>, hors de vos créneaux habituels, à accepter ou refuser.</p>" : ""}
        <p>${lignes
          .map(
            (l) =>
-             `<strong>${echapperHtml(l.prestation.nom)}</strong> — ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}${l.automatique ? " (dépose ajoutée)" : ""}`
+             `<strong>${echapperHtml(l.prestation.nom)}</strong> : ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}${l.automatique ? " (dépose ajoutée)" : ""}`
          )
          .join("<br>")}<br>
        <strong>Total : ${formatPrix(total.prixCents, total.aPartirDe)}</strong><br>

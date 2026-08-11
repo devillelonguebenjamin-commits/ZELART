@@ -54,7 +54,7 @@ export default function ListeAttenteForm({ ouvert = false }: { ouvert?: boolean 
     <div ref={bloc} className="rounded-2xl border border-pink-100 bg-white p-5">
       <p className="text-sm font-medium">Prévenue dès qu&rsquo;une place se libère</p>
       <p className="mt-1 text-xs text-foreground/60">
-        Je vous écris dès qu&rsquo;une annulation ouvre un créneau — sans engagement.
+        Je vous écris dès qu&rsquo;une annulation ouvre un créneau, sans engagement.
       </p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <label className="block text-sm">

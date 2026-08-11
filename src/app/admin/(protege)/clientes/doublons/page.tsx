@@ -23,7 +23,7 @@ export default async function Doublons() {
           Les fiches qui désignent peut-être la même personne. Elles naissent quand une cliente
           enregistrée de vive voix finit par réserver en ligne : le site la reconnaît désormais à
           son numéro, mais celles créées avant restent à réunir. Rien n&rsquo;est fusionné sans
-          vous — un homonyme existe, et un foyer partage parfois une ligne.
+          vous : un homonyme existe, et un foyer partage parfois une ligne.
         </p>
       </div>
 

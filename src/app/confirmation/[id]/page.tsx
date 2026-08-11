@@ -10,7 +10,7 @@ import { REMISE_FILLEULE_POURCENT } from "@/lib/parrainage";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Demande envoyée — Zelart Nails",
+  title: "Demande envoyée · Zelart Nails",
   robots: { index: false },
 };
 
@@ -97,7 +97,7 @@ export default async function Confirmation({
             </p>
             <p>
               💳 S&rsquo;il s&rsquo;agit de votre premier rendez-vous, un <strong>acompte de 15 €</strong>{" "}
-              vous sera demandé via un lien de paiement SumUp pour valider la réservation — il sera
+              vous sera demandé via un lien de paiement SumUp pour valider la réservation. Il sera
               déduit du montant final.
             </p>
             {rendezVous.remiseFilleule && (
@@ -123,7 +123,7 @@ export default async function Confirmation({
           ) : (
             <p className="mt-6 text-sm text-foreground/60">
               📅 Vous pourrez ajouter le rendez-vous à votre calendrier dès que je
-              l&rsquo;aurai confirmé — le lien vous sera envoyé par e-mail.
+              l&rsquo;aurai confirmé. Le lien vous sera envoyé par e-mail.
             </p>
           )}
 

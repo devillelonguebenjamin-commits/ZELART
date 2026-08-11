@@ -87,7 +87,7 @@ export default function ReglagesRappelsForm({ actifs, delais }: Props) {
       <form action={actionEssai} className="mt-5 border-t border-pink-50 pt-4">
         <p className="text-xs text-foreground/60">
           Les envois ont lieu chaque matin. Vous pouvez aussi les déclencher tout de suite pour
-          vérifier — les messages déjà envoyés ne partent jamais deux fois.
+          vérifier : les messages déjà envoyés ne partent jamais deux fois.
         </p>
         <button
           type="submit"
