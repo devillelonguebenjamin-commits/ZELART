@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import {
   creneauProposeDepuisSaisie,
   fenetrePourDebut,
+  finPlageContinue,
   formatHeure,
   formatJour,
   HORIZON_PROPOSITION_JOURS,
@@ -145,20 +146,32 @@ export async function creerReservation(
       return { erreur: CRENEAU_INDISPONIBLE };
     }
 
-    // La fenêtre servait au seul contrôle de chevauchement : rien ne vérifiait
-    // que les prestations y tenaient. Six prestations cumulées débordaient donc
-    // l'heure de fermeture sans que personne en soit averti — un rendez-vous de
-    // 9 h finissant à 14 h, pause déjeuner comprise. La cliente est renvoyée
-    // vers Zélia plutôt que bloquée sèchement : une soirée exceptionnelle reste
-    // possible, mais elle se décide entre elles, pas toute seule ici.
-    const ouvertureMin = (ouverte.fin.getTime() - ouverte.debut.getTime()) / 60_000;
-    if (dureeTotale > ouvertureMin) {
+    // Rien ne vérifiait que les prestations tenaient dans la journée : six
+    // prestations cumulées débordaient l'heure de fermeture sans que personne
+    // en soit averti — un rendez-vous de 9 h finissant à 14 h, pause déjeuner
+    // comprise.
+    //
+    // La limite n'est pas la fenêtre choisie mais la **plage continue** dans
+    // laquelle elle s'inscrit : les créneaux d'une journée se touchent, et une
+    // pose qui déborde sur le suivant ne gêne personne puisqu'il n'y a qu'une
+    // cliente à la fois. S'arrêter à la fenêtre rendait un nail art niveau 3
+    // avec dépose irréservable ailleurs qu'au premier créneau du jour.
+    const finPlage = await finPlageContinue(debut);
+    const finPrestations = new Date(debut.getTime() + dureeTotale * 60_000);
+    if (!finPlage || finPrestations > finPlage) {
+      const disponible = finPlage ? (finPlage.getTime() - debut.getTime()) / 60_000 : 0;
       return {
-        erreur: `Ces prestations demandent environ ${formatDuree(dureeTotale)}, plus que la plage d'ouverture de ce créneau (${formatDuree(ouvertureMin)}). Retirez-en une, ou écrivez-moi par SMS au 06 45 29 20 01 pour convenir d'un rendez-vous plus long.`,
+        erreur: `Ces prestations demandent environ ${formatDuree(dureeTotale)}, et il reste ${formatDuree(disponible)} avant la fermeture à partir de cet horaire. Choisissez un créneau plus tôt dans la journée, retirez une prestation, ou écrivez-moi par SMS au 06 45 29 20 01 pour convenir d'un rendez-vous plus long.`,
       };
     }
 
-    fenetre = ouverte;
+    // Le créneau retenu s'étend jusqu'à la fin des prestations quand elles
+    // débordent : sans cela, la fenêtre suivante resterait proposée à une autre
+    // cliente alors que Zélia y est déjà occupée.
+    fenetre = {
+      debut: ouverte.debut,
+      fin: finPrestations > ouverte.fin ? finPrestations : ouverte.fin,
+    };
   }
 
   const finRendezVous = new Date(debut.getTime() + dureeTotale * 60_000);

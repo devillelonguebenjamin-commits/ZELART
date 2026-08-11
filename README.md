@@ -64,9 +64,22 @@ voulu — Zélia ne reçoit qu'une cliente à la fois et garde de la marge — m
 chose qui surprend en regardant un agenda presque vide dont peu de créneaux sont proposés. Les
 trois créneaux quotidiens d'octobre atténuent l'effet en découpant la journée plus finement.
 
+**Une prestation longue peut déborder sur la fenêtre suivante.** Les créneaux d'une journée se
+touchent (9h–13h, 13h–16h, 16h–19h) : les traiter comme des boîtes étanches refusait des
+rendez-vous parfaitement tenables — un nail art niveau 3 avec dépose dépasse trois heures et
+n'était réservable qu'au premier créneau du jour. La limite est donc la **fin de la plage
+continue** (`finPlageContinue`), pas la fin de la fenêtre choisie : un trou dans la journée (pause
+déjeuner) l'arrête, la fermeture aussi. Le rendez-vous enregistré s'étend alors jusqu'à la fin
+réelle des prestations, ce qui fait disparaître le créneau suivant de la liste tout seul.
+
+Ce qui reste refusé, et c'est voulu : une demande qui finirait après la fermeture. À partir du
+créneau de 16 h, une pose Gel X ou Pop-it de niveau 3 **avec dépose** (3h15 à 3h30) dépasserait
+19 h — le message invite alors à prendre un créneau plus tôt ou à écrire par SMS.
+
 ### Jours d'ouverture et jours de repos
 
-Ouverture du **mardi au samedi**, 9h–12h30 et 14h–18h. Le dimanche est fermé de longue date ; le
+Ouverture du **lundi au samedi** (9h–12h30 et 14h–18h) jusqu'au 30 septembre 2026, puis du
+**mardi au samedi** (9h–13h, 13h–16h, 16h–19h). Le dimanche est fermé de longue date ; le
 **lundi l'est depuis le 1er octobre 2026**.
 
 Cette bascule a demandé une période de validité sur `Disponibilite` (`actifDu` / `actifJusquau`,
@@ -146,6 +159,25 @@ Le sens des niveaux (ce qui sépare un niveau 2 d'un niveau 3) ne vit nulle part
 seule Zélia en juge, à la lecture d'une inspiration. La page s'en tient donc à ce qui est
 vérifiable — le supplément tarifaire — et renvoie vers la photo d'inspiration pour le reste.
 Inventer des définitions que le salon ne suivrait pas serait pire que de ne rien dire.
+
+### La fenêtre de comparaison des niveaux
+
+« Niveau 2 » ne veut rien dire tant qu'on n'a pas vu. Un lien ouvre donc une fenêtre comparant les
+trois côte à côte — photo, description, supplément mesuré — depuis la page des prestations **et**
+depuis l'étape « choisissez vos prestations » de la réservation, pour que la question se règle sans
+quitter le formulaire en cours.
+
+Photos et textes se pilotent depuis `/admin/prestations`. Les textes livrés sont un point de
+départ délibérément prudent : ils parlent de complexité et de temps de dessin, jamais de motifs
+précis que le salon ne suivrait pas. Vider un champ fait revenir la formulation par défaut plutôt
+qu'un blanc, et une carte sans photo affiche « Photo à venir » — mieux qu'un cadre vide qui
+passerait pour une image en échec.
+
+Détail d'implémentation qui a coûté un aller-retour : le `<dialog>` était rendu **dans un `<p>`**,
+ce que l'analyseur HTML corrige en le sortant du paragraphe — l'hydratation ne retrouvait plus son
+arbre. Il vit désormais dans un `<div>`. Les boutons intérieurs sont tous `type="button"` : la
+fenêtre de `/reserver` est à l'intérieur du `<form>` de réservation, un `submit` égaré l'aurait
+envoyé.
 
 **Aucune durée n'est annoncée aux clientes**, ni sur cette page ni dans le parcours de réservation.
 Les durées restent indispensables au calcul des créneaux et Zélia les voit à la saisie manuelle,

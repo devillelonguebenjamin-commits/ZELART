@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { reglagesRappels } from "@/lib/parametres";
 import { formatPrix } from "@/lib/format";
 import { niveauxNailArt, techniques } from "@/lib/explications";
+import { niveauxExpliques } from "@/lib/nail-art";
+import NiveauxNailArt from "@/components/NiveauxNailArt";
 import Vagues, { TraitVagues } from "@/components/Vagues";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +24,7 @@ export default async function Prestations() {
 
   const listeTechniques = techniques(catalogue, delais);
   const niveaux = niveauxNailArt(catalogue);
+  const niveauxIllustres = await niveauxExpliques(niveaux);
   const supplementIdentique = (n: { supplementMinCents: number; supplementMaxCents: number }) =>
     n.supplementMinCents === n.supplementMaxCents;
 
@@ -179,7 +182,14 @@ export default async function Prestations() {
               d&rsquo;inspiration à votre demande, je vous confirme le niveau et le tarif avant le
               rendez-vous.
             </p>
-            <p className="mt-2 text-sm text-foreground/60">
+            <div className="mt-3">
+              <NiveauxNailArt
+                niveaux={niveauxIllustres}
+                libelle="Voir les trois niveaux en photo"
+                className="inline-flex items-center gap-1.5 rounded-full border border-pink-300 px-5 py-2 text-sm font-medium text-pink-600 transition hover:bg-pink-50"
+              />
+            </div>
+            <p className="mt-4 text-sm text-foreground/60">
               Voici ce que chaque niveau ajoute à une prestation sans décor :
             </p>
 

@@ -20,6 +20,8 @@ import {
 } from "@/lib/regles";
 import type { EtatOngles, TypeActe, TypePose } from "@/generated/prisma/client";
 import ChampInspiration from "@/components/ChampInspiration";
+import NiveauxNailArt from "@/components/NiveauxNailArt";
+import type { NiveauExplique } from "@/lib/nail-art";
 
 export type PrestationPublique = {
   id: string;
@@ -35,6 +37,8 @@ export type PrestationPublique = {
 type Props = {
   prestations: PrestationPublique[];
   creneaux: Creneau[];
+  /** Les trois niveaux de nail art, pour la fenêtre de comparaison. */
+  niveauxNailArt: NiveauExplique[];
   /** Renseigné quand la cliente est connectée à son espace. */
   cliente?: { prenom: string; nom: string; email: string; telephone: string } | null;
   envoiImagesActif: boolean;
@@ -46,6 +50,7 @@ export default function ReservationWizard({
   prestations,
   creneaux,
   envoiImagesActif,
+  niveauxNailArt,
   cliente,
 }: Props) {
   const [etape, setEtape] = useState(0);
@@ -231,6 +236,11 @@ export default function ReservationWizard({
         <p className="mt-2 text-sm text-foreground/70">
           Vous pouvez en cocher plusieurs si vous souhaitez cumuler.
         </p>
+        {/* La question du niveau se pose ici, devant la liste — pas sur une
+            autre page qu'il faudrait aller chercher en perdant sa sélection. */}
+        <div className="mt-2">
+          <NiveauxNailArt niveaux={niveauxNailArt} />
+        </div>
         {etatOngles === "NATUREL" && (
           <p className="mt-2 text-sm text-foreground/70">
             Vos ongles étant nus, seules les nouvelles poses vous sont proposées.

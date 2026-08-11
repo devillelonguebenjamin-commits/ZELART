@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getCreneauxDisponibles } from "@/lib/creneaux";
 import { stockageConfigure } from "@/lib/blob";
 import ReservationWizard from "@/components/ReservationWizard";
+import { niveauxNailArt } from "@/lib/explications";
+import { niveauxExpliques } from "@/lib/nail-art";
 import { clienteConnectee } from "@/lib/cliente-auth";
 import Vagues from "@/components/Vagues";
 
@@ -42,6 +44,11 @@ export default async function Reserver() {
     getCreneauxDisponibles(),
   ]);
 
+  // Le supplément de chaque niveau se mesure sur le catalogue complet, dépose
+  // et remplissages compris : la sélection affichée, elle, est filtrée.
+  const catalogue = await prisma.prestation.findMany({ where: { active: true } });
+  const niveaux = await niveauxExpliques(niveauxNailArt(catalogue));
+
   return (
     <>
       <section className="relative isolate overflow-hidden">
@@ -73,6 +80,7 @@ export default async function Reserver() {
           prestations={prestations}
           creneaux={creneaux}
           envoiImagesActif={stockageConfigure()}
+          niveauxNailArt={niveaux}
           cliente={connue}
         />
       </div>

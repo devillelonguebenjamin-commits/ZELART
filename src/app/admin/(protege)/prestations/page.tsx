@@ -1,12 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import { grouperParCategorie } from "@/lib/format";
 import { modifierPrestation } from "@/actions/admin";
+import { niveauxNailArt } from "@/lib/explications";
+import { niveauxExpliques } from "@/lib/nail-art";
+import ReglagesNiveauNailArt from "@/components/ReglagesNiveauNailArt";
 
 export const dynamic = "force-dynamic";
 
 export default async function Prestations() {
   const prestations = await prisma.prestation.findMany({ orderBy: { ordre: "asc" } });
   const categories = grouperParCategorie(prestations);
+  const niveaux = await niveauxExpliques(niveauxNailArt(prestations.filter((p) => p.active)));
 
   return (
     <div>
@@ -93,6 +97,26 @@ export default async function Prestations() {
           </section>
         ))}
       </div>
+
+      {/* ── Les niveaux de nail art, tels que les clientes les verront ──── */}
+      <section className="mt-12">
+        <h2 className="font-display text-lg font-bold text-pink-500">Les trois niveaux de nail art</h2>
+        <p className="mt-1 max-w-3xl text-sm text-foreground/60">
+          Une fenêtre de comparaison s&rsquo;ouvre depuis la page des prestations et depuis le
+          choix de la prestation à la réservation. « Niveau 2 » ne veut rien dire tant qu&rsquo;on
+          n&rsquo;a pas vu : ce sont surtout les <strong>photos</strong> qui répondent.
+        </p>
+        <p className="mt-1 max-w-3xl text-sm text-foreground/60">
+          Les textes ci-dessous sont un point de départ, écrits prudemment — vous seule savez ce
+          qui sépare un niveau 2 d&rsquo;un niveau 3. Remplacez-les par vos mots. Vider un champ
+          fait revenir la formulation par défaut plutôt qu&rsquo;un blanc.
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          {niveaux.map((niveau) => (
+            <ReglagesNiveauNailArt key={niveau.niveau} niveau={niveau} />
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
