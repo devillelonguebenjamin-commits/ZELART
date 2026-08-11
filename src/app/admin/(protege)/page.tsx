@@ -5,6 +5,7 @@ import { formatPrix, totalTarifs } from "@/lib/format";
 import {
   changerStatutRendezVous,
   marquerAcompteRegle,
+  verifierAcompteMaintenant,
   renvoyerLienAcompte,
 } from "@/actions/admin";
 import { supprimerListeAttente } from "@/actions/liste-attente";
@@ -224,6 +225,17 @@ function CarteRdv({
                   Acompte reçu
                 </button>
               </form>
+              {rdv.acompteReference && (
+                <form action={verifierAcompteMaintenant.bind(null, rdv.id)}>
+                  <button
+                    type="submit"
+                    title="Interroger SumUp maintenant"
+                    className="rounded-full border border-violet-300 bg-white px-3 py-1 text-xs font-medium text-violet-700 transition hover:bg-violet-100"
+                  >
+                    Vérifier auprès de SumUp
+                  </button>
+                </form>
+              )}
               {lienAcompteConfigure && (
                 <form action={renvoyerLienAcompte.bind(null, rdv.id)}>
                   <button

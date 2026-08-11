@@ -6,6 +6,7 @@ import { reglagesAcompte, reglagesRappels } from "@/lib/parametres";
 import { lienDemandeAvis } from "@/lib/avis";
 import { attribuerAvantages } from "@/lib/parrainage";
 import { compterEnAttente } from "@/lib/en-attente";
+import { verifierAcomptesEnAttente } from "@/lib/acompte";
 import { urlSite } from "@/lib/site";
 import type { TypePose } from "@/generated/prisma/client";
 
@@ -15,6 +16,8 @@ export type BilanRappels = {
   relances: { envoyees: number; echecs: number };
   avis: { envoyees: number; echecs: number };
   acompte: { envoyees: number; echecs: number };
+  /** Acomptes constatés réglés auprès de SumUp pendant ce passage. */
+  acomptesConstates: number;
   reconquete: { envoyees: number; echecs: number };
   avantagesParrainage: number;
   recapEnAttente: boolean;
@@ -493,6 +496,14 @@ export async function executerRappels(): Promise<BilanRappels> {
   // comme l'envoi initial du lien, elle s'active dès qu'un lien SumUp est
   // configuré — c'est le fonctionnement attendu de l'acompte, pas un rappel
   // de confort qu'on pourrait vouloir couper séparément.
+  // Les règlements sont constatés **avant** de relancer : une cliente qui a payé
+  // hier soir ne doit pas recevoir ce matin un « je n'ai pas reçu votre
+  // acompte ». La sonnette de SumUp aurait dû l'apprendre au site, mais rien ne
+  // la garantit — d'où ce passage systématique.
+  const acomptesConstates = await etape("acomptes réglés", verifierAcomptesEnAttente, {
+    verifies: 0,
+    regles: 0,
+  });
   const acompte = await etape("acompte", envoyerRelancesAcompte, AUCUNE_ENVOYEE);
 
   // Comme la relance d'acompte, le récapitulatif ne dépend pas du réglage des
@@ -508,6 +519,7 @@ export async function executerRappels(): Promise<BilanRappels> {
       relances: { envoyees: 0, echecs: 0 },
       avis: { envoyees: 0, echecs: 0 },
       acompte,
+      acomptesConstates: acomptesConstates.regles,
       reconquete: { envoyees: 0, echecs: 0 },
       avantagesParrainage: 0,
       recapEnAttente: recap.envoye,
@@ -525,6 +537,7 @@ export async function executerRappels(): Promise<BilanRappels> {
     relances,
     avis,
     acompte,
+    acomptesConstates: acomptesConstates.regles,
     reconquete,
     avantagesParrainage,
     recapEnAttente: recap.envoye,

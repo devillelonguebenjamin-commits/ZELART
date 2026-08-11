@@ -9,7 +9,7 @@ import { exigerAdmin, fermerSessionAdmin, ouvrirSessionAdmin } from "@/lib/auth"
 import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { z } from "zod";
 import { dateParis, formatHeure, formatJour } from "@/lib/creneaux";
-import { envoyerDemandeAcompte, estNouvelleCliente } from "@/lib/acompte";
+import { envoyerDemandeAcompte, estNouvelleCliente, verifierAcompte } from "@/lib/acompte";
 import { formatPrix, totalTarifs } from "@/lib/format";
 import {
   CLE_AUTRE_RESEAU,
@@ -243,6 +243,17 @@ export type EtatAcompte = { ok?: boolean; message?: string };
 export async function renvoyerLienAcompte(id: string): Promise<void> {
   await exigerAdmin();
   await envoyerDemandeAcompte(id);
+  revalidatePath("/admin");
+}
+
+// Demander à SumUp, tout de suite, où en est cet acompte.
+//
+// La tâche de 7 h le fait déjà toute seule et la sonnette de SumUp aussi, mais
+// aucune des deux n'est instantanée : ce bouton sert à trancher devant l'écran,
+// quand une cliente écrit « j'ai payé » et qu'il faut lui répondre maintenant.
+export async function verifierAcompteMaintenant(id: string): Promise<void> {
+  await exigerAdmin();
+  await verifierAcompte(id);
   revalidatePath("/admin");
 }
 

@@ -309,6 +309,16 @@ model RendezVous {
   acompteRegleLe          DateTime?
   acompteRelanceEnvoyeeLe DateTime? // relance à 24h si toujours pas réglé
 
+  // Référence du paiement SumUp propre à ce rendez-vous. C'est elle, et elle
+  // seule, qui permet de savoir automatiquement si l'acompte a été réglé : une
+  // transaction SumUp ne porte aucune identité de payeuse — ni nom, ni e-mail,
+  // ni téléphone. Sans référence, un virement de 15 € est indiscernable d'un
+  // autre. Vide pour les acomptes envoyés avec le lien réutilisable, qui
+  // restent à cocher à la main.
+  acompteReference  String?  @unique
+  acompteCheckoutId String?
+  acompteVerifieLe  DateTime? // dernière interrogation de SumUp, pour le diagnostic
+
   // Horodatages des envois automatiques, pour ne jamais écrire deux fois
   rappelEnvoyeLe        DateTime?
   relanceEnvoyeeLe      DateTime?

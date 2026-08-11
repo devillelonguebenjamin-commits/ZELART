@@ -326,18 +326,60 @@ test en affichant l'erreur exacte du service.
 
 ## Acompte des nouvelles clientes
 
-Zélia colle dans `/admin/reglages` un **lien de paiement SumUp réutilisable** (créé depuis
-l'application SumUp : *Paiements par lien* → montant fixe → *Activer lien réutilisable*). Toute
-cliente sans autre rendez-vous actif reçoit alors automatiquement, à sa réservation, un e-mail
-contenant ce lien et le rappel des conditions — sauf sur un horaire proposé, où la demande
-attend l'accord de Zélia (cf. *Horaire proposé par la cliente*).
+Toute cliente sans autre rendez-vous actif reçoit automatiquement, à sa réservation, un e-mail
+contenant un lien de paiement et le rappel des conditions — sauf sur un horaire proposé, où la
+demande attend l'accord de Zélia (cf. *Horaire proposé par la cliente*).
 
-Le lien réutilisable est préféré à l'API SumUp : les `hosted_checkout_url` créés par l'API
-n'ont qu'une validité de 30 minutes, incompatible avec un lien envoyé par e-mail.
+**Deux liens possibles, et la différence n'est pas cosmétique :**
 
-L'agenda signale les nouvelles clientes, l'état de l'acompte (`acompteDemandeLe`,
-`acompteRegleLe`) et permet de renvoyer le lien ou de marquer l'acompte reçu. Sans lien
-configuré, rien n'est envoyé : la demande reste manuelle.
+- **un paiement créé pour ce rendez-vous** (API SumUp configurée), qui porte une référence à
+  nous — `acompte-<id du rendez-vous>-<horodatage>`, conservée dans `acompteReference` ;
+- **le lien réutilisable collé dans `/admin/reglages`**, à défaut. Il fonctionne, mais reste
+  anonyme.
+
+Sans aucun des deux, rien n'est envoyé : la demande reste manuelle.
+
+### Constater le règlement sans rien saisir
+
+C'est la référence, et elle seule, qui rend le constat possible. **Une transaction SumUp ne porte
+aucune identité de payeuse** : ni nom, ni e-mail, ni téléphone, sur aucun des trois écrans de
+l'API (historique, détail d'une transaction, reçu). Vérifié sur la spécification officielle — les
+seuls champs disponibles sont le montant, l'horodatage, le statut, le code de transaction et
+`product_summary`, recopié de la description du paiement. Le champ `user` d'une transaction est
+l'adresse de **la marchande**, pas de la cliente. Un paiement de 15 € y est rigoureusement
+indiscernable d'un autre paiement de 15 €.
+
+Rapprocher par nom, e-mail ou téléphone n'est donc pas *approximatif* : c'est impossible, faute de
+données. D'où la règle : un lien par acompte, une référence par lien, et la question devient
+exacte — `GET /v0.1/checkouts?checkout_reference=…` → `PENDING` · `PAID` · `FAILED` · `EXPIRED`.
+
+Trois moments où la question est posée :
+
+1. **au retour de paiement**, via `return_url` → `/api/sumup/retour` ;
+2. **dans la tâche quotidienne de 7 h**, avant les relances — une cliente qui a réglé hier soir ne
+   doit pas recevoir ce matin un « je n'ai pas reçu votre acompte » ;
+3. **au bouton « Vérifier auprès de SumUp »** de l'agenda, pour trancher devant l'écran quand une
+   cliente écrit « j'ai payé ».
+
+> **La sonnette de SumUp n'est pas crue.** La spécification ne documente ni le format du message
+> ni aucune signature : un inconnu pourrait poster « la référence untel est payée ». Du corps reçu
+> on ne retient donc **que la référence**, uniquement pour savoir qui interroger ; l'état est
+> redemandé à l'API, seule autorité. Le pire qu'un plaisantin obtienne, c'est que le site pose une
+> question dont il connaît déjà la réponse. Vérifié : un faux `{"status":"PAID"}` ne coche rien.
+
+Deux prudences dans `verifierAcompte` : une absence de réponse ne vaut **jamais** « impayé » —
+sans quoi une coupure réseau relancerait une cliente qui a payé ; et un acompte déjà marqué réglé
+n'est ni réinterrogé ni démarqué, Zélia ayant pu le cocher à la main pour un règlement en espèces.
+
+Un renvoi réutilise le paiement déjà ouvert au lieu d'en créer un second : la cliente pourrait
+régler l'ancien lien resté dans sa boîte, et ce règlement-là échapperait au constat.
+
+**Ce qui reste manuel**, et le bouton « Acompte reçu » est là pour ça : les règlements en espèces
+ou par virement, et les acomptes partis avec le lien réutilisable — ceux-là n'ont pas de
+référence, rien ne peut les rattacher après coup.
+
+L'agenda signale les nouvelles clientes et l'état de l'acompte (`acompteDemandeLe`,
+`acompteRegleLe`, `acompteVerifieLe`).
 
 ## Paiement des press-on
 

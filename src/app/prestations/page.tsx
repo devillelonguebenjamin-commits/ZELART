@@ -125,10 +125,8 @@ export default async function Prestations() {
             <div className="rounded-2xl border border-pink-100 bg-white p-5">
               <p className="font-display text-lg font-bold text-pink-500">Le remplissage</p>
               <p className="mt-2 text-sm leading-relaxed text-foreground/80">
-                On comble la repousse sans tout retirer. Ce n&rsquo;est&nbsp;
-                <strong>ni plus rapide, ni une version économique</strong> de la pose : le travail
-                sur la repousse demande la même minutie, pour un temps comparable. Réservé au
-                gainage et au Pop-it, <strong>que j&rsquo;ai posés moi-même</strong>.
+                On comble la repousse sans tout retirer. Réservé au gainage et au Pop-it,{" "}
+                <strong>que j&rsquo;ai posés moi-même</strong>.
               </p>
             </div>
             <div className="rounded-2xl border border-pink-100 bg-white p-5">
