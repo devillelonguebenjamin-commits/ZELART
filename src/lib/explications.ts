@@ -6,12 +6,15 @@ import type { TypeActe, TypePose } from "@/generated/prisma/client";
 // sans que personne y pense. Une explication figée dans du texte finirait par
 // contredire ce que le formulaire de réservation applique vraiment.
 
+// Les durées ne sont volontairement pas exposées ici. Elles restent
+// indispensables au calcul des créneaux, mais annoncer « comptez 2h30 » engage
+// sur une minute près : un ongle abîmé, une cliente qui hésite sur sa couleur,
+// et le chiffre affiché devient un reproche. Le temps réel se dit de vive voix.
 export type PrestationExpliquee = {
   id: string;
   nom: string;
   categorie: string;
   description: string | null;
-  dureeMin: number;
   prixCents: number;
   aPartirDe: boolean;
   typeActe: TypeActe;
@@ -24,7 +27,6 @@ export type Technique = {
   description: string | null;
   /** Pose la moins chère de la catégorie, celle qui sert de repère. */
   aPartirDeCents: number;
-  dureeMinimale: number;
   /** Vrai si le catalogue propose un remplissage pour cette technique. */
   remplissagePossible: boolean;
   remplissage: { prixCents: number; aPartirDe: boolean } | null;
@@ -68,7 +70,6 @@ export function techniques(
       // vernis semi-permanent » en guise de définition du semi-permanent.
       description: poses.find((p) => p.description)?.description ?? null,
       aPartirDeCents: repere.prixCents,
-      dureeMinimale: Math.min(...poses.map((p) => p.dureeMin)),
       remplissagePossible: Boolean(remplissage),
       remplissage: remplissage
         ? { prixCents: remplissage.prixCents, aPartirDe: remplissage.aPartirDe }
@@ -86,8 +87,6 @@ export type NiveauNailArt = {
   /** Écart de prix par rapport à la même prestation sans nail art. */
   supplementMinCents: number;
   supplementMaxCents: number;
-  tempsMin: number;
-  tempsMax: number;
 };
 
 /**
@@ -96,8 +95,8 @@ export type NiveauNailArt = {
  * Le sens des niveaux (ce qui distingue un « niveau 2 » d'un « niveau 3 ») ne
  * vit nulle part dans le système : seule Zélia le sait, et c'est elle qui
  * tranche à la lecture d'une inspiration. On s'en tient donc à ce qui est
- * vérifiable — le supplément et le temps — plutôt que d'inventer des
- * définitions que le salon ne suivrait pas.
+ * vérifiable — le supplément tarifaire — plutôt que d'inventer des définitions
+ * que le salon ne suivrait pas.
  *
  * Un écart est renvoyé sous forme de fourchette : rien ne garantit que tous les
  * tarifs évoluent du même pas.
@@ -110,7 +109,7 @@ export function niveauxNailArt(prestations: PrestationExpliquee[]): NiveauNailAr
     if (!actuel || p.prixCents < actuel.prixCents) reperes.set(p.categorie, p);
   }
 
-  const parNiveau = new Map<number, { prix: number[]; temps: number[] }>();
+  const parNiveau = new Map<number, number[]>();
   for (const p of prestations) {
     const trouve = p.nom.match(NIVEAU);
     if (!trouve || p.typeActe !== "POSE") continue;
@@ -118,19 +117,16 @@ export function niveauxNailArt(prestations: PrestationExpliquee[]): NiveauNailAr
     const repere = reperes.get(p.categorie);
     if (!repere) continue;
 
-    const entree = parNiveau.get(Number(trouve[1])) ?? { prix: [], temps: [] };
-    entree.prix.push(p.prixCents - repere.prixCents);
-    entree.temps.push(p.dureeMin - repere.dureeMin);
-    parNiveau.set(Number(trouve[1]), entree);
+    const prix = parNiveau.get(Number(trouve[1])) ?? [];
+    prix.push(p.prixCents - repere.prixCents);
+    parNiveau.set(Number(trouve[1]), prix);
   }
 
   return [...parNiveau.entries()]
-    .map(([niveau, { prix, temps }]) => ({
+    .map(([niveau, prix]) => ({
       niveau,
       supplementMinCents: Math.min(...prix),
       supplementMaxCents: Math.max(...prix),
-      tempsMin: Math.min(...temps),
-      tempsMax: Math.max(...temps),
     }))
     .sort((a, b) => a.niveau - b.niveau);
 }

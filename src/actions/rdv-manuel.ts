@@ -8,6 +8,7 @@ import { exigerAdmin } from "@/lib/auth";
 import { nouveauCodeUnique } from "@/lib/cliente-auth";
 import { creneauProposeDepuisSaisie, formatHeure, formatJour } from "@/lib/creneaux";
 import { DOMAINE_SANS_EMAIL } from "@/lib/email";
+import { champsTelephone, cleTelephone } from "@/lib/telephone";
 import { totalDuree } from "@/lib/format";
 
 // Rendez-vous pris de vive voix, saisi par Zélia.
@@ -139,6 +140,20 @@ export async function creerRendezVousManuel(
               select: { id: true, prenom: true, nom: true },
             });
           }
+          // Puis le numéro, pour la raison inverse : une habituée déjà venue a
+          // souvent une fiche créée en ligne, et Zélia qui ressaisit son
+          // rendez-vous de vive voix n'a pas son adresse sous les yeux. Une
+          // seule candidate, sinon on s'abstient et le doublon sera signalé.
+          if (!retenue) {
+            const cle = cleTelephone(nouvelles.telephone);
+            const memeNumero = cle
+              ? await tx.cliente.findMany({
+                  where: { telephoneNormalise: cle },
+                  select: { id: true, prenom: true, nom: true },
+                })
+              : [];
+            if (memeNumero.length === 1) retenue = memeNumero[0];
+          }
           retenue ??= await tx.cliente.create({
             data: {
               prenom: nouvelles.prenom,
@@ -146,7 +161,7 @@ export async function creerRendezVousManuel(
               email: nouvelles.email || emailDeComplaisance(),
               // Une habituée peut n'avoir laissé que son prénom : le numéro est
               // facultatif ici, même si la colonne ne l'est pas.
-              telephone: nouvelles.telephone || "",
+              ...champsTelephone(nouvelles.telephone || ""),
               codeParrainage: await nouveauCodeUnique(tx),
             },
             select: { id: true, prenom: true, nom: true },

@@ -13,6 +13,11 @@ model Cliente {
   nom       String
   email     String  @unique
   telephone String
+  // Le numéro réduit à ses chiffres (cf. src/lib/telephone.ts), pour reconnaître
+  // une cliente déjà enregistrée qui réserve avec une autre adresse. Volontairement
+  // **non unique** : deux sœurs peuvent partager une ligne, et surtout des doublons
+  // existent déjà — une contrainte refuserait la migration au lieu de les signaler.
+  telephoneNormalise String?
   notes     String? // suivi : allergies, préférences, particularités des ongles…
 
   // Prospection : consentement recueilli à la réservation, révocable à tout
@@ -51,6 +56,8 @@ model Cliente {
   commandes   CommandePressOn[]
   changementsEmail ChangementEmail[]
   avantages   AvantageParrainage[]
+
+  @@index([telephoneNormalise])
 }
 
 // Programme « Squad ». Le palier lui-même n'est pas stocké : il se recalcule à

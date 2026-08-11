@@ -264,10 +264,18 @@ export default function GuideTailles({ onReporter }: { onReporter: (texte: strin
         </>
       )}
 
-      <p className="mt-4 border-t border-pink-200 pt-3 text-xs text-foreground/60">
-        Ni l&rsquo;une ni l&rsquo;autre ne vous tente ? Laissez le champ vide et dites-le : Zélia
-        vous prêtera un kit de taille, ou vous guidera par message.
-      </p>
+      <div className="mt-4 border-t border-pink-200 pt-3 text-xs text-foreground/70">
+        <p>
+          <strong>Ni l&rsquo;une ni l&rsquo;autre ne vous convient ?</strong> Passez à
+          l&rsquo;institut : Zélia mesure vos ongles elle-même, c&rsquo;est l&rsquo;affaire de
+          quelques minutes et c&rsquo;est la méthode la plus sûre. Prévenez-la par SMS au{" "}
+          <strong>06&nbsp;45&nbsp;29&nbsp;20&nbsp;01</strong> pour convenir d&rsquo;un moment.
+        </p>
+        <p className="mt-1 text-foreground/60">
+          Laissez alors le champ des mesures vide et signalez-le dans votre message : la commande
+          est mise de côté en attendant votre passage.
+        </p>
+      </div>
     </div>
   );
 }

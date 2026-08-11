@@ -13,6 +13,7 @@ import {
   motDePasseCorrespond,
 } from "@/lib/mot-de-passe";
 import { ouvrirSessionCliente } from "@/lib/cliente-auth";
+import { champsTelephone } from "@/lib/telephone";
 import { coordonneesSchema, emailSchema } from "@/lib/validations";
 import {
   clienteConnectee,
@@ -133,7 +134,10 @@ export async function enregistrerMesInformations(
     return { ok: false, message: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
   }
 
-  await prisma.cliente.update({ where: { id: clienteId }, data: analyse.data });
+  await prisma.cliente.update({
+    where: { id: clienteId },
+    data: { ...analyse.data, ...champsTelephone(analyse.data.telephone) },
+  });
 
   revalidatePath("/mon-espace");
   revalidatePath(`/admin/clientes/${clienteId}`);

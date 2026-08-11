@@ -285,6 +285,19 @@ export async function modifierModelePressOn(formData: FormData): Promise<void> {
   revalidatePath("/press-on");
 }
 
+// Retirer la photo d'un modèle sans toucher au modèle lui-même.
+//
+// L'image reste sur Vercel Blob : la supprimer vraiment demanderait de vérifier
+// qu'aucune commande passée ne l'affiche encore, et une photo orpheline coûte
+// quelques kilo-octets là où une photo effacée à tort casse un historique.
+export async function retirerPhotoModelePressOn(id: string): Promise<void> {
+  await exigerAdmin();
+  await prisma.modelePressOn.update({ where: { id }, data: { photoUrl: null } });
+
+  revalidatePath("/admin/press-on");
+  revalidatePath("/press-on");
+}
+
 export async function supprimerModelePressOn(id: string): Promise<void> {
   await exigerAdmin();
 

@@ -16,7 +16,7 @@ import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { envoyerDemandeAcompte, estNouvelleCliente } from "@/lib/acompte";
 import { clienteBloquee, MESSAGE_BLOCAGE } from "@/lib/blocage";
 import { urlSite } from "@/lib/site";
-import { nouveauCodeUnique } from "@/lib/cliente-auth";
+import { ficheCliente } from "@/lib/fiche-cliente";
 import { deposeNecessaire, prestationProposee, trouverDepose } from "@/lib/regles";
 import { REMISE_FILLEULE_POURCENT } from "@/lib/parrainage";
 import { formatDuree, formatPrix, totalDuree, totalTarifs } from "@/lib/format";
@@ -188,29 +188,8 @@ export async function creerReservation(
         });
         if (conflitRdv || conflitIndispo) throw new Error("CRENEAU_PRIS");
 
-        // Le consentement se donne, jamais ne se retire tout seul : une
-        // réservation sans la case cochée n'annule pas un accord antérieur.
         const accord = formData.get("consentementMarketing") === "on";
-        const cliente = await tx.cliente.upsert({
-          where: { email: donnees.email },
-          update: {
-            prenom: donnees.prenom,
-            nom: donnees.nom,
-            telephone: donnees.telephone,
-            ...(accord
-              ? { consentementMarketing: true, consentementLe: new Date(), desabonneLe: null }
-              : {}),
-          },
-          create: {
-            prenom: donnees.prenom,
-            nom: donnees.nom,
-            email: donnees.email,
-            telephone: donnees.telephone,
-            codeParrainage: await nouveauCodeUnique(tx),
-            consentementMarketing: accord,
-            consentementLe: accord ? new Date() : null,
-          },
-        });
+        const cliente = await ficheCliente(tx, donnees, accord);
 
         // Une réservation annulée ne consomme pas l'offre de bienvenue : on
         // compte donc les rendez-vous encore valides, pas toutes les demandes.

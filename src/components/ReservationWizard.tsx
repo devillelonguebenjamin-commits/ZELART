@@ -7,7 +7,7 @@ import InfoPrestation from "@/components/InfoPrestation";
 import PropositionCreneau from "@/components/PropositionCreneau";
 import type { Creneau } from "@/lib/creneaux";
 import { REMISE_FILLEULE_POURCENT } from "@/lib/parrainage-bareme";
-import { formatDuree, formatPrix, totalDuree, totalTarifs } from "@/lib/format";
+import { formatPrix, totalTarifs } from "@/lib/format";
 import {
   aUnePose,
   deposeNecessaire,
@@ -26,7 +26,6 @@ export type PrestationPublique = {
   nom: string;
   categorie: string;
   description: string | null;
-  dureeMin: number;
   prixCents: number;
   aPartirDe: boolean;
   typeActe: TypeActe;
@@ -287,12 +286,7 @@ export default function ReservationWizard({
                         checked={choisies.includes(p.id)}
                         onChange={() => basculer(p.id)}
                       />
-                      <span>
-                        <span className="block font-medium">{p.nom}</span>
-                        <span className="block text-xs text-foreground/60">
-                          environ {formatDuree(p.dureeMin)}
-                        </span>
-                      </span>
+                      <span className="font-medium">{p.nom}</span>
                     </span>
                     <span className="shrink-0 font-semibold text-pink-500">
                       {formatPrix(p.prixCents, p.aPartirDe)}
@@ -432,7 +426,7 @@ export default function ReservationWizard({
               ))}
             </ul>
             <p className="mt-2 flex justify-between gap-4 border-t border-pink-200 pt-2 font-semibold">
-              <span>Total · environ {formatDuree(totalDuree(lignes))}</span>
+              <span>Total</span>
               <span className="text-pink-600">{formatPrix(total.prixCents, total.aPartirDe)}</span>
             </p>
             {creneauChoisi ? (

@@ -9,27 +9,30 @@ import AvisGoogle from "@/components/AvisGoogle";
 import { avisGoogle } from "@/lib/avis";
 import { jsonLdSecurise } from "@/lib/json-ld";
 import { urlSite } from "@/lib/site";
+import { horaires } from "@/lib/horaires";
 
 export const dynamic = "force-dynamic";
 
 export default async function Accueil() {
-  const [prestations, photos, realisations, pressOnMoinsCher, reseaux, avis] = await Promise.all([
-    prisma.prestation.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
-    prisma.photo.findMany({ orderBy: [{ ordre: "asc" }, { creeLe: "desc" }], take: 12 }),
-    prisma.realisation.findMany({
-      where: { publiee: true },
-      orderBy: { creeLe: "desc" },
-      take: 12,
-      select: { id: true, url: true },
-    }),
-    prisma.modelePressOn.findFirst({
-      where: { actif: true },
-      orderBy: { prixCents: "asc" },
-      select: { prixCents: true },
-    }),
-    reglagesReseaux(),
-    avisGoogle(),
-  ]);
+  const [prestations, photos, realisations, pressOnMoinsCher, reseaux, avis, ouverture] =
+    await Promise.all([
+      prisma.prestation.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
+      prisma.photo.findMany({ orderBy: [{ ordre: "asc" }, { creeLe: "desc" }], take: 12 }),
+      prisma.realisation.findMany({
+        where: { publiee: true },
+        orderBy: { creeLe: "desc" },
+        take: 12,
+        select: { id: true, url: true },
+      }),
+      prisma.modelePressOn.findFirst({
+        where: { actif: true },
+        orderBy: { prixCents: "asc" },
+        select: { prixCents: true },
+      }),
+      reglagesReseaux(),
+      avisGoogle(),
+      horaires(),
+    ]);
   // La galerie réunit les photos ajoutées à la main et les réalisations publiées.
   const visuels = [
     ...photos.map((p) => ({ id: p.id, url: p.url, legende: p.legende })),
@@ -255,7 +258,10 @@ export default async function Accueil() {
           <TraitVagues className="mx-auto mt-4" />
           <div className="mt-8 grid gap-4 text-sm sm:grid-cols-2">
             {[
-              "Rendez-vous du lundi au samedi, à 9h ou 14h (une cliente par créneau).",
+              // Les horaires sont lus dans la table des ouvertures : une phrase
+              // recopiée ici resterait vraie jusqu'au jour où elle ne le serait
+              // plus, sans que personne s'en aperçoive.
+              [ouverture.actuel, ouverture.aVenir].filter(Boolean).join(" "),
               "Il faut avoir 18 ans ou plus — aucune pose sur les pieds.",
               "Après votre demande, Zélia vous envoie un message de confirmation (elle ne répond pas aux appels).",
               "Nouvelles clientes : un acompte de 15 € est demandé via SumUp pour valider le rendez-vous ; il est déduit du montant final.",

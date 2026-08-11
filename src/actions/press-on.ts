@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { envoyerEmail, echapperHtml } from "@/lib/email";
-import { nouveauCodeUnique } from "@/lib/cliente-auth";
+import { ficheCliente } from "@/lib/fiche-cliente";
 import { commandePressOnSchema, urlImageValide } from "@/lib/validations";
 import { clienteBloquee, MESSAGE_BLOCAGE } from "@/lib/blocage";
 import { formatPrix } from "@/lib/format";
@@ -62,26 +62,7 @@ export async function commanderPressOn(
     .slice(0, 3);
 
   const accord = formData.get("consentementMarketing") === "on";
-  const cliente = await prisma.cliente.upsert({
-    where: { email: donnees.email },
-    update: {
-      prenom: donnees.prenom,
-      nom: donnees.nom,
-      telephone: donnees.telephone,
-      ...(accord
-        ? { consentementMarketing: true, consentementLe: new Date(), desabonneLe: null }
-        : {}),
-    },
-    create: {
-      prenom: donnees.prenom,
-      nom: donnees.nom,
-      email: donnees.email,
-      telephone: donnees.telephone,
-      codeParrainage: await nouveauCodeUnique(prisma),
-      consentementMarketing: accord,
-      consentementLe: accord ? new Date() : null,
-    },
-  });
+  const cliente = await ficheCliente(prisma, donnees, accord);
 
   // Le prix est figé ici : le catalogue peut changer avant la fabrication.
   const commande = await prisma.commandePressOn.create({

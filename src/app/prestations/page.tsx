@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { reglagesRappels } from "@/lib/parametres";
-import { formatDuree, formatPrix } from "@/lib/format";
+import { formatPrix } from "@/lib/format";
 import { niveauxNailArt, techniques } from "@/lib/explications";
 import Vagues, { TraitVagues } from "@/components/Vagues";
 
@@ -72,10 +72,6 @@ export default async function Prestations() {
                     </dd>
                   </div>
                   <div className="flex justify-between gap-4">
-                    <dt className="text-foreground/60">Comptez</dt>
-                    <dd className="font-medium">{formatDuree(technique.dureeMinimale)} sur place</dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
                     <dt className="text-foreground/60">Prochain rendez-vous</dt>
                     <dd className="font-medium">vers {technique.retourJours} jours</dd>
                   </div>
@@ -129,8 +125,10 @@ export default async function Prestations() {
             <div className="rounded-2xl border border-pink-100 bg-white p-5">
               <p className="font-display text-lg font-bold text-pink-500">Le remplissage</p>
               <p className="mt-2 text-sm leading-relaxed text-foreground/80">
-                On comble la repousse sans tout retirer. Moins long et moins cher qu&rsquo;une pose
-                — mais réservé au gainage et au Pop-it, <strong>posés par Zélia</strong>.
+                On comble la repousse sans tout retirer. Ce n&rsquo;est&nbsp;
+                <strong>ni plus rapide, ni une version économique</strong> de la pose : le travail
+                sur la repousse demande la même minutie, pour un temps comparable. Réservé au
+                gainage et au Pop-it, <strong>posés par Zélia</strong>.
               </p>
             </div>
             <div className="rounded-2xl border border-pink-100 bg-white p-5">
@@ -192,23 +190,17 @@ export default async function Prestations() {
                 <thead>
                   <tr className="border-b border-pink-200 text-left">
                     <th className="py-2 pr-4 font-semibold">Niveau</th>
-                    <th className="py-2 pr-4 font-semibold">Supplément</th>
-                    <th className="py-2 font-semibold">Temps en plus</th>
+                    <th className="py-2 font-semibold">Supplément</th>
                   </tr>
                 </thead>
                 <tbody>
                   {niveaux.map((n) => (
                     <tr key={n.niveau} className="border-b border-pink-100 last:border-0">
                       <td className="py-3 pr-4 font-medium">Niveau {n.niveau}</td>
-                      <td className="py-3 pr-4 text-pink-600">
+                      <td className="py-3 text-pink-600">
                         {supplementIdentique(n)
                           ? `+ ${formatPrix(n.supplementMinCents)}`
                           : `de + ${formatPrix(n.supplementMinCents)} à + ${formatPrix(n.supplementMaxCents)}`}
-                      </td>
-                      <td className="py-3">
-                        {n.tempsMin === n.tempsMax
-                          ? `environ ${formatDuree(n.tempsMin)}`
-                          : `de ${formatDuree(n.tempsMin)} à ${formatDuree(n.tempsMax)}`}
                       </td>
                     </tr>
                   ))}

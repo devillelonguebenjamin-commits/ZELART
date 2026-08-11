@@ -12,6 +12,7 @@ import {
 } from "@/lib/press-on";
 import { modifierModelePressOn, supprimerModelePressOn } from "@/actions/admin-press-on";
 import FormulaireNouveauModelePressOn from "@/components/FormulaireNouveauModelePressOn";
+import PhotoModelePressOn from "@/components/PhotoModelePressOn";
 
 export const dynamic = "force-dynamic";
 
@@ -126,7 +127,9 @@ export default async function AdminPressOn() {
           <div>
             <h2 className="font-display text-xl font-bold">Le catalogue</h2>
             <p className="mt-1 text-sm text-foreground/60">
-              Décochez « en vitrine » pour retirer un set du site sans le supprimer.
+              Décochez « en vitrine » pour retirer un set du site sans le supprimer. Cliquez sur
+              une vignette pour ajouter ou changer sa photo — c&rsquo;est elle que les clientes
+              voient au moment de choisir.
             </p>
           </div>
           <FormulaireNouveauModelePressOn collections={collections} />
@@ -144,6 +147,11 @@ export default async function AdminPressOn() {
                     className="flex flex-wrap items-center gap-3 rounded-2xl border border-pink-100 bg-white px-4 py-3 text-sm"
                   >
                     <input type="hidden" name="id" value={modele.id} />
+                    <PhotoModelePressOn
+                      modeleId={modele.id}
+                      nom={modele.nom}
+                      photoUrl={modele.photoUrl}
+                    />
                     <span className="min-w-40 flex-1 font-medium">
                       {modele.nom}
                       {modele.surMesure && (

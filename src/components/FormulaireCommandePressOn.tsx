@@ -95,13 +95,24 @@ export default function FormulaireCommandePressOn({
                     checked={modeleId === m.id}
                     onChange={() => setModeleId(m.id)}
                   />
+                  {/* On commande sur photo : la vignette est assez grande pour
+                      qu'un motif se distingue, et s'agrandit au clic. */}
                   {m.photoUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={m.photoUrl}
-                      alt={m.nom}
-                      className="h-16 w-16 shrink-0 rounded-xl object-cover"
-                    />
+                    <a
+                      href={m.photoUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="shrink-0"
+                      title="Voir en grand"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={m.photoUrl}
+                        alt={`Set ${m.nom}`}
+                        className="size-24 rounded-xl object-cover ring-1 ring-pink-100 transition hover:ring-pink-400 sm:size-28"
+                      />
+                    </a>
                   )}
                   <span className="min-w-0 flex-1">
                     <span className="flex items-baseline justify-between gap-3">

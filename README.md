@@ -88,6 +88,13 @@ de repos, l'absence de rendez-vous ne distinguant pas un jour fermé d'un jour c
 > Les horaires n'ont pas d'interface d'administration : ils vivent dans le seed et se modifient
 > par migration. C'est une limite connue, pas un oubli de cette évolution.
 
+La phrase « À savoir avant de réserver » qui les annonce sur la page d'accueil est **lue dans cette
+même table** (`src/lib/horaires.ts`), jamais recopiée : « du lundi au samedi, à 9h ou 14h » y est
+restée affichée après que le régime eut changé, et une phrase figée survit toujours au changement
+qu'elle décrit. Comme deux régimes datés coexistent, elle en donne deux — celui du jour, et celui
+qui prendra le relais avec sa date. C'est aussi ce qu'une cliente veut savoir en réservant à deux
+mois.
+
 ## Parcours de réservation
 
 1. `/` — page d'accueil publique : présentation, prestations & tarifs, infos pratiques.
@@ -105,19 +112,23 @@ dépose), la règle de la pose qui ne se recouvre pas, et ce que chaque niveau d
 
 **Tout y est déduit du catalogue et des règles, jamais recopié à côté** (`src/lib/explications.ts`) :
 
-- les tarifs, durées et définitions viennent des `Prestation` actives ;
+- les tarifs et les définitions viennent des `Prestation` actives ;
 - « remplissage possible » se lit sur l'existence d'une prestation de remplissage dans la
   catégorie, pas sur une liste écrite en dur — c'est la même vérité que celle appliquée par
   `regles.ts` au moment de réserver ;
 - le retour conseillé reprend le délai de relance configuré dans les réglages ;
-- le supplément de chaque niveau de nail art est **mesuré** : écart de prix et de durée entre la
-  prestation décorée et la même sans décor, rendu sous forme de fourchette si les catégories
-  divergent.
+- le supplément de chaque niveau de nail art est **mesuré** : écart de prix entre la prestation
+  décorée et la même sans décor, rendu sous forme de fourchette si les catégories divergent.
 
 Le sens des niveaux (ce qui sépare un niveau 2 d'un niveau 3) ne vit nulle part dans le système :
 seule Zélia en juge, à la lecture d'une inspiration. La page s'en tient donc à ce qui est
-vérifiable — le supplément et le temps — et renvoie vers la photo d'inspiration pour le reste.
+vérifiable — le supplément tarifaire — et renvoie vers la photo d'inspiration pour le reste.
 Inventer des définitions que le salon ne suivrait pas serait pire que de ne rien dire.
+
+**Aucune durée n'est annoncée aux clientes**, ni sur cette page ni dans le parcours de réservation.
+Les durées restent indispensables au calcul des créneaux et Zélia les voit à la saisie manuelle,
+mais afficher « comptez 2h30 » engage à la minute près : un ongle abîmé, une hésitation sur la
+couleur, et le chiffre devient un reproche.
 
 Une prestation modifiée, retirée ou reprisée se répercute donc sans que personne pense à cette
 page. La description affichée est celle d'une **pose** de la catégorie : prise au premier venu,
@@ -479,6 +490,11 @@ commande plutôt que d'essayer l'autre si on ne lui montrait pas les deux :
   déjà ; cette étape le rappelle explicitement, faute de quoi la cliente arriverait dans une
   section qui ne parle que d'inspiration et n'oserait pas y joindre ses mains.
 
+Une **troisième sortie** clôt le guide, parce que les deux méthodes supposent du matériel et de la
+patience que tout le monde n'a pas : passer à l'institut, où Zélia mesure elle-même, sur simple SMS.
+La cliente laisse alors le champ vide et le signale ; sa commande attend son passage. Sans cette
+issue, celle qui ne s'en sort ni au ruban ni en photo n'a plus qu'à abandonner.
+
 Les champs du guide n'ont **aucun attribut `name`** : ils vivent dans le `<form>` de commande et
 seraient sinon envoyés avec elle. Le report passe par un bouton et non par la frappe, pour ne pas
 effacer une précision écrite à la main ; le texte composé est tronqué à 300 caractères, la limite
@@ -499,6 +515,18 @@ propre parcours, sans créneau ni agenda.
    « prête » prévient la cliente par e-mail.
 
 La cliente suit l'avancement de sa commande depuis `/mon-espace`.
+
+### La photo du set
+
+On commande un press-on **à l'œil** : un nom de collection ne dit rien de ce qu'on recevra. Le
+modèle portait déjà un champ `photoUrl`, mais rien ne permettait de le remplir — il restait vide.
+Un clic sur la vignette d'un set, dans le catalogue de `/admin/press-on`, envoie ou remplace sa
+photo (même trajet que la galerie : compression dans le navigateur, dépôt sur Vercel Blob, seule
+l'adresse est conservée). Côté cliente, la vignette occupe assez de place pour qu'un motif se
+distingue, et s'ouvre en grand.
+
+Retirer une photo remet le champ à `null` sans effacer le fichier : une image orpheline coûte
+quelques kilo-octets, une image effacée à tort casse l'affichage d'une commande passée.
 
 ## Direction artistique
 
@@ -785,6 +813,52 @@ réservé par la RFC 2606, il ne peut atteindre aucune boîte réelle, ni aujour
 `envoyerEmail` refuse ces adresses **à la source** plutôt que chez chaque appelant : rappels,
 avantages, relances, il aurait suffi d'en oublier un pour accumuler les rejets chez le fournisseur
 d'envoi.
+
+## Une cliente, une fiche
+
+Cette commodité avait un revers : la fiche du carnet n'a qu'un numéro et une adresse fictive, celle
+du site a une vraie adresse. Le jour où l'habituée réserve en ligne, plus rien ne les relie —
+même personne, deux historiques, deux comptages de fidélité, et un espace cliente qui ignore les
+rendez-vous déjà pris.
+
+Le **numéro de téléphone** sert donc de second identifiant. Il est stocké réduit à ses chiffres
+(`Cliente.telephoneNormalise`, cf. `src/lib/telephone.ts`), indicatif `+33` ramené à `0`, en dessous
+de neuf chiffres rien n'est retenu — un numéro tronqué rapprocherait des clientes sans lien. La
+colonne n'est **pas unique** : un foyer partage parfois une ligne, et des doublons préexistaient.
+
+`src/lib/fiche-cliente.ts` est le seul endroit qui décide, pour la réservation comme pour la
+commande de press-on — auparavant chacune faisait son propre `upsert`, et la même personne pouvait
+exister deux fois selon la porte qu'elle poussait. L'ordre suit le degré de certitude :
+
+1. **l'e-mail**, identifiant réel de la fiche : aucune ambiguïté ;
+2. **le numéro**, mais uniquement vers une fiche *sans adresse réelle* — celle du carnet, qui
+   attendait précisément que sa cliente se connecte un jour. On lui donne son adresse.
+
+Ce qui n'est **pas** fait : rapprocher deux fiches portant chacune une vraie adresse. Une mère
+réserve pour sa fille, deux sœurs partagent un téléphone ; écraser l'adresse de l'une l'enfermerait
+dehors de son espace. Ces cas sont signalés, pas tranchés.
+
+### Fusionner (`/admin/clientes/doublons`)
+
+L'écran réunit les fiches qui se ressemblent — même numéro (fiable), à défaut mêmes nom et prénom
+(plus faible, mais c'est le seul indice qui reste quand un numéro manque). Un compteur apparaît sur
+la liste des clientes dès qu'il y en a. Rien n'est fusionné sans Zélia : elle seule reconnaît ses
+clientes.
+
+La fusion (`src/lib/fusion.ts`, isolée de l'action pour être vérifiable sans session) tient dans une
+transaction et penche toujours du côté de la conservation :
+
+- **l'historique se cumule** : rendez-vous, commandes, lots gagnés, filleules ;
+- **l'adresse réelle l'emporte** sur l'adresse de complaisance, quel que soit le sens choisi ;
+- **les refus l'emportent sur les accords** : une désinscription ou un blocage d'un seul côté vaut
+  pour la fiche fusionnée. Se réabonner est un geste de la cliente, jamais la conséquence d'un
+  ménage interne ;
+- **l'ancienneté est la plus vieille des deux** — c'est la date de la première venue qui compte ;
+- les deux tables à contrainte d'unicité (envois de campagne, avantages de parrainage) ne peuvent
+  pas être déplacées telles quelles : une ligne présente des deux côtés est supprimée plutôt que de
+  faire échouer toute la fusion ;
+- les liens de connexion de la fiche absorbée sont détruits : ils menaient à une adresse qui
+  disparaît.
 
 ## Ce qui attend Zélia
 
