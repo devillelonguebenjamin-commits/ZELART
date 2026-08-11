@@ -12,7 +12,7 @@ import { cleTelephone } from "@/lib/telephone";
 // une page publique, et un refus explicite invite surtout à recommencer avec
 // d'autres coordonnées.
 export const MESSAGE_BLOCAGE =
-  "La réservation en ligne n'est pas disponible pour ce compte. Contactez Zélia par SMS au 06 45 29 20 01.";
+  "La réservation en ligne n'est pas disponible pour ce compte. Contactez-moi par SMS au 06 45 29 20 01.";
 
 export async function clienteBloquee(email: string, telephone?: string): Promise<boolean> {
   const bloquees = await prisma.cliente.findMany({

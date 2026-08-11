@@ -53,7 +53,7 @@ export async function commanderPressOn(
   // Un set dessiné pour la cliente a besoin d'une direction : sans description,
   // Zélia n'a rien à créer.
   if (modele.surMesure && !donnees.inspiration) {
-    return { erreur: "Décrivez vos envies pour que Zélia puisse dessiner votre set." };
+    return { erreur: "Décrivez vos envies pour que je puisse dessiner votre set." };
   }
 
   const images = formData

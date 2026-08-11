@@ -123,7 +123,7 @@ export default function CarteSquad({
             ))}
           </ul>
           <p className="mt-3 text-xs text-foreground/55">
-            Il suffit de le mentionner à Zélia — elle s&rsquo;occupe du reste.
+            Il suffit de me le dire — je m&rsquo;occupe du reste.
           </p>
         </div>
       )}

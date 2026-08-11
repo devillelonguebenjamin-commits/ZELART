@@ -154,7 +154,7 @@ export async function creerReservation(
     const ouvertureMin = (ouverte.fin.getTime() - ouverte.debut.getTime()) / 60_000;
     if (dureeTotale > ouvertureMin) {
       return {
-        erreur: `Ces prestations demandent environ ${formatDuree(dureeTotale)}, plus que la plage d'ouverture de ce créneau (${formatDuree(ouvertureMin)}). Retirez-en une, ou écrivez à Zélia par SMS au 06 45 29 20 01 pour convenir d'un rendez-vous plus long.`,
+        erreur: `Ces prestations demandent environ ${formatDuree(dureeTotale)}, plus que la plage d'ouverture de ce créneau (${formatDuree(ouvertureMin)}). Retirez-en une, ou écrivez-moi par SMS au 06 45 29 20 01 pour convenir d'un rendez-vous plus long.`,
       };
     }
 

@@ -135,7 +135,7 @@ export default function FormulaireCommandePressOn({
       <section>
         <h2 className="font-display text-2xl font-bold">2. Vos ongles</h2>
         <p className="mt-1 text-sm text-foreground/70">
-          Zélia taille chaque capsule à votre main : ce sont vos mesures qui font la différence entre
+          Je taille chaque capsule à votre main : ce sont vos mesures qui font la différence entre
           un set qui tient et un set qui décolle. Le guide ci-dessous propose deux méthodes — le
           ruban adhésif, précis au millimètre, ou une simple photo avec un repère.
         </p>
@@ -263,7 +263,7 @@ export default function FormulaireCommandePressOn({
               className={CLASSE_CHAMP}
             />
             <span className="mt-1 block text-xs text-foreground/60">
-              Zélia vous communique le montant des frais d&rsquo;envoi avant de lancer la
+              Je vous communique le montant des frais d&rsquo;envoi avant de lancer la
               fabrication.
             </span>
           </label>
@@ -350,7 +350,7 @@ export default function FormulaireCommandePressOn({
           </p>
           <p className="mt-1 text-sm text-foreground/70">
             {postal
-              ? "+ frais d'envoi, chiffrés par Zélia avant la fabrication."
+              ? "+ frais d'envoi, que je chiffre avant la fabrication."
               : "Remise en main propre à Saint-Nazaire, sans frais."}
           </p>
         </div>
@@ -370,7 +370,7 @@ export default function FormulaireCommandePressOn({
         {enCours ? "Envoi…" : "Envoyer ma commande ✨"}
       </button>
       <p className="text-center text-xs text-foreground/60">
-        Votre commande n&rsquo;est pas encore ferme : Zélia vous confirme le montant (et les frais
+        Votre commande n&rsquo;est pas encore ferme : je vous confirme le montant (et les frais
         d&rsquo;envoi le cas échéant) avant tout règlement.
       </p>
     </form>

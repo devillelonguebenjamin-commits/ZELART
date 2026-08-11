@@ -81,7 +81,7 @@ export async function recompenserMarraine(
       <strong>${statutFinal.filleulesVenues} filleule${statutFinal.filleulesVenues > 1 ? "s" : ""}</strong> !</p>
       <p>Vous débloquez :</p>
       <ul>${lignes}</ul>
-      <p style="font-size:13px;color:#8a6274">Présentez simplement votre code à Zélia lors de votre
+      <p style="font-size:13px;color:#8a6274">Présentez-moi simplement votre code lors de votre
       prochain rendez-vous — vos avantages sont aussi listés dans votre espace.</p>
       <p style="margin:24px 0">
         <a href="${urlSite()}/mon-espace" style="background:#ec4899;color:#fff;text-decoration:none;padding:12px 24px;border-radius:999px;display:inline-block;font-weight:600">

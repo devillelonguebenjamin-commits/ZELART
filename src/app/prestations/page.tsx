@@ -128,7 +128,7 @@ export default async function Prestations() {
                 On comble la repousse sans tout retirer. Ce n&rsquo;est&nbsp;
                 <strong>ni plus rapide, ni une version économique</strong> de la pose : le travail
                 sur la repousse demande la même minutie, pour un temps comparable. Réservé au
-                gainage et au Pop-it, <strong>posés par Zélia</strong>.
+                gainage et au Pop-it, <strong>que j&rsquo;ai posés moi-même</strong>.
               </p>
             </div>
             <div className="rounded-2xl border border-pink-100 bg-white p-5">
@@ -154,9 +154,9 @@ export default async function Prestations() {
           </p>
           <ul className="mt-4 space-y-2 text-sm text-amber-900/90">
             <li>
-              <strong>Pose faite ailleurs :</strong> elle est retirée avant la nouvelle. Zélia ne
-              reprend pas le travail d&rsquo;une autre prothésiste — c&rsquo;est la seule façon de
-              garantir ce qu&rsquo;elle pose.
+              <strong>Pose faite ailleurs :</strong> elle est retirée avant la nouvelle. Je ne
+              reprends pas le travail d&rsquo;une autre prothésiste — c&rsquo;est la seule façon de
+              garantir ce que je pose.
             </li>
             <li>
               <strong>Capsules Gel X :</strong> elles se retirent, elles ne se remplissent pas.
@@ -178,8 +178,8 @@ export default async function Prestations() {
             <p className="mt-2 leading-relaxed text-foreground/75">
               Le niveau dépend de la <strong>complexité du design</strong>, pas du nombre
               d&rsquo;ongles décorés. Pas besoin de le deviner : joignez une photo
-              d&rsquo;inspiration à votre demande, Zélia vous confirme le niveau et le tarif avant
-              le rendez-vous.
+              d&rsquo;inspiration à votre demande, je vous confirme le niveau et le tarif avant le
+              rendez-vous.
             </p>
             <p className="mt-2 text-sm text-foreground/60">
               Voici ce que chaque niveau ajoute à une prestation sans décor :
@@ -232,11 +232,11 @@ export default async function Prestations() {
             </Link>
           </div>
           <p className="mt-5 text-sm text-foreground/60">
-            Une question avant de réserver ? Zélia répond par SMS au{" "}
+            Une question avant de réserver ? Je réponds par SMS au{" "}
             <a href="sms:0645292001" className="font-medium text-pink-600 hover:underline">
               06 45 29 20 01
             </a>{" "}
-            (elle ne prend pas les appels).
+            (je ne prends pas les appels).
           </p>
         </section>
       </div>

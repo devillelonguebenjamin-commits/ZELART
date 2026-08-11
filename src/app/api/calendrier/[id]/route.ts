@@ -27,7 +27,7 @@ export async function GET(
   }
   if (!STATUTS_AU_CALENDRIER.includes(rendezVous.statut)) {
     return NextResponse.json(
-      { error: "Ce rendez-vous n'est pas encore confirmé par Zélia." },
+      { error: "Ce rendez-vous n'est pas encore confirmé." },
       { status: 409 }
     );
   }
@@ -38,7 +38,7 @@ export async function GET(
     fin: rendezVous.fin,
     titre: `Zelart Nails — ${rendezVous.lignes.map((l) => l.prestation.nom).join(" + ")}`,
     lieu: "L'Atelier du Regard, 108 avenue de la République, 44600 Saint-Nazaire",
-    description: "Rendez-vous chez Zélia, prothésiste ongulaire. Un empêchement ? SMS au 06 45 29 20 01.",
+    description: "Rendez-vous chez Zelart — Zélia, prothésiste ongulaire. Un empêchement ? SMS au 06 45 29 20 01.",
   });
 
   return new NextResponse(ics, {

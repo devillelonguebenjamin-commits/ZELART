@@ -30,7 +30,7 @@ export default function PropositionCreneau({
         onClick={() => onActiver(true)}
         className="text-sm font-medium text-pink-600 hover:underline"
       >
-        Ou proposez votre propre horaire à Zélia.
+        Ou proposez-moi votre propre horaire.
       </button>
     );
   }
@@ -39,7 +39,7 @@ export default function PropositionCreneau({
     <div className="rounded-2xl border border-pink-200 bg-white p-5">
       <p className="text-sm font-medium">Proposer un horaire</p>
       <p className="mt-1 text-xs text-foreground/60">
-        Indiquez le moment qui vous arrangerait. Zélia vous répond pour accepter ou proposer
+        Indiquez le moment qui vous arrangerait. Je vous réponds pour accepter ou proposer
         autre chose — ce n&rsquo;est pas encore un rendez-vous confirmé.
       </p>
       <label className="mt-3 block text-sm">

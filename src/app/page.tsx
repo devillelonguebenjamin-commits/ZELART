@@ -106,7 +106,7 @@ export default async function Accueil() {
             </a>
           </div>
           <p className="mt-6 text-sm text-foreground/60">
-            Rendez-vous du lundi au samedi, à 9h ou 14h — sur réservation uniquement.
+            {ouverture.bref}
           </p>
         </div>
       </section>
@@ -189,7 +189,7 @@ export default async function Accueil() {
             <h2 className="font-display text-center text-3xl font-bold">Mes réalisations 💅</h2>
             <TraitVagues className="mx-auto mt-4" />
             <div className="mt-8">
-              <Carrousel libelle="Réalisations de Zélia">
+              <Carrousel libelle="Mes réalisations">
                 {visuels.map((visuel, rang) => (
                   <li
                     key={visuel.id}
@@ -263,7 +263,7 @@ export default async function Accueil() {
               // plus, sans que personne s'en aperçoive.
               [ouverture.actuel, ouverture.aVenir].filter(Boolean).join(" "),
               "Il faut avoir 18 ans ou plus — aucune pose sur les pieds.",
-              "Après votre demande, Zélia vous envoie un message de confirmation (elle ne répond pas aux appels).",
+              "Après votre demande, je vous envoie un message de confirmation (je ne réponds pas aux appels).",
               "Nouvelles clientes : un acompte de 15 € est demandé via SumUp pour valider le rendez-vous ; il est déduit du montant final.",
               "Paiement sur place en espèces ou par carte bancaire (SumUp).",
               "Merci de signaler toute allergie ou problème de santé ; matériel désinfecté entre chaque cliente.",

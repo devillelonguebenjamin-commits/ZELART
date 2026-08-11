@@ -179,7 +179,7 @@ export async function demanderChangementEmail(
     return {
       ok: false,
       message:
-        "Cette adresse est déjà utilisée. Si elle est bien à vous, écrivez à Zélia pour réunir vos fiches.",
+        "Cette adresse est déjà utilisée. Si elle est bien à vous, écrivez-moi et je réunirai vos fiches.",
     };
   }
 
@@ -236,7 +236,7 @@ export async function demanderChangementEmail(
      <p>Une demande vient d'être faite depuis votre espace pour remplacer cette adresse par
      <strong>${echapperHtml(nouvelEmail)}</strong>. Elle ne prendra effet qu'après confirmation depuis la
      nouvelle boîte.</p>
-     <p>Si vous n'êtes pas à l'origine de cette demande, prévenez Zélia par SMS au 06 45 29 20 01.</p>`
+     <p>Si vous n'êtes pas à l'origine de cette demande, prévenez-moi par SMS au 06 45 29 20 01.</p>`
   );
 
   return {

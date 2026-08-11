@@ -331,7 +331,7 @@ export default function ReservationWizard({
         {jours.length === 0 ? (
           <p className="mt-6 rounded-2xl bg-pink-50 px-5 py-4 text-foreground/80">
             Aucun créneau disponible sur les deux prochains mois. Réessayez un peu plus tard ou
-            contactez directement Zélia.
+            écrivez-moi directement.
           </p>
         ) : (
           <div className="mt-6 space-y-4">
@@ -436,7 +436,7 @@ export default function ReservationWizard({
             ) : (
               <p className="mt-2 text-foreground/70">
                 Horaire proposé :{" "}
-                <strong>{dateProposee.replace("T", " à ")}</strong> — à confirmer par Zélia.
+                <strong>{dateProposee.replace("T", " à ")}</strong> — à confirmer de ma part.
               </p>
             )}
           </div>
@@ -506,7 +506,7 @@ export default function ReservationWizard({
           )}
           <label className="block sm:col-span-2">
             <span className="text-sm font-medium">
-              Un message pour Zélia ?{" "}
+              Un message pour moi ?{" "}
               <span className="text-foreground/50">(allergies, précisions pratiques…)</span>
             </span>
             <textarea

@@ -63,6 +63,8 @@ function repos(regime: Regime): string {
 export type Horaires = {
   /** Ce qui s'applique aujourd'hui. */
   actuel: string;
+  /** La même chose en une ligne, pour le bandeau d'accueil. */
+  bref: string;
   /** Le régime suivant et sa date d'entrée en vigueur, s'il en existe un. */
   aVenir: string | null;
 };
@@ -71,7 +73,7 @@ export async function horaires(reference = new Date()): Promise<Horaires> {
   const toutes = await prisma.disponibilite.findMany({
     orderBy: [{ jourSemaine: "asc" }, { heureDebut: "asc" }],
   });
-  if (toutes.length === 0) return { actuel: "", aVenir: null };
+  if (toutes.length === 0) return { actuel: "", bref: "", aVenir: null };
 
   const regimePour = (cleJour: string): Regime => {
     const actives = toutes.filter((d) => ouvertureActive(d, cleJour));
@@ -110,8 +112,14 @@ export async function horaires(reference = new Date()): Promise<Horaires> {
     }
   }
 
+  const ouvert = actuel.jours.length > 0;
   return {
-    actuel: actuel.jours.length > 0 ? `Rendez-vous ${corps(actuel)}${repos(actuel)}` : "",
+    actuel: ouvert ? `Rendez-vous ${corps(actuel)}${repos(actuel)}` : "",
+    bref: ouvert
+      ? `Rendez-vous ${libelleJours(actuel.jours)}, à ${listeFrancaise(
+          actuel.heures.map(heureCourte)
+        )} — sur réservation uniquement.`
+      : "",
     aVenir,
   };
 }

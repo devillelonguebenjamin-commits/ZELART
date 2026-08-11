@@ -54,7 +54,7 @@ const RETOURS_EMAIL: Record<string, { texte: string; classes: string }> = {
   },
   occupee: {
     texte:
-      "Cette adresse a été rattachée à une autre fiche entre-temps. Écrivez à Zélia pour qu'elle démêle la situation.",
+      "Cette adresse a été rattachée à une autre fiche entre-temps. Écrivez-moi, je démêle la situation.",
     classes: "bg-red-50 text-red-700",
   },
 };
@@ -218,7 +218,7 @@ export default async function MonEspace({
                   <BoutonAnnulation rendezVousId={rdv.id} />
                 ) : (
                   <p className="mt-3 text-xs text-foreground/50">
-                    À moins de {DELAI_ANNULATION_H} h du rendez-vous, prévenez Zélia par SMS au
+                    À moins de {DELAI_ANNULATION_H} h du rendez-vous, prévenez-moi par SMS au
                     06 45 29 20 01.
                   </p>
                 )}

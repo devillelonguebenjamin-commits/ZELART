@@ -52,7 +52,7 @@ export default async function Reserver() {
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-foreground/70">
             Quelques questions sur vos ongles, puis le choix de votre prestation et de votre
-            créneau. Une fois votre demande envoyée, Zélia vous répondra par message pour la
+            créneau. Une fois votre demande envoyée, je vous réponds par message pour la
             confirmer 🤍
           </p>
           {/* L'hésitation se produit ici, pas sur l'accueil : le lien s'ouvre à

@@ -95,6 +95,28 @@ qu'elle décrit. Comme deux régimes datés coexistent, elle en donne deux — c
 qui prendra le relais avec sa date. C'est aussi ce qu'une cliente veut savoir en réservant à deux
 mois.
 
+## La voix du site
+
+**Tout ce qu'une cliente lit est écrit à la première personne.** « Zélia vous confirme le niveau »
+est devenu « je vous confirme le niveau », « prévenez Zélia par SMS » est devenu « prévenez-moi ».
+Le site n'est pas une vitrine qui parle *de* Zélia : c'est Zélia qui parle. Une prothésiste seule
+qui se désigne à la troisième personne sonne comme une enseigne, et c'est précisément ce qu'elle
+n'est pas.
+
+La règle vaut pour les pages publiques, l'espace cliente, les messages d'erreur des formulaires et
+le corps des e-mails. Quatre exceptions, chacune pour une raison :
+
+- **les mentions légales et l'identification RGPD** (« Zélia Barreteau — Zelart, SIRET… ») : la loi
+  attend un nom, pas un « moi » ;
+- **la revendication de droit d'auteur** sur les photos, pour la même raison ;
+- **la description destinée aux moteurs de recherche** et la ligne du pied de page : une personne
+  qui découvre le site dans Google ne sait pas encore qui parle ;
+- **l'espace gérante**, qui s'adresse à Zélia et non à une cliente — « 3 doublons à vérifier » n'a
+  pas à devenir « mes doublons ».
+
+Les commentaires du code, eux, parlent de Zélia à la troisième personne : ils s'adressent à qui
+reprendra le projet, pas à une cliente.
+
 ## Parcours de réservation
 
 1. `/` — page d'accueil publique : présentation, prestations & tarifs, infos pratiques.

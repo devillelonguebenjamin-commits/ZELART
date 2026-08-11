@@ -34,7 +34,7 @@ export async function annulerParCliente(rendezVousId: string): Promise<EtatAnnul
   if (!annulationPossible(rdv.debut)) {
     return {
       ok: false,
-      message: `L'annulation en ligne n'est plus possible à moins de ${DELAI_ANNULATION_H} h du rendez-vous. Prévenez Zélia par SMS au 06 45 29 20 01.`,
+      message: `L'annulation en ligne n'est plus possible à moins de ${DELAI_ANNULATION_H} h du rendez-vous. Prévenez-moi par SMS au 06 45 29 20 01.`,
     };
   }
 

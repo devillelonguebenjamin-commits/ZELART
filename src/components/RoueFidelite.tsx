@@ -203,8 +203,8 @@ export default function RoueFidelite({
               </p>
               <p className="mt-3 text-sm text-foreground/70">
                 {gagne.lot.aRetirerAuSalon
-                  ? "Présentez ce code à Zélia lors de votre prochain rendez-vous."
-                  : "Zélia vous transmettra le code promo à votre prochaine venue."}
+                  ? "Présentez-moi ce code lors de votre prochain rendez-vous."
+                  : "Je vous transmets le code promo à votre prochaine venue."}
               </p>
             </>
           )}

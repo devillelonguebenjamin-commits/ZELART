@@ -87,14 +87,13 @@ export default async function Confirmation({
           <div className="mt-8 space-y-3 text-left text-sm leading-relaxed text-foreground/75">
             {rendezVous.creneauPropose && (
               <p className="rounded-2xl bg-sky-50 px-5 py-4 font-medium text-sky-900">
-                ⏳ Cet horaire sort des créneaux habituels : Zélia vous dira si elle peut le
-                prendre. Tant qu&rsquo;elle n&rsquo;a pas répondu, le rendez-vous n&rsquo;est pas
-                acquis.
+                ⏳ Cet horaire sort des créneaux habituels : je vous dis si je peux le prendre.
+                Tant que je n&rsquo;ai pas répondu, le rendez-vous n&rsquo;est pas acquis.
               </p>
             )}
             <p>
-              📱 Zélia va vous envoyer un <strong>message de confirmation</strong> au numéro indiqué
-              (elle ne répond pas aux appels).
+              📱 Je vous envoie un <strong>message de confirmation</strong> au numéro indiqué (je
+              ne réponds pas aux appels).
             </p>
             <p>
               💳 S&rsquo;il s&rsquo;agit de votre premier rendez-vous, un <strong>acompte de 15 €</strong>{" "}
@@ -104,8 +103,8 @@ export default async function Confirmation({
             {rendezVous.remiseFilleule && (
               <p className="rounded-2xl bg-pink-50 px-5 py-4 font-medium text-pink-800">
                 💕 Bienvenue dans la squad ! Vous bénéficiez de{" "}
-                <strong>−{rendezVous.remiseFilleulePourcent ?? REMISE_FILLEULE_POURCENT} %</strong> sur cette première prestation, déduits
-                par Zélia au moment du règlement.
+                <strong>−{rendezVous.remiseFilleulePourcent ?? REMISE_FILLEULE_POURCENT} %</strong> sur cette première prestation, que je
+                déduis au moment du règlement.
               </p>
             )}
             <p>🌸 Le règlement se fait sur place, en espèces ou par carte bancaire.</p>
@@ -123,8 +122,8 @@ export default async function Confirmation({
             </a>
           ) : (
             <p className="mt-6 text-sm text-foreground/60">
-              📅 Vous pourrez ajouter le rendez-vous à votre calendrier dès que Zélia
-              l&rsquo;aura confirmé — le lien vous sera envoyé par e-mail.
+              📅 Vous pourrez ajouter le rendez-vous à votre calendrier dès que je
+              l&rsquo;aurai confirmé — le lien vous sera envoyé par e-mail.
             </p>
           )}
 
