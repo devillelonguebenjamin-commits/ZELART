@@ -139,6 +139,9 @@ export default async function RootLayout({
               <p>06 45 29 20 01 (SMS uniquement)</p>
               <p className="mt-1">Paiement en espèces ou par carte (SumUp)</p>
               <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1">
+                <Link href="/questions" className="hover:text-pink-500">
+                  Questions fréquentes
+                </Link>
                 <Link href="/prestations" className="hover:text-pink-500">
                   Les prestations
                 </Link>
