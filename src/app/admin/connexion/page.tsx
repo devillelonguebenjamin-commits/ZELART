@@ -6,7 +6,7 @@ import { estAdmin } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Espace gérante — Zelart Nails",
+  title: "Espace gérante · Zelart Nails",
   robots: { index: false },
 };
 
@@ -23,7 +23,7 @@ export default async function Connexion({
       <div className="rounded-3xl border border-pink-100 bg-white p-8 shadow-sm">
         <h1 className="font-display text-2xl font-bold">Espace gérante 🔐</h1>
         <p className="mt-2 text-sm text-foreground/60">
-          Réservé à Zélia — entrez votre mot de passe.
+          Réservé à Zélia. Entrez votre mot de passe.
         </p>
         <form action={connexionAdmin} className="mt-6 space-y-4">
           <input

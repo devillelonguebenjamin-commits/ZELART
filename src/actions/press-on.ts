@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { envoyerEmail, echapperHtml } from "@/lib/email";
-import { nouveauCodeUnique } from "@/lib/cliente-auth";
+import { ficheCliente } from "@/lib/fiche-cliente";
 import { commandePressOnSchema, urlImageValide } from "@/lib/validations";
 import { clienteBloquee, MESSAGE_BLOCAGE } from "@/lib/blocage";
 import { formatPrix } from "@/lib/format";
@@ -53,7 +53,7 @@ export async function commanderPressOn(
   // Un set dessiné pour la cliente a besoin d'une direction : sans description,
   // Zélia n'a rien à créer.
   if (modele.surMesure && !donnees.inspiration) {
-    return { erreur: "Décrivez vos envies pour que Zélia puisse dessiner votre set." };
+    return { erreur: "Décrivez vos envies pour que je puisse dessiner votre set." };
   }
 
   const images = formData
@@ -62,26 +62,7 @@ export async function commanderPressOn(
     .slice(0, 3);
 
   const accord = formData.get("consentementMarketing") === "on";
-  const cliente = await prisma.cliente.upsert({
-    where: { email: donnees.email },
-    update: {
-      prenom: donnees.prenom,
-      nom: donnees.nom,
-      telephone: donnees.telephone,
-      ...(accord
-        ? { consentementMarketing: true, consentementLe: new Date(), desabonneLe: null }
-        : {}),
-    },
-    create: {
-      prenom: donnees.prenom,
-      nom: donnees.nom,
-      email: donnees.email,
-      telephone: donnees.telephone,
-      codeParrainage: await nouveauCodeUnique(prisma),
-      consentementMarketing: accord,
-      consentementLe: accord ? new Date() : null,
-    },
-  });
+  const cliente = await ficheCliente(prisma, donnees, accord);
 
   // Le prix est figé ici : le catalogue peut changer avant la fabrication.
   const commande = await prisma.commandePressOn.create({
@@ -103,13 +84,13 @@ export async function commanderPressOn(
   if (process.env.NOTIFY_EMAIL) {
     await envoyerEmail(
       process.env.NOTIFY_EMAIL,
-      `Commande press-on — ${donnees.prenom} ${donnees.nom}`,
+      `Commande press-on · ${donnees.prenom} ${donnees.nom}`,
       `<p>Nouvelle commande de press-on à chiffrer :</p>
-       <p><strong>${echapperHtml(modele.nom)}</strong> — ${formatPrix(modele.prixCents, modele.aPartirDe)}<br>
+       <p><strong>${echapperHtml(modele.nom)}</strong> : ${formatPrix(modele.prixCents, modele.aPartirDe)}<br>
        ${LIBELLE_REMISE[donnees.modeRemise]}</p>
        ${donnees.adresse ? `<p>Adresse :<br>${echapperHtml(donnees.adresse).replace(/\n/g, "<br>")}</p>` : ""}
        ${donnees.mesures ? `<p>Mesures : ${echapperHtml(donnees.mesures)}</p>` : ""}
-       ${donnees.forme || donnees.longueur ? `<p>Forme : ${echapperHtml(donnees.forme ?? "—")} · Longueur : ${echapperHtml(donnees.longueur ?? "—")}</p>` : ""}
+       ${donnees.forme || donnees.longueur ? `<p>Forme : ${echapperHtml(donnees.forme ?? "non précisée")} · Longueur : ${echapperHtml(donnees.longueur ?? "non précisée")}</p>` : ""}
        ${donnees.inspiration ? `<p>Envies : ${echapperHtml(donnees.inspiration)}</p>` : ""}
        <p>${echapperHtml(donnees.prenom)} ${echapperHtml(donnees.nom)}<br>${echapperHtml(donnees.telephone)} · ${echapperHtml(donnees.email)}</p>
        <p><a href="${urlSite()}/admin/press-on">Ouvrir les commandes</a></p>`

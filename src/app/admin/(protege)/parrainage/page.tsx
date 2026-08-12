@@ -33,7 +33,7 @@ export default async function Parrainage() {
         <h1 className="font-display text-2xl font-bold">Parrainage 💕</h1>
         <p className="mt-1 text-sm text-foreground/60">
           Une filleule ne compte que le jour où elle est <strong>réellement venue</strong>{" "}
-          — c&rsquo;est votre validation de venue dans l&rsquo;agenda qui fait monter sa marraine
+          : c&rsquo;est votre validation de venue dans l&rsquo;agenda qui fait monter sa marraine
           d&rsquo;un palier. Vous recevez un e-mail à chaque palier atteint, et l&rsquo;avantage
           apparaît ci-dessous jusqu&rsquo;à ce que vous le marquiez comme honoré.
         </p>
@@ -156,14 +156,14 @@ export default async function Parrainage() {
                 </p>
                 {marraine.statut.ambassadriceEnSommeil && (
                   <p className="mt-1 text-xs text-amber-700">
-                    ⚠ Statut Ambassadrice en sommeil — aucune filleule venue depuis plus
+                    ⚠ Statut Ambassadrice en sommeil : aucune filleule venue depuis plus
                     d&rsquo;un an.
                   </p>
                 )}
                 {marraine.statut.suivant && (
                   <p className="mt-1 text-xs text-foreground/60">
                     Encore {marraine.statut.restantes} pour {marraine.statut.suivant.emoji}{" "}
-                    {marraine.statut.suivant.nom} — {marraine.statut.suivant.avantage}
+                    {marraine.statut.suivant.nom} · {marraine.statut.suivant.avantage}
                   </p>
                 )}
               </div>
@@ -186,7 +186,7 @@ export default async function Parrainage() {
                   >
                     {avantage.cliente.prenom} {avantage.cliente.nom}
                   </Link>{" "}
-                  — {LIBELLE_AVANTAGE[avantage.type]}
+                  · {LIBELLE_AVANTAGE[avantage.type]}
                 </span>
                 <span className="text-foreground/50">
                   {avantage.utiliseLe && formatJour(avantage.utiliseLe)}
@@ -211,7 +211,7 @@ export default async function Parrainage() {
                 {palier.emoji} {palier.nom}
               </span>{" "}
               <span className="text-foreground/50">
-                — {palier.seuil} filleule{palier.seuil > 1 ? "s" : ""} :
+                · {palier.seuil} filleule{palier.seuil > 1 ? "s" : ""} :
               </span>{" "}
               {palier.avantage}
             </li>

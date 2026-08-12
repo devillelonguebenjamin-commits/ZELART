@@ -46,7 +46,7 @@ export default function EnvoiCampagneBouton({ campagneId, nombreDestinataires }:
         texte:
           echecs === 0
             ? `Campagne envoyée à ${envoyes} cliente${envoyes > 1 ? "s" : ""} ✨`
-            : `${envoyes} envoi(s) réussi(s), ${echecs} en échec — le détail est listé ci-dessous.`,
+            : `${envoyes} envoi(s) réussi(s), ${echecs} en échec : le détail est listé ci-dessous.`,
       });
       router.refresh();
     } catch (erreur) {

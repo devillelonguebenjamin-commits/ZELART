@@ -131,12 +131,12 @@ export async function envoyerDemandePaiement(id: string): Promise<EtatEnvoiPaiem
       return {
         ok: false,
         message:
-          "Aucun lien de paiement pour cette commande. Créez-en un dans votre application SumUp au montant indiqué, collez-le ci-dessous — ou configurez l'API SumUp pour que le site s'en charge.",
+          "Aucun lien de paiement pour cette commande. Créez-en un dans votre application SumUp au montant indiqué, collez-le ci-dessous, ou configurez l'API SumUp pour que le site s'en charge.",
       };
     }
     const checkout = await creerLienPaiement(
       montant.cents,
-      `Press-on ${commande.modele.nom} — ${commande.cliente.prenom} ${commande.cliente.nom}`,
+      `Press-on ${commande.modele.nom} · ${commande.cliente.prenom} ${commande.cliente.nom}`,
       commande.id
     );
     if (!checkout.ok) return { ok: false, message: checkout.erreur };
@@ -145,15 +145,15 @@ export async function envoyerDemandePaiement(id: string): Promise<EtatEnvoiPaiem
 
   const resultat = await envoyerEmail(
     commande.cliente.email,
-    `Votre commande de press-on — ${formatPrix(montant.cents)} à régler`,
+    `Votre commande de press-on : ${formatPrix(montant.cents)} à régler`,
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
       <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
       <p>Bonjour ${echapperHtml(commande.cliente.prenom)},</p>
       <p>Merci pour votre commande :</p>
-      <p><strong>${echapperHtml(commande.modele.nom)}</strong> — ${formatPrix(commande.prixCents, commande.aPartirDe)}<br>
+      <p><strong>${echapperHtml(commande.modele.nom)}</strong> : ${formatPrix(commande.prixCents, commande.aPartirDe)}<br>
       ${
         commande.fraisPortCents !== null
-          ? `Frais d'envoi — ${formatPrix(commande.fraisPortCents)}<br>`
+          ? `Frais d'envoi : ${formatPrix(commande.fraisPortCents)}<br>`
           : ""
       }
       <strong>Total : ${formatPrix(montant.total, commande.aPartirDe)}</strong><br>
@@ -280,6 +280,19 @@ export async function modifierModelePressOn(formData: FormData): Promise<void> {
       actif: formData.get("actif") === "on",
     },
   });
+
+  revalidatePath("/admin/press-on");
+  revalidatePath("/press-on");
+}
+
+// Retirer la photo d'un modèle sans toucher au modèle lui-même.
+//
+// L'image reste sur Vercel Blob : la supprimer vraiment demanderait de vérifier
+// qu'aucune commande passée ne l'affiche encore, et une photo orpheline coûte
+// quelques kilo-octets là où une photo effacée à tort casse un historique.
+export async function retirerPhotoModelePressOn(id: string): Promise<void> {
+  await exigerAdmin();
+  await prisma.modelePressOn.update({ where: { id }, data: { photoUrl: null } });
 
   revalidatePath("/admin/press-on");
   revalidatePath("/press-on");

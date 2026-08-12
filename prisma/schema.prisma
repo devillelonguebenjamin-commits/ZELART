@@ -13,7 +13,18 @@ model Cliente {
   nom       String
   email     String  @unique
   telephone String
+  // Le numéro réduit à ses chiffres (cf. src/lib/telephone.ts), pour reconnaître
+  // une cliente déjà enregistrée qui réserve avec une autre adresse. Volontairement
+  // **non unique** : deux sœurs peuvent partager une ligne, et surtout des doublons
+  // existent déjà — une contrainte refuserait la migration au lieu de les signaler.
+  telephoneNormalise String?
   notes     String? // suivi : allergies, préférences, particularités des ongles…
+
+  // « Comment m'avez-vous connue ? », demandé une seule fois, à la première
+  // réservation, et facultatif. Sans lui, le temps passé sur Instagram et
+  // l'effet du bouche-à-oreille restent invérifiables : on saurait combien de
+  // clientes viennent, jamais par quel chemin.
+  provenance String?
 
   // Prospection : consentement recueilli à la réservation, révocable à tout
   // moment via le lien de désinscription (jeton non devinable).
@@ -51,6 +62,8 @@ model Cliente {
   commandes   CommandePressOn[]
   changementsEmail ChangementEmail[]
   avantages   AvantageParrainage[]
+
+  @@index([telephoneNormalise])
 }
 
 // Programme « Squad ». Le palier lui-même n'est pas stocké : il se recalcule à
@@ -302,6 +315,16 @@ model RendezVous {
   acompteRegleLe          DateTime?
   acompteRelanceEnvoyeeLe DateTime? // relance à 24h si toujours pas réglé
 
+  // Référence du paiement SumUp propre à ce rendez-vous. C'est elle, et elle
+  // seule, qui permet de savoir automatiquement si l'acompte a été réglé : une
+  // transaction SumUp ne porte aucune identité de payeuse — ni nom, ni e-mail,
+  // ni téléphone. Sans référence, un virement de 15 € est indiscernable d'un
+  // autre. Vide pour les acomptes envoyés avec le lien réutilisable, qui
+  // restent à cocher à la main.
+  acompteReference  String?  @unique
+  acompteCheckoutId String?
+  acompteVerifieLe  DateTime? // dernière interrogation de SumUp, pour le diagnostic
+
   // Horodatages des envois automatiques, pour ne jamais écrire deux fois
   rappelEnvoyeLe        DateTime?
   relanceEnvoyeeLe      DateTime?
@@ -351,7 +374,17 @@ model ListeAttente {
   prenom     String
   email      String
   telephone  String?
-  note       String? // jour souhaité, prestation envisagée…
+  note       String? // précision libre : prestation envisagée, contrainte particulière…
+
+  // Ce que la personne accepterait, sous forme exploitable plutôt qu'en texte
+  // libre. Sans cela, prévenir « tout le monde à chaque annulation » brûlait la
+  // seule notification promise à quelqu'un pour un créneau qui ne lui allait
+  // pas — elle était marquée prévenue et n'entendait plus jamais parler de rien.
+  //
+  // Vide veut dire « n'importe quand » : c'est le cas le plus fréquent, et il
+  // ne faut surtout pas le confondre avec « aucun jour ne convient ».
+  joursSouhaites String? // numéros de jour séparés par des virgules, 1 = lundi
+  momentSouhaite String? // "matin" | "apresmidi", vide = peu importe
   creeLe     DateTime  @default(now())
   notifieeLe DateTime? // avertie une fois ; à elle de rejoindre la liste si besoin
 

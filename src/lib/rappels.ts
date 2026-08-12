@@ -6,7 +6,9 @@ import { reglagesAcompte, reglagesRappels } from "@/lib/parametres";
 import { lienDemandeAvis } from "@/lib/avis";
 import { attribuerAvantages } from "@/lib/parrainage";
 import { compterEnAttente } from "@/lib/en-attente";
+import { verifierAcomptesEnAttente } from "@/lib/acompte";
 import { urlSite } from "@/lib/site";
+import { envoyerSmsSansBloquer } from "@/lib/sms";
 import type { TypePose } from "@/generated/prisma/client";
 
 export type BilanRappels = {
@@ -15,6 +17,8 @@ export type BilanRappels = {
   relances: { envoyees: number; echecs: number };
   avis: { envoyees: number; echecs: number };
   acompte: { envoyees: number; echecs: number };
+  /** Acomptes constatés réglés auprès de SumUp pendant ce passage. */
+  acomptesConstates: number;
   reconquete: { envoyees: number; echecs: number };
   avantagesParrainage: number;
   recapEnAttente: boolean;
@@ -87,16 +91,23 @@ async function envoyerRappels(): Promise<{ envoyes: number; echecs: number }> {
         `<p>Bonjour ${echapperHtml(rdv.cliente.prenom)},</p>
          <p>Petit rappel de votre rendez-vous <strong>${quand}</strong> :</p>
          <p>${rdv.lignes
-           .map((l) => `${echapperHtml(l.prestation.nom)} — ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}`)
+           .map((l) => `${echapperHtml(l.prestation.nom)} : ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}`)
            .join("<br>")}<br>
          <strong>Total : ${formatPrix(total.prixCents, total.aPartirDe)}</strong></p>
          <p><strong>${formatJour(rdv.debut)} à ${formatHeure(rdv.debut)}</strong><br>
-         L'Atelier du Regard — 108 avenue de la République, 44600 Saint-Nazaire<br>
+         L'Atelier du Regard, 108 avenue de la République, 44600 Saint-Nazaire<br>
          <a href="${urlSite()}/api/calendrier/${rdv.id}">📅 Ajouter à mon calendrier</a></p>
          <p>Un empêchement ? Prévenez-moi au plus vite pour que je puisse proposer le créneau à
          quelqu'un d'autre : <a href="${urlSite()}/mon-espace">votre espace</a> ou par SMS au
          06 45 29 20 01.</p>`
       )
+    );
+
+    // Le rappel est le message le plus utile de tous : c'est lui qui évite le
+    // rendez-vous oublié. Il part aussi par SMS, où il sera lu.
+    await envoyerSmsSansBloquer(
+      rdv.cliente.telephone,
+      `Zelart Nails : rappel de votre rendez-vous ${quand} a ${formatHeure(rdv.debut)}, 108 av. de la Republique. Un empechement ? Repondez a ce message.`
     );
 
     if (resultat.ok) {
@@ -178,7 +189,7 @@ async function envoyerRelances(
              Choisir mon créneau
            </a>
          </p>
-         <p>Si vous préférez attendre, aucun souci — ce message est juste un repère 🤍</p>`,
+         <p>Si vous préférez attendre, aucun souci, ce message est juste un repère 🤍</p>`,
         `Vous recevez ce message en tant que cliente de Zelart Nails.<br>
          <a href="${urlSite()}/desabonnement/${rdv.cliente.jetonDesabonnement}" style="color:#8a6274">Ne plus recevoir ces rappels</a>`
       )
@@ -289,7 +300,7 @@ async function envoyerRelancesAcompte(): Promise<{ envoyees: number; echecs: num
   for (const rdv of candidats) {
     const resultat = await envoyerEmail(
       rdv.cliente.email,
-      "Toujours partante pour votre rendez-vous ? — Zelart Nails",
+      "Toujours partante pour votre rendez-vous ? · Zelart Nails",
       enveloppe(
         `<p>Bonjour ${echapperHtml(rdv.cliente.prenom)},</p>
          <p>Je n'ai pas encore reçu votre acompte de <strong>${formatPrix(montantCents)}</strong>
@@ -334,13 +345,13 @@ async function envoyerRecapEnAttente(): Promise<{ envoye: boolean }> {
 
   const lignes = [
     attente.agenda > 0
-      ? `<li><strong>${attente.agenda} demande${attente.agenda > 1 ? "s" : ""} de rendez-vous</strong> à confirmer — <a href="${urlSite()}/admin">ouvrir l'agenda</a></li>`
+      ? `<li><strong>${attente.agenda} demande${attente.agenda > 1 ? "s" : ""} de rendez-vous</strong> à confirmer : <a href="${urlSite()}/admin">ouvrir l'agenda</a></li>`
       : "",
     attente.pressOn > 0
-      ? `<li><strong>${attente.pressOn} commande${attente.pressOn > 1 ? "s" : ""} de press-on</strong> à chiffrer et confirmer — <a href="${urlSite()}/admin/press-on">ouvrir les commandes</a></li>`
+      ? `<li><strong>${attente.pressOn} commande${attente.pressOn > 1 ? "s" : ""} de press-on</strong> à chiffrer et confirmer : <a href="${urlSite()}/admin/press-on">ouvrir les commandes</a></li>`
       : "",
     attente.parrainage > 0
-      ? `<li><strong>${attente.parrainage} avantage${attente.parrainage > 1 ? "s" : ""} de parrainage</strong> à honorer — <a href="${urlSite()}/admin/parrainage">ouvrir le parrainage</a></li>`
+      ? `<li><strong>${attente.parrainage} avantage${attente.parrainage > 1 ? "s" : ""} de parrainage</strong> à honorer : <a href="${urlSite()}/admin/parrainage">ouvrir le parrainage</a></li>`
       : "",
     attente.listeAttente > 0
       ? `<li>${attente.listeAttente} personne${attente.listeAttente > 1 ? "s" : ""} en liste d'attente, prévenue${attente.listeAttente > 1 ? "s" : ""} à la prochaine annulation</li>`
@@ -437,7 +448,7 @@ async function envoyerReconquetes(): Promise<{ envoyees: number; echecs: number 
       "Vos ongles me manquent 🌸",
       enveloppe(
         `<p>Bonjour ${echapperHtml(cliente.prenom)},</p>
-         <p>Cela fait ${mois} mois que je ne vous ai pas vue — le salon n'est plus tout à fait le
+         <p>Cela fait ${mois} mois que je ne vous ai pas vue. Le salon n'est plus tout à fait le
          même sans vous !</p>
          <p>Si l'envie vous reprend, votre créneau vous attend : nouvelles couleurs, nouveaux
          designs, et toujours le même moment rien que pour vous.</p>
@@ -446,7 +457,7 @@ async function envoyerReconquetes(): Promise<{ envoyees: number; echecs: number 
              Reprendre rendez-vous
            </a>
          </p>
-         <p>Et si c'est simplement que le moment n'est pas venu, aucun souci — je serai là 🤍</p>`,
+         <p>Et si c'est simplement que le moment n'est pas venu, aucun souci, je serai là 🤍</p>`,
         `Vous recevez ce message en tant que cliente de Zelart Nails.<br>
          <a href="${urlSite()}/desabonnement/${cliente.jetonDesabonnement}" style="color:#8a6274">Ne plus recevoir ces messages</a>`
       )
@@ -493,6 +504,14 @@ export async function executerRappels(): Promise<BilanRappels> {
   // comme l'envoi initial du lien, elle s'active dès qu'un lien SumUp est
   // configuré — c'est le fonctionnement attendu de l'acompte, pas un rappel
   // de confort qu'on pourrait vouloir couper séparément.
+  // Les règlements sont constatés **avant** de relancer : une cliente qui a payé
+  // hier soir ne doit pas recevoir ce matin un « je n'ai pas reçu votre
+  // acompte ». La sonnette de SumUp aurait dû l'apprendre au site, mais rien ne
+  // la garantit — d'où ce passage systématique.
+  const acomptesConstates = await etape("acomptes réglés", verifierAcomptesEnAttente, {
+    verifies: 0,
+    regles: 0,
+  });
   const acompte = await etape("acompte", envoyerRelancesAcompte, AUCUNE_ENVOYEE);
 
   // Comme la relance d'acompte, le récapitulatif ne dépend pas du réglage des
@@ -508,6 +527,7 @@ export async function executerRappels(): Promise<BilanRappels> {
       relances: { envoyees: 0, echecs: 0 },
       avis: { envoyees: 0, echecs: 0 },
       acompte,
+      acomptesConstates: acomptesConstates.regles,
       reconquete: { envoyees: 0, echecs: 0 },
       avantagesParrainage: 0,
       recapEnAttente: recap.envoye,
@@ -525,6 +545,7 @@ export async function executerRappels(): Promise<BilanRappels> {
     relances,
     avis,
     acompte,
+    acomptesConstates: acomptesConstates.regles,
     reconquete,
     avantagesParrainage,
     recapEnAttente: recap.envoye,

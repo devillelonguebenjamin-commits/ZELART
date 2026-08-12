@@ -52,8 +52,8 @@ export default function ChampInspiration({ actif }: { actif: boolean }) {
     <div className="mt-6 rounded-2xl border border-pink-100 bg-pink-50/50 p-5">
       <h3 className="font-display text-lg font-bold">Votre inspiration 💅</h3>
       <p className="mt-1 text-sm text-foreground/70">
-        Décrivez vos envies — couleurs, formes, ambiance — et joignez si vous le souhaitez des photos
-        qui vous plaisent. Zélia prépare ainsi votre rendez-vous à l&rsquo;avance.
+        Décrivez vos envies (couleurs, formes, ambiance) et joignez si vous le souhaitez des photos
+        qui vous plaisent. Je prépare ainsi votre design à l&rsquo;avance.
       </p>
 
       <textarea

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { cleTelephone } from "@/lib/telephone";
 
 // Une cliente bloquée ne peut plus ni réserver ni commander de press-on.
 //
@@ -11,24 +12,17 @@ import { prisma } from "@/lib/prisma";
 // une page publique, et un refus explicite invite surtout à recommencer avec
 // d'autres coordonnées.
 export const MESSAGE_BLOCAGE =
-  "La réservation en ligne n'est pas disponible pour ce compte. Contactez Zélia par SMS au 06 45 29 20 01.";
-
-function numeroNormalise(telephone: string): string {
-  const chiffres = telephone.replace(/\D/g, "");
-  // 0645292001 et +33645292001 désignent le même numéro.
-  return chiffres.startsWith("33") ? `0${chiffres.slice(2)}` : chiffres;
-}
+  "La réservation en ligne n'est pas disponible pour ce compte. Contactez-moi par SMS au 06 45 29 20 01.";
 
 export async function clienteBloquee(email: string, telephone?: string): Promise<boolean> {
   const bloquees = await prisma.cliente.findMany({
     where: { bloqueeLe: { not: null } },
-    select: { email: true, telephone: true },
+    select: { email: true, telephoneNormalise: true },
   });
   if (bloquees.length === 0) return false;
 
   if (bloquees.some((c) => c.email.toLowerCase() === email.trim().toLowerCase())) return true;
-  if (!telephone) return false;
 
-  const cible = numeroNormalise(telephone);
-  return cible.length >= 9 && bloquees.some((c) => numeroNormalise(c.telephone) === cible);
+  const cible = cleTelephone(telephone);
+  return cible !== null && bloquees.some((c) => c.telephoneNormalise === cible);
 }

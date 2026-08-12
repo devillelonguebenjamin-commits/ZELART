@@ -23,6 +23,7 @@ import ReglagesReseauxForm from "@/components/ReglagesReseauxForm";
 import ReglagesAvisForm from "@/components/ReglagesAvisForm";
 import { CLE_ETABLISSEMENT, cleGoogle } from "@/lib/avis";
 import { verifierSumUp } from "@/lib/sumup";
+import { expediteurSms, smsConfigure } from "@/lib/sms";
 import { dernierEchecConnexion } from "@/lib/parametres";
 import { formatJour } from "@/lib/creneaux";
 
@@ -80,6 +81,10 @@ export default async function Reglages() {
     verifierSumUp(),
     dernierEchecConnexion(),
   ]);
+
+  // Le constat automatique du règlement ne tient qu'à une chose : que l'acompte
+  // soit parti avec un lien qui lui est propre. C'est l'API qui le permet.
+  const sumupPret = sumup.cleValide && sumup.configure && sumup.codeCorrect;
   const reseau = (cle: string) => parametresReseaux.find((p) => p.cle === cle)?.valeur ?? "";
   const etablissementGoogle = reseau(CLE_ETABLISSEMENT);
   const avisGoogleActifs = Boolean(cleGoogle()) && Boolean(etablissementGoogle);
@@ -142,24 +147,62 @@ export default async function Reglages() {
             !expediteurBrevo.verifiable
               ? "EMAIL_FROM"
               : expediteurBrevo.valide
-                ? "EMAIL_FROM — vérifiée chez Brevo"
+                ? "EMAIL_FROM, vérifiée chez Brevo"
                 : `Non vérifiée chez Brevo. Adresses validées : ${expediteurBrevo.connus.join(", ") || "aucune"}`
           }
         />
         <Ligne
-          label="Rappels automatiques"
-          valeur={rappels.actifs ? (planificationPrete ? "activés" : "activés, secret manquant") : "désactivés"}
-          ok={rappels.actifs && planificationPrete}
-          aide="CRON_SECRET — nécessaire à l'exécution quotidienne"
+          label="Rappels automatiques aux clientes"
+          valeur={rappels.actifs ? "activés" : "désactivés"}
+          ok={rappels.actifs}
+          aide="Rappel de la veille, relance de repousse, demande d'avis, reconquête"
+        />
+        {/* Signalé à part, et quel que soit l'état du réglage ci-dessus : sans
+            ce secret, la tâche quotidienne ne s'exécute pas du tout, donc ni
+            les rappels aux clientes, ni le récapitulatif de ce qui vous attend,
+            qui lui ne dépend pourtant pas de ce réglage. */}
+        <Ligne
+          label="Exécution quotidienne (7 h)"
+          valeur={planificationPrete ? "en place" : "secret manquant"}
+          ok={planificationPrete}
+          aide={
+            planificationPrete
+              ? "CRON_SECRET, qui porte aussi le récapitulatif quotidien des demandes en attente"
+              : "CRON_SECRET absent : aucune tâche ne s'exécute, y compris le récapitulatif des demandes en attente"
+          }
         />
         <Ligne
           label="Envoi automatique de l'acompte"
-          valeur={acompte.lien ? "activé" : "manuel"}
-          ok={Boolean(acompte.lien)}
-          aide="lien de paiement SumUp réutilisable"
+          valeur={sumupPret ? "activé" : acompte.lien ? "activé" : "manuel"}
+          ok={sumupPret || Boolean(acompte.lien)}
+          aide={
+            sumupPret
+              ? "un lien de paiement est créé pour chaque rendez-vous"
+              : "lien de paiement SumUp réutilisable"
+          }
         />
         <Ligne
-          label="API SumUp (press-on)"
+          label="SMS (confirmation, rappel, acompte)"
+          valeur={smsConfigure() ? `activé, expéditeur « ${expediteurSms()} »` : "non configuré"}
+          ok={smsConfigure()}
+          aide={
+            smsConfigure()
+              ? "double l'e-mail sur les trois messages liés à un rendez-vous. Aucun message commercial n'est envoyé par SMS."
+              : "BREVO_SMS_SENDER (11 caractères maximum) avec la clé Brevo déjà en place. Sans lui, tout part par e-mail seulement."
+          }
+        />
+        <Ligne
+          label="Constat automatique du règlement"
+          valeur={sumupPret ? "activé" : "impossible"}
+          ok={sumupPret}
+          aide={
+            sumupPret
+              ? "chaque acompte porte sa propre référence : le règlement se coche tout seul"
+              : "sans l'API SumUp, un paiement est anonyme : aucun nom, aucune adresse, aucun téléphone ne circule avec une transaction. Le règlement reste à cocher à la main."
+          }
+        />
+        <Ligne
+          label="API SumUp (press-on et acomptes)"
           valeur={
             !sumup.cleValide && sumup.erreur
               ? "clé refusée"
@@ -180,13 +223,13 @@ export default async function Reglages() {
               ? // Nom et drapeau « test » plutôt que des codes nus : avec deux
                 // comptes rattachés à la même clé, un code seul ne permet pas
                 // de choisir.
-                `${sumup.marchands.length > 1 ? "Cette clé ouvre plusieurs comptes — " : ""}${sumup.marchands
+                `${sumup.marchands.length > 1 ? "Cette clé ouvre plusieurs comptes : " : ""}${sumup.marchands
                   .map(
                     (m) =>
                       `${m.nom} : ${m.code}${m.bacASable ? " (compte de test, n'encaisse rien)" : ""}`
                   )
                   .join(" · ")}`
-              : "SUMUP_API_KEY + SUMUP_MERCHANT_CODE — sans elles, vous collez le lien de paiement à la main sur chaque commande")
+              : "SUMUP_API_KEY + SUMUP_MERCHANT_CODE. Sans elles, vous collez le lien de paiement à la main sur chaque commande")
           }
         />
         <Ligne
@@ -272,6 +315,11 @@ export default async function Reglages() {
       <section className="rounded-2xl border border-pink-100 bg-white p-5">
         <h2 className="font-semibold">Acompte des nouvelles clientes</h2>
         <p className="mt-1 text-xs text-foreground/60">
+          Avec l&rsquo;API SumUp configurée (ci-dessus), <strong>chaque rendez-vous reçoit son
+          propre lien de paiement</strong> et le règlement se constate tout seul. Le lien ci-dessous
+          n&rsquo;est alors qu&rsquo;un filet de sécurité, utilisé si l&rsquo;API ne répond pas.
+        </p>
+        <p className="mt-2 text-xs text-foreground/60">
           Collez ici votre <strong>lien de paiement réutilisable</strong> SumUp : il sera envoyé
           automatiquement par e-mail à chaque cliente qui réserve pour la première fois, avec une
           relance automatique au bout de 24 h si le paiement ne suit pas. Pour le créer :

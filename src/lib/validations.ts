@@ -40,6 +40,9 @@ export const reservationSchema = z.object({
     message: "Indiquez dans quel état sont vos ongles.",
   }),
   typePoseActuel: z.enum(["VSP", "GAINAGE", "GEL_X", "POP_IT"]).nullable(),
+  // Facultative et sans conséquence : une valeur inconnue est ignorée plutôt
+  // que refusée, une question de confort ne doit jamais bloquer une réservation.
+  provenance: z.string().trim().max(40).optional(),
 });
 
 export const commandePressOnSchema = z
@@ -76,8 +79,13 @@ export const commandePressOnSchema = z
 export const listeAttenteSchema = z.object({
   prenom,
   email,
-  telephone: telephone.optional(),
+  // Facultatif : le champ existait dans la base sans que le formulaire le
+  // demande jamais, donc il restait vide. Or tout le salon fonctionne par SMS.
+  telephone: telephone.optional().or(z.literal("")),
   note: z.string().trim().max(300, "300 caractères maximum.").optional(),
+  // Préférences : vides veut dire « n'importe quand ».
+  joursSouhaites: z.string().trim().max(30).optional(),
+  momentSouhaite: z.string().trim().max(20).optional(),
 });
 
 // Les URL d'images sont produites par notre propre stockage : on refuse tout

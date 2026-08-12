@@ -13,6 +13,7 @@ import {
   motDePasseCorrespond,
 } from "@/lib/mot-de-passe";
 import { ouvrirSessionCliente } from "@/lib/cliente-auth";
+import { champsTelephone } from "@/lib/telephone";
 import { coordonneesSchema, emailSchema } from "@/lib/validations";
 import {
   clienteConnectee,
@@ -72,7 +73,7 @@ export async function demanderLienConnexion(
   const lien = `${urlSite()}/mon-espace/connexion/${jeton}`;
   const envoi = await envoyerEmail(
     cliente.email,
-    "Votre lien de connexion — Zelart Nails",
+    "Votre lien de connexion · Zelart Nails",
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
       <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
       <p>Bonjour ${echapperHtml(cliente.prenom)},</p>
@@ -133,7 +134,10 @@ export async function enregistrerMesInformations(
     return { ok: false, message: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
   }
 
-  await prisma.cliente.update({ where: { id: clienteId }, data: analyse.data });
+  await prisma.cliente.update({
+    where: { id: clienteId },
+    data: { ...analyse.data, ...champsTelephone(analyse.data.telephone) },
+  });
 
   revalidatePath("/mon-espace");
   revalidatePath(`/admin/clientes/${clienteId}`);
@@ -175,7 +179,7 @@ export async function demanderChangementEmail(
     return {
       ok: false,
       message:
-        "Cette adresse est déjà utilisée. Si elle est bien à vous, écrivez à Zélia pour réunir vos fiches.",
+        "Cette adresse est déjà utilisée. Si elle est bien à vous, écrivez-moi et je réunirai vos fiches.",
     };
   }
 
@@ -203,7 +207,7 @@ export async function demanderChangementEmail(
   const lien = `${urlSite()}/mon-espace/email/${jeton}`;
   const envoi = await envoyerEmail(
     nouvelEmail,
-    "Confirmez votre nouvelle adresse — Zelart Nails",
+    "Confirmez votre nouvelle adresse · Zelart Nails",
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
       <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
       <p>Bonjour ${echapperHtml(cliente.prenom)},</p>
@@ -227,12 +231,12 @@ export async function demanderChangementEmail(
   // ordinateur partagé ne doit pas permettre une reprise silencieuse du compte.
   await envoyerEmail(
     cliente.email,
-    "Demande de changement d'adresse — Zelart Nails",
+    "Demande de changement d'adresse · Zelart Nails",
     `<p>Bonjour ${echapperHtml(cliente.prenom)},</p>
      <p>Une demande vient d'être faite depuis votre espace pour remplacer cette adresse par
      <strong>${echapperHtml(nouvelEmail)}</strong>. Elle ne prendra effet qu'après confirmation depuis la
      nouvelle boîte.</p>
-     <p>Si vous n'êtes pas à l'origine de cette demande, prévenez Zélia par SMS au 06 45 29 20 01.</p>`
+     <p>Si vous n'êtes pas à l'origine de cette demande, prévenez-moi par SMS au 06 45 29 20 01.</p>`
   );
 
   return {

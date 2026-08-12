@@ -14,8 +14,8 @@ export const ETATS_ONGLES: { id: EtatOngles; libelle: string; description: strin
   },
   {
     id: "POSE_ZELART",
-    libelle: "J'ai une pose faite par Zélia",
-    description: "Votre dernière pose a été réalisée ici, chez Zelart.",
+    libelle: "J'ai une pose faite ici",
+    description: "Votre dernière pose a été réalisée chez Zelart.",
   },
   {
     id: "POSE_EXTERIEURE",
@@ -63,7 +63,7 @@ export function motifDepose(
   typeActuel: TypePose | null
 ): string {
   if (etat === "POSE_EXTERIEURE") {
-    return "Zélia ne reprend pas une pose réalisée par une autre prothésiste : elle sera retirée avant la nouvelle.";
+    return "je ne reprends pas une pose réalisée par une autre prothésiste : elle sera retirée avant la nouvelle.";
   }
   if (typeActuel === "GEL_X") {
     return "les capsules Gel X se retirent, elles ne se remplissent pas.";

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Protection des données — Zelart Nails",
+  title: "Protection des données · Zelart Nails",
 };
 
 export default function Confidentialite() {
@@ -9,7 +9,7 @@ export default function Confidentialite() {
     <div className="mx-auto max-w-2xl px-4 py-14 sm:px-6">
       <h1 className="font-display text-3xl font-bold">Protection de vos données</h1>
       <p className="mt-3 text-sm text-foreground/60">
-        Zélia attache de l&rsquo;importance à la confidentialité des informations que vous lui
+        J&rsquo;attache de l&rsquo;importance à la confidentialité des informations que vous me
         confiez. Voici, en toute transparence, ce qui est collecté et pourquoi.
       </p>
 
@@ -17,7 +17,7 @@ export default function Confidentialite() {
         <section>
           <h2 className="font-display text-xl font-bold text-foreground">Qui gère vos données</h2>
           <p className="mt-2">
-            Zélia Barreteau — Zelart (SIRET 903 178 101 00015), 108 avenue de la République, 44600
+            Zélia Barreteau, Zelart (SIRET 903 178 101 00015), 108 avenue de la République, 44600
             Saint-Nazaire. Pour toute question : Zelia.barreteaupro@outlook.fr.
           </p>
         </section>
@@ -28,20 +28,20 @@ export default function Confidentialite() {
           </h2>
           <ul className="mt-2 list-disc space-y-2 pl-5">
             <li>
-              <strong>Prénom, nom, e-mail et téléphone</strong> — pour gérer votre rendez-vous et
+              <strong>Prénom, nom, e-mail et téléphone</strong> : pour gérer votre rendez-vous et
               vous en confirmer la date. Ces données sont nécessaires : sans elles, la réservation
               n&rsquo;est pas possible.
             </li>
             <li>
               <strong>Message laissé à la réservation et notes de suivi</strong> (préférences,
-              allergies éventuelles) — pour adapter la prestation et garantir votre sécurité. Ces
-              notes sont visibles de Zélia seule.
+              allergies éventuelles) : pour adapter la prestation et garantir votre sécurité. Ces
+              notes ne sont visibles que de moi.
             </li>
             <li>
-              <strong>Historique de vos rendez-vous</strong> — pour assurer le suivi de vos poses.
+              <strong>Historique de vos rendez-vous</strong> : pour assurer le suivi de vos poses.
             </li>
             <li>
-              <strong>Votre accord pour recevoir des offres</strong>, si vous l&rsquo;avez donné —
+              <strong>Votre accord pour recevoir des offres</strong>, si vous l&rsquo;avez donné :
               pour vous informer des nouveautés et offres de fidélité. Cet accord est facultatif et
               révocable à tout moment.
             </li>
@@ -62,7 +62,7 @@ export default function Confidentialite() {
         <section>
           <h2 className="font-display text-xl font-bold text-foreground">Qui y a accès</h2>
           <p className="mt-2">
-            Zélia uniquement. Vos données ne sont ni vendues, ni cédées, ni utilisées à des fins
+            Moi seule. Vos données ne sont ni vendues, ni cédées, ni utilisées à des fins
             publicitaires par des tiers. Elles transitent techniquement par les prestataires qui font
             fonctionner le site : Vercel (hébergement), Neon (base de données, Union européenne) et
             Resend (envoi des e-mails).
@@ -74,7 +74,7 @@ export default function Confidentialite() {
           <p className="mt-2">
             Vous pouvez à tout moment demander à consulter, corriger ou supprimer vos données, vous
             opposer à leur utilisation, ou retirer votre accord pour les offres. Il suffit
-            d&rsquo;écrire à Zelia.barreteaupro@outlook.fr — la demande est traitée dans un délai
+            d&rsquo;écrire à Zelia.barreteaupro@outlook.fr. La demande est traitée dans un délai
             d&rsquo;un mois. Chaque e-mail d&rsquo;offre contient également un lien de désinscription
             immédiate.
           </p>
@@ -86,7 +86,7 @@ export default function Confidentialite() {
         <section>
           <h2 className="font-display text-xl font-bold text-foreground">Avis Google</h2>
           <p className="mt-2">
-            La page d&rsquo;accueil reprend les avis publiés sur la fiche Google de Zélia. Le site
+            La page d&rsquo;accueil reprend les avis publiés sur ma fiche Google. Le site
             les récupère lui-même auprès de Google et les conserve quelques heures : votre visite
             n&rsquo;est pas signalée à Google. Seule la photo de profil des personnes ayant laissé un
             avis est chargée depuis les serveurs de Google, sans leur transmettre la page que vous
@@ -98,8 +98,8 @@ export default function Confidentialite() {
           <h2 className="font-display text-xl font-bold text-foreground">Cookies</h2>
           <p className="mt-2">
             Ce site n&rsquo;utilise aucun cookie publicitaire ni de mesure d&rsquo;audience. Seul un
-            cookie technique est déposé lorsque Zélia se connecte à son espace de gestion, afin de
-            maintenir sa session ouverte.
+            cookie technique est déposé lorsque je me connecte à mon espace de gestion, afin de
+            maintenir ma session ouverte.
           </p>
         </section>
       </div>

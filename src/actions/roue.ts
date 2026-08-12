@@ -51,7 +51,7 @@ export async function lancerRoue(): Promise<ResultatRoue> {
     if (erreur instanceof Error && erreur.message === "JAUGE_INCOMPLETE") {
       return {
         ok: false,
-        message: `Votre jauge n'est pas encore pleine — il faut ${posesParTour} poses réalisées.`,
+        message: `Votre jauge n'est pas encore pleine : il faut ${posesParTour} poses réalisées.`,
       };
     }
     console.error("Échec du lancement de la roue", erreur);

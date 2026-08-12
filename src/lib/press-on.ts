@@ -24,12 +24,12 @@ export const LIBELLE_STATUT: Record<StatutCommandePressOn, string> = {
 // Ce que la cliente lit dans son espace : elle n'a pas à connaître nos étapes
 // internes, seulement où en est son set.
 export const MESSAGE_CLIENTE: Record<StatutCommandePressOn, string> = {
-  DEMANDE: "Zélia revient vers vous avec le montant à régler.",
+  DEMANDE: "Je reviens vers vous avec le montant à régler.",
   A_PAYER: "Le règlement est attendu pour lancer la fabrication.",
   PAYEE: "Règlement reçu, la fabrication va commencer 🤍",
   EN_FABRICATION: "Votre set est en cours de création.",
   PRETE: "Votre set est prêt !",
-  REMISE: "Set remis — merci et à bientôt ✨",
+  REMISE: "Set remis. Merci et à bientôt ✨",
   ANNULEE: "Cette commande a été annulée.",
 };
 

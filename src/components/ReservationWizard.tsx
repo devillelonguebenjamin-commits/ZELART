@@ -7,7 +7,7 @@ import InfoPrestation from "@/components/InfoPrestation";
 import PropositionCreneau from "@/components/PropositionCreneau";
 import type { Creneau } from "@/lib/creneaux";
 import { REMISE_FILLEULE_POURCENT } from "@/lib/parrainage-bareme";
-import { formatDuree, formatPrix, totalDuree, totalTarifs } from "@/lib/format";
+import { formatPrix, totalTarifs } from "@/lib/format";
 import {
   aUnePose,
   deposeNecessaire,
@@ -20,13 +20,15 @@ import {
 } from "@/lib/regles";
 import type { EtatOngles, TypeActe, TypePose } from "@/generated/prisma/client";
 import ChampInspiration from "@/components/ChampInspiration";
+import { PROVENANCES } from "@/lib/provenance";
+import NiveauxNailArt from "@/components/NiveauxNailArt";
+import type { NiveauExplique } from "@/lib/nail-art";
 
 export type PrestationPublique = {
   id: string;
   nom: string;
   categorie: string;
   description: string | null;
-  dureeMin: number;
   prixCents: number;
   aPartirDe: boolean;
   typeActe: TypeActe;
@@ -36,6 +38,8 @@ export type PrestationPublique = {
 type Props = {
   prestations: PrestationPublique[];
   creneaux: Creneau[];
+  /** Les trois niveaux de nail art, pour la fenêtre de comparaison. */
+  niveauxNailArt: NiveauExplique[];
   /** Renseigné quand la cliente est connectée à son espace. */
   cliente?: { prenom: string; nom: string; email: string; telephone: string } | null;
   envoiImagesActif: boolean;
@@ -47,6 +51,7 @@ export default function ReservationWizard({
   prestations,
   creneaux,
   envoiImagesActif,
+  niveauxNailArt,
   cliente,
 }: Props) {
   const [etape, setEtape] = useState(0);
@@ -209,7 +214,7 @@ export default function ReservationWizard({
           <p className="mt-5 rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900">
             <strong>Votre pose actuelle doit être traitée.</strong>{" "}
             {remplissageAutorise(etatOngles, typePoseActuel)
-              ? "À l'étape suivante, choisissez soit un remplissage, soit une nouvelle pose — dans ce dernier cas, la dépose est ajoutée automatiquement."
+              ? "À l'étape suivante, choisissez soit un remplissage, soit une nouvelle pose. Dans ce dernier cas, la dépose est ajoutée automatiquement."
               : `Une dépose est donc prévue : ${motifDepose(etatOngles, typePoseActuel)}`}
           </p>
         )}
@@ -232,6 +237,11 @@ export default function ReservationWizard({
         <p className="mt-2 text-sm text-foreground/70">
           Vous pouvez en cocher plusieurs si vous souhaitez cumuler.
         </p>
+        {/* La question du niveau se pose ici, devant la liste — pas sur une
+            autre page qu'il faudrait aller chercher en perdant sa sélection. */}
+        <div className="mt-2">
+          <NiveauxNailArt niveaux={niveauxNailArt} />
+        </div>
         {etatOngles === "NATUREL" && (
           <p className="mt-2 text-sm text-foreground/70">
             Vos ongles étant nus, seules les nouvelles poses vous sont proposées.
@@ -250,7 +260,7 @@ export default function ReservationWizard({
             ) : (
               <>
                 Vous portez une pose : choisissez un remplissage, une dépose seule, ou une nouvelle
-                pose — la dépose sera alors ajoutée automatiquement.
+                pose. La dépose sera alors ajoutée automatiquement.
               </>
             )}
           </p>
@@ -287,12 +297,7 @@ export default function ReservationWizard({
                         checked={choisies.includes(p.id)}
                         onChange={() => basculer(p.id)}
                       />
-                      <span>
-                        <span className="block font-medium">{p.nom}</span>
-                        <span className="block text-xs text-foreground/60">
-                          environ {formatDuree(p.dureeMin)}
-                        </span>
-                      </span>
+                      <span className="font-medium">{p.nom}</span>
                     </span>
                     <span className="shrink-0 font-semibold text-pink-500">
                       {formatPrix(p.prixCents, p.aPartirDe)}
@@ -328,7 +333,7 @@ export default function ReservationWizard({
         <h2 className="font-display text-2xl font-bold">Choisissez votre créneau</h2>
         {lignes.length > 0 && (
           <p className="mt-2 text-sm text-foreground/70">
-            Pour : {lignes.map((l) => l.nom).join(" + ")} —{" "}
+            Pour : {lignes.map((l) => l.nom).join(" + ")} ·{" "}
             <span className="font-medium text-pink-600">
               {formatPrix(total.prixCents, total.aPartirDe)}
             </span>
@@ -337,7 +342,7 @@ export default function ReservationWizard({
         {jours.length === 0 ? (
           <p className="mt-6 rounded-2xl bg-pink-50 px-5 py-4 text-foreground/80">
             Aucun créneau disponible sur les deux prochains mois. Réessayez un peu plus tard ou
-            contactez directement Zélia.
+            écrivez-moi directement.
           </p>
         ) : (
           <div className="mt-6 space-y-4">
@@ -410,7 +415,7 @@ export default function ReservationWizard({
         <h2 className="font-display text-2xl font-bold">Vos coordonnées</h2>
         {cliente && (
           <p className="mt-3 rounded-2xl bg-emerald-50 px-5 py-3 text-sm text-emerald-800">
-            Vos informations sont déjà remplies — corrigez-les si besoin, la modification sera
+            Vos informations sont déjà remplies. Corrigez-les si besoin, la modification sera
             enregistrée sur votre fiche.
           </p>
         )}
@@ -432,7 +437,7 @@ export default function ReservationWizard({
               ))}
             </ul>
             <p className="mt-2 flex justify-between gap-4 border-t border-pink-200 pt-2 font-semibold">
-              <span>Total · environ {formatDuree(totalDuree(lignes))}</span>
+              <span>Total</span>
               <span className="text-pink-600">{formatPrix(total.prixCents, total.aPartirDe)}</span>
             </p>
             {creneauChoisi ? (
@@ -442,7 +447,7 @@ export default function ReservationWizard({
             ) : (
               <p className="mt-2 text-foreground/70">
                 Horaire proposé :{" "}
-                <strong>{dateProposee.replace("T", " à ")}</strong> — à confirmer par Zélia.
+                <strong>{dateProposee.replace("T", " à ")}</strong>, à confirmer de ma part.
               </p>
             )}
           </div>
@@ -498,7 +503,7 @@ export default function ReservationWizard({
               <span className="text-sm font-medium">
                 Code de parrainage{" "}
                 <span className="text-foreground/50">
-                  (facultatif — une cliente vous a recommandée ? vous gagnez −
+                  (facultatif : une cliente vous a recommandée ? vous gagnez −
                   {REMISE_FILLEULE_POURCENT} %)
                 </span>
               </span>
@@ -510,9 +515,33 @@ export default function ReservationWizard({
               />
             </label>
           )}
+          {/* Posée une seule fois, à la première réservation, et facultative :
+              c'est la seule donnée qui dise par quel chemin une cliente arrive.
+              Une liste fermée plutôt qu'un champ libre, sans quoi rien ne se
+              compte. */}
+          {!cliente && (
+            <label className="block sm:col-span-2">
+              <span className="text-sm font-medium">
+                Comment m&rsquo;avez-vous connue ?{" "}
+                <span className="text-foreground/50">(facultatif, ça m&rsquo;aide beaucoup)</span>
+              </span>
+              <select
+                name="provenance"
+                defaultValue=""
+                className="mt-1 w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
+              >
+                <option value="">Je préfère ne pas dire</option>
+                {PROVENANCES.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.libelle}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="block sm:col-span-2">
             <span className="text-sm font-medium">
-              Un message pour Zélia ?{" "}
+              Un message pour moi ?{" "}
               <span className="text-foreground/50">(allergies, précisions pratiques…)</span>
             </span>
             <textarea

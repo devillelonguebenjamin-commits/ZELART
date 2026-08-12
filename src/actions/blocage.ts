@@ -47,7 +47,7 @@ export async function bloquerCliente(
     message:
       `${cliente.prenom} ${cliente.nom} ne peut plus réserver ni commander de press-on.` +
       (aVenir > 0
-        ? ` Attention : ${aVenir} rendez-vous à venir n'${aVenir > 1 ? "ont" : "a"} pas été annulé${aVenir > 1 ? "s" : ""} — faites-le depuis l'agenda si besoin.`
+        ? ` Attention : ${aVenir} rendez-vous à venir n'${aVenir > 1 ? "ont" : "a"} pas été annulé${aVenir > 1 ? "s" : ""}, à faire depuis l'agenda si besoin.`
         : ""),
   };
 }

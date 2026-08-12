@@ -34,7 +34,7 @@ export async function annulerParCliente(rendezVousId: string): Promise<EtatAnnul
   if (!annulationPossible(rdv.debut)) {
     return {
       ok: false,
-      message: `L'annulation en ligne n'est plus possible à moins de ${DELAI_ANNULATION_H} h du rendez-vous. Prévenez Zélia par SMS au 06 45 29 20 01.`,
+      message: `L'annulation en ligne n'est plus possible à moins de ${DELAI_ANNULATION_H} h du rendez-vous. Prévenez-moi par SMS au 06 45 29 20 01.`,
     };
   }
 
@@ -44,13 +44,13 @@ export async function annulerParCliente(rendezVousId: string): Promise<EtatAnnul
   });
 
   // Le créneau libéré peut intéresser une cliente en liste d'attente.
-  await notifierListeAttente();
+  await notifierListeAttente({ debut: rdv.debut });
 
   // Zélia doit le savoir tout de suite pour reproposer le créneau.
   if (process.env.NOTIFY_EMAIL) {
     await envoyerEmail(
       process.env.NOTIFY_EMAIL,
-      `Annulation — ${rdv.cliente.prenom} ${rdv.cliente.nom} le ${formatJour(rdv.debut)}`,
+      `Annulation · ${rdv.cliente.prenom} ${rdv.cliente.nom} le ${formatJour(rdv.debut)}`,
       `<p>${echapperHtml(rdv.cliente.prenom)} ${echapperHtml(rdv.cliente.nom)} vient d'annuler depuis son espace :</p>
        <p><strong>${formatJour(rdv.debut)} à ${formatHeure(rdv.debut)}</strong><br>
        ${echapperHtml(rdv.lignes.map((l) => l.prestation.nom).join(" + "))}</p>

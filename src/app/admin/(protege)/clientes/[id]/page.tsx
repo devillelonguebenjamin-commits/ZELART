@@ -181,7 +181,7 @@ export default async function FicheCliente({
         ) : cliente.consentementMarketing ? (
           <p className="mt-1 text-sm text-foreground/70">
             Elle reçoit vos campagnes
-            {cliente.consentementLe && ` — accord donné le ${formatJour(cliente.consentementLe)}`}.
+            {cliente.consentementLe && `, accord donné le ${formatJour(cliente.consentementLe)}`}.
           </p>
         ) : (
           <p className="mt-1 text-sm text-foreground/70">

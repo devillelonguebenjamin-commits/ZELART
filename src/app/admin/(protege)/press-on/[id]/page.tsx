@@ -92,7 +92,7 @@ export default async function CommandePressOnDetail({
             <div className="flex justify-between gap-4">
               <dt className="text-foreground/60">Forme · longueur</dt>
               <dd className="text-right">
-                {commande.forme ?? "—"} · {commande.longueur ?? "—"}
+                {commande.forme ?? "non précisée"} · {commande.longueur ?? "non précisée"}
               </dd>
             </div>
           )}
@@ -152,7 +152,7 @@ export default async function CommandePressOnDetail({
                 defaultValue={
                   commande.fraisPortCents === null ? "" : (commande.fraisPortCents / 100).toFixed(2)
                 }
-                placeholder="—"
+                placeholder="0"
                 className="mt-1 w-28 rounded-xl border border-pink-200 px-3 py-2 text-right outline-none focus:border-pink-500"
               />
             </label>

@@ -6,30 +6,36 @@ import LiensReseaux from "@/components/LiensReseaux";
 import Vagues, { TraitVagues } from "@/components/Vagues";
 import Carrousel from "@/components/Carrousel";
 import AvisGoogle from "@/components/AvisGoogle";
+import ProchainsCreneaux from "@/components/ProchainsCreneaux";
+import { getCreneauxDisponibles } from "@/lib/creneaux";
 import { avisGoogle } from "@/lib/avis";
 import { jsonLdSecurise } from "@/lib/json-ld";
 import { urlSite } from "@/lib/site";
+import { horaires } from "@/lib/horaires";
 
 export const dynamic = "force-dynamic";
 
 export default async function Accueil() {
-  const [prestations, photos, realisations, pressOnMoinsCher, reseaux, avis] = await Promise.all([
-    prisma.prestation.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
-    prisma.photo.findMany({ orderBy: [{ ordre: "asc" }, { creeLe: "desc" }], take: 12 }),
-    prisma.realisation.findMany({
-      where: { publiee: true },
-      orderBy: { creeLe: "desc" },
-      take: 12,
-      select: { id: true, url: true },
-    }),
-    prisma.modelePressOn.findFirst({
-      where: { actif: true },
-      orderBy: { prixCents: "asc" },
-      select: { prixCents: true },
-    }),
-    reglagesReseaux(),
-    avisGoogle(),
-  ]);
+  const [prestations, photos, realisations, pressOnMoinsCher, reseaux, avis, ouverture, creneaux] =
+    await Promise.all([
+      prisma.prestation.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
+      prisma.photo.findMany({ orderBy: [{ ordre: "asc" }, { creeLe: "desc" }], take: 12 }),
+      prisma.realisation.findMany({
+        where: { publiee: true },
+        orderBy: { creeLe: "desc" },
+        take: 12,
+        select: { id: true, url: true },
+      }),
+      prisma.modelePressOn.findFirst({
+        where: { actif: true },
+        orderBy: { prixCents: "asc" },
+        select: { prixCents: true },
+      }),
+      reglagesReseaux(),
+      avisGoogle(),
+      horaires(),
+      getCreneauxDisponibles(),
+    ]);
   // La galerie réunit les photos ajoutées à la main et les réalisations publiées.
   const visuels = [
     ...photos.map((p) => ({ id: p.id, url: p.url, legende: p.legende })),
@@ -85,7 +91,7 @@ export default async function Accueil() {
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-foreground/80">
             Je m&rsquo;appelle <strong>Zélia</strong>, prothésiste ongulaire et nail artist
             certifiée, passionnée par le dessin et la mode. Spécialisée dans le nail art, je crée
-            des designs originaux, du plus discret au plus audacieux — chaque pose est unique,
+            des designs originaux, du plus discret au plus audacieux. Chaque pose est unique,
             pensée avec vous, selon vos envies et votre style.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
@@ -103,7 +109,7 @@ export default async function Accueil() {
             </a>
           </div>
           <p className="mt-6 text-sm text-foreground/60">
-            Rendez-vous du lundi au samedi, à 9h ou 14h — sur réservation uniquement.
+            {ouverture.bref}
           </p>
         </div>
       </section>
@@ -114,7 +120,7 @@ export default async function Accueil() {
           <h2 className="font-display text-center text-3xl font-bold">Prestations &amp; tarifs 🌸</h2>
           <TraitVagues className="mx-auto mt-4" />
           <p className="mx-auto mt-3 max-w-2xl text-center text-foreground/70">
-            Gainage, pose Gel X, Pop-it et vernis semi-permanent — avec ou sans nail art. Le niveau de
+            Gainage, pose Gel X, Pop-it et vernis semi-permanent, avec ou sans nail art. Le niveau de
             nail art (1 à 3) dépend de la complexité du design souhaité.
           </p>
           {/* Seul point d'entrée visible sur téléphone : les liens secondaires
@@ -186,7 +192,7 @@ export default async function Accueil() {
             <h2 className="font-display text-center text-3xl font-bold">Mes réalisations 💅</h2>
             <TraitVagues className="mx-auto mt-4" />
             <div className="mt-8">
-              <Carrousel libelle="Réalisations de Zélia">
+              <Carrousel libelle="Mes réalisations">
                 {visuels.map((visuel, rang) => (
                   <li
                     key={visuel.id}
@@ -255,9 +261,12 @@ export default async function Accueil() {
           <TraitVagues className="mx-auto mt-4" />
           <div className="mt-8 grid gap-4 text-sm sm:grid-cols-2">
             {[
-              "Rendez-vous du lundi au samedi, à 9h ou 14h (une cliente par créneau).",
-              "Il faut avoir 18 ans ou plus — aucune pose sur les pieds.",
-              "Après votre demande, Zélia vous envoie un message de confirmation (elle ne répond pas aux appels).",
+              // Les horaires sont lus dans la table des ouvertures : une phrase
+              // recopiée ici resterait vraie jusqu'au jour où elle ne le serait
+              // plus, sans que personne s'en aperçoive.
+              [ouverture.actuel, ouverture.aVenir].filter(Boolean).join(" "),
+              "Il faut avoir 18 ans ou plus. Aucune pose sur les pieds.",
+              "Après votre demande, je vous envoie un message de confirmation (je ne réponds pas aux appels).",
               "Nouvelles clientes : un acompte de 15 € est demandé via SumUp pour valider le rendez-vous ; il est déduit du montant final.",
               "Paiement sur place en espèces ou par carte bancaire (SumUp).",
               "Merci de signaler toute allergie ou problème de santé ; matériel désinfecté entre chaque cliente.",
@@ -270,13 +279,15 @@ export default async function Accueil() {
               </div>
             ))}
           </div>
-          <div className="mt-10 text-center">
-            <Link
-              href="/reserver"
-              className="rounded-full bg-pink-500 px-8 py-3 text-lg font-medium text-white shadow-md transition hover:bg-pink-600"
-            >
-              Prendre rendez-vous ✨
+          {/* La disponibilité réelle plutôt qu'un bouton nu : c'est elle qui
+              décide une visiteuse hésitante. */}
+          <p className="mt-6 text-center text-sm">
+            <Link href="/questions" className="font-medium text-pink-600 hover:underline">
+              Une autre question ? Voir toutes les réponses →
             </Link>
+          </p>
+          <div className="mt-10">
+            <ProchainsCreneaux creneaux={creneaux} />
           </div>
         </section>
 

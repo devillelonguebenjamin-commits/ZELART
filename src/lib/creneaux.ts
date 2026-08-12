@@ -304,3 +304,42 @@ export async function fenetrePourDebut(debut: Date): Promise<{ debut: Date; fin:
   const [hf, mf] = dispo.heureFin.split(":").map(Number);
   return { debut, fin: dateParis(p.annee, p.mois, p.jour, hf, mf) };
 }
+
+/**
+ * Jusqu'où une prestation peut courir en partant de ce créneau.
+ *
+ * Les fenêtres d'une journée se touchent : 9h–13h, 13h–16h, 16h–19h. Les traiter
+ * comme des boîtes étanches refusait des rendez-vous parfaitement tenables — un
+ * nail art niveau 3 avec dépose dépasse trois heures et devenait
+ * irréservable ailleurs qu'au premier créneau, alors qu'il tient sans peine sur
+ * l'après-midi. Une pose qui déborde sur la fenêtre suivante ne gêne personne :
+ * il n'y a qu'une cliente à la fois, et le créneau suivant disparaîtra tout seul
+ * de la liste puisqu'il chevauche un rendez-vous.
+ *
+ * La limite reste la **fin de la plage continue** : un trou dans la journée
+ * (pause déjeuner) l'arrête, et la fermeture aussi. C'est ce qui empêche
+ * toujours qu'une demande de cinq heures s'installe sur une journée qui n'en
+ * offre que trois.
+ */
+export async function finPlageContinue(debut: Date): Promise<Date | null> {
+  const p = partiesParis(debut);
+  const jourSemaine = ((new Date(Date.UTC(p.annee, p.mois - 1, p.jour, 12)).getUTCDay() + 6) % 7) + 1;
+  const cleJour = jourParis(debut);
+
+  const ouvertures = (await prisma.disponibilite.findMany({ where: { jourSemaine } }))
+    .filter((d) => ouvertureActive(d, cleJour))
+    .sort((a, b) => a.heureDebut.localeCompare(b.heureDebut));
+
+  const heureDebut = `${String(p.heure).padStart(2, "0")}:${String(p.minute).padStart(2, "0")}`;
+  let rang = ouvertures.findIndex((d) => d.heureDebut === heureDebut);
+  if (rang === -1) return null;
+
+  let fin = ouvertures[rang].heureFin;
+  while (rang + 1 < ouvertures.length && ouvertures[rang + 1].heureDebut === fin) {
+    rang++;
+    fin = ouvertures[rang].heureFin;
+  }
+
+  const [hf, mf] = fin.split(":").map(Number);
+  return dateParis(p.annee, p.mois, p.jour, hf, mf);
+}

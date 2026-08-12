@@ -29,7 +29,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Mon espace — Zelart Nails",
+  title: "Mon espace · Zelart Nails",
   description:
     "Retrouvez vos rendez-vous, l'historique de vos poses et votre code de parrainage Zelart Nails.",
 };
@@ -49,12 +49,12 @@ const RETOURS_EMAIL: Record<string, { texte: string; classes: string }> = {
   },
   expire: {
     texte:
-      "Ce lien de confirmation n'est plus valable — il expire au bout de 30 minutes et ne sert qu'une fois. Relancez la demande depuis « Mes informations ».",
+      "Ce lien de confirmation n'est plus valable : il expire au bout de 30 minutes et ne sert qu'une fois. Relancez la demande depuis « Mes informations ».",
     classes: "bg-amber-50 text-amber-900",
   },
   occupee: {
     texte:
-      "Cette adresse a été rattachée à une autre fiche entre-temps. Écrivez à Zélia pour qu'elle démêle la situation.",
+      "Cette adresse a été rattachée à une autre fiche entre-temps. Écrivez-moi, je démêle la situation.",
     classes: "bg-red-50 text-red-700",
   },
 };
@@ -84,7 +84,7 @@ export default async function MonEspace({
         <div className="mx-auto max-w-lg px-4 pb-16 sm:px-6">
           {lien === "expire" && (
             <p className="mb-6 rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900">
-              Ce lien de connexion n&rsquo;est plus valable — les liens expirent au bout de 30
+              Ce lien de connexion n&rsquo;est plus valable : les liens expirent au bout de 30
               minutes et ne servent qu&rsquo;une fois. Demandez-en un nouveau ci-dessous, c&rsquo;est
               immédiat.
             </p>
@@ -218,7 +218,7 @@ export default async function MonEspace({
                   <BoutonAnnulation rendezVousId={rdv.id} />
                 ) : (
                   <p className="mt-3 text-xs text-foreground/50">
-                    À moins de {DELAI_ANNULATION_H} h du rendez-vous, prévenez Zélia par SMS au
+                    À moins de {DELAI_ANNULATION_H} h du rendez-vous, prévenez-moi par SMS au
                     06 45 29 20 01.
                   </p>
                 )}
@@ -300,7 +300,7 @@ export default async function MonEspace({
                     <span>
                       {LIBELLE_REMISE[commande.modeRemise]}
                       {commande.modeRemise === "POSTAL" && commande.fraisPortCents === null
-                        ? " — frais d'envoi à confirmer"
+                        ? " (frais d'envoi à confirmer)"
                         : ""}
                     </span>
                     <span className="font-medium text-pink-600">

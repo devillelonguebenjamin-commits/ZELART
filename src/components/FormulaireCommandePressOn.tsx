@@ -95,13 +95,24 @@ export default function FormulaireCommandePressOn({
                     checked={modeleId === m.id}
                     onChange={() => setModeleId(m.id)}
                   />
+                  {/* On commande sur photo : la vignette est assez grande pour
+                      qu'un motif se distingue, et s'agrandit au clic. */}
                   {m.photoUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={m.photoUrl}
-                      alt={m.nom}
-                      className="h-16 w-16 shrink-0 rounded-xl object-cover"
-                    />
+                    <a
+                      href={m.photoUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="shrink-0"
+                      title="Voir en grand"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={m.photoUrl}
+                        alt={`Set ${m.nom}`}
+                        className="size-24 rounded-xl object-cover ring-1 ring-pink-100 transition hover:ring-pink-400 sm:size-28"
+                      />
+                    </a>
                   )}
                   <span className="min-w-0 flex-1">
                     <span className="flex items-baseline justify-between gap-3">
@@ -124,8 +135,8 @@ export default function FormulaireCommandePressOn({
       <section>
         <h2 className="font-display text-2xl font-bold">2. Vos ongles</h2>
         <p className="mt-1 text-sm text-foreground/70">
-          Zélia taille chaque capsule à votre main : ce sont vos mesures qui font la différence entre
-          un set qui tient et un set qui décolle. Le guide ci-dessous propose deux méthodes — le
+          Je taille chaque capsule à votre main : ce sont vos mesures qui font la différence entre
+          un set qui tient et un set qui décolle. Le guide ci-dessous propose deux méthodes : le
           ruban adhésif, précis au millimètre, ou une simple photo avec un repère.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -252,7 +263,7 @@ export default function FormulaireCommandePressOn({
               className={CLASSE_CHAMP}
             />
             <span className="mt-1 block text-xs text-foreground/60">
-              Zélia vous communique le montant des frais d&rsquo;envoi avant de lancer la
+              Je vous communique le montant des frais d&rsquo;envoi avant de lancer la
               fabrication.
             </span>
           </label>
@@ -339,7 +350,7 @@ export default function FormulaireCommandePressOn({
           </p>
           <p className="mt-1 text-sm text-foreground/70">
             {postal
-              ? "+ frais d'envoi, chiffrés par Zélia avant la fabrication."
+              ? "+ frais d'envoi, que je chiffre avant la fabrication."
               : "Remise en main propre à Saint-Nazaire, sans frais."}
           </p>
         </div>
@@ -359,7 +370,7 @@ export default function FormulaireCommandePressOn({
         {enCours ? "Envoi…" : "Envoyer ma commande ✨"}
       </button>
       <p className="text-center text-xs text-foreground/60">
-        Votre commande n&rsquo;est pas encore ferme : Zélia vous confirme le montant (et les frais
+        Votre commande n&rsquo;est pas encore ferme : je vous confirme le montant (et les frais
         d&rsquo;envoi le cas échéant) avant tout règlement.
       </p>
     </form>

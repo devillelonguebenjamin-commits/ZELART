@@ -5,6 +5,8 @@ import "./globals.css";
 import { reglagesReseaux } from "@/lib/parametres";
 import LiensReseaux from "@/components/LiensReseaux";
 import { CreteVagues } from "@/components/Vagues";
+import { Analytics } from "@vercel/analytics/next";
+import { urlSite } from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,10 +18,27 @@ const playfair = Playfair_Display({
   subsets: ["latin"],
 });
 
+const TITRE = "Zelart Nails · Prothésiste ongulaire à Saint-Nazaire";
+const DESCRIPTION =
+  "Zélia, prothésiste ongulaire et nail artist certifiée à Saint-Nazaire. Prenez rendez-vous en ligne : vernis semi-permanent, gainage, pose Gel X, pose Pop-it et nail art.";
+
 export const metadata: Metadata = {
-  title: "Zelart Nails — Prothésiste ongulaire à Saint-Nazaire",
-  description:
-    "Zélia, prothésiste ongulaire et nail artist certifiée à Saint-Nazaire. Prenez rendez-vous en ligne : vernis semi-permanent, gainage, pose Gel X, pose Pop-it et nail art.",
+  metadataBase: new URL(urlSite()),
+  title: TITRE,
+  description: DESCRIPTION,
+  // Sans ces blocs, un lien collé dans une story Instagram ou un message
+  // WhatsApp s'affiche en texte gris. C'est pourtant le premier contact de
+  // quelqu'un à qui on recommande le salon : l'image occupe alors un quart
+  // d'écran, le texte gris rien du tout.
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    siteName: "Zelart Nails",
+    title: TITRE,
+    description: DESCRIPTION,
+    url: urlSite(),
+  },
+  twitter: { card: "summary_large_image", title: TITRE, description: DESCRIPTION },
 };
 
 export default async function RootLayout({
@@ -65,6 +84,12 @@ export default async function RootLayout({
                 Infos pratiques
               </Link>
               <Link
+                href="/questions"
+                className="hidden whitespace-nowrap text-foreground/80 hover:text-pink-500 lg:block"
+              >
+                Questions
+              </Link>
+              <Link
                 href="/press-on"
                 className="whitespace-nowrap text-foreground/80 hover:text-pink-500"
               >
@@ -96,7 +121,7 @@ export default async function RootLayout({
           <div className="mx-auto grid max-w-5xl gap-6 px-4 pb-8 text-sm text-foreground/70 sm:grid-cols-3 sm:px-6">
             <div>
               <p className="font-display text-lg font-bold text-pink-500">Zelart Nails</p>
-              <p className="mt-1">Zélia — prothésiste ongulaire &amp; nail artist certifiée</p>
+              <p className="mt-1">Zélia, prothésiste ongulaire &amp; nail artist certifiée</p>
               <p className="mt-1">SIRET 903 178 101 00015</p>
               {reseaux.length > 0 && (
                 <div className="mt-4">
@@ -120,6 +145,9 @@ export default async function RootLayout({
               <p>06 45 29 20 01 (SMS uniquement)</p>
               <p className="mt-1">Paiement en espèces ou par carte (SumUp)</p>
               <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1">
+                <Link href="/questions" className="hover:text-pink-500">
+                  Questions fréquentes
+                </Link>
                 <Link href="/prestations" className="hover:text-pink-500">
                   Les prestations
                 </Link>
@@ -133,6 +161,9 @@ export default async function RootLayout({
             </div>
           </div>
         </footer>
+
+        {/* Mesure d'audience sans cookie : aucun bandeau à ajouter. */}
+        <Analytics />
       </body>
     </html>
   );

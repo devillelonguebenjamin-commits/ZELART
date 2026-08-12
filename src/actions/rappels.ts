@@ -34,7 +34,7 @@ export async function enregistrerReglagesRappels(
   return {
     ok: true,
     message: actifs
-      ? "Rappels activés — l'envoi a lieu chaque matin."
+      ? "Rappels activés. L'envoi a lieu chaque matin."
       : "Rappels désactivés : plus aucun envoi automatique.",
   };
 }
@@ -72,6 +72,6 @@ export async function lancerRappelsMaintenant(): Promise<EtatRappels> {
       `${bilan.avis.envoyees} demande(s) d'avis, ${bilan.acompte.envoyees} relance(s) d'acompte ` +
       `et ${bilan.reconquete.envoyees} message(s) de reconquête envoyé(s). ` +
       `${bilan.avantagesParrainage} avantage(s) de parrainage accordé(s).` +
-      (echecs > 0 ? ` ${echecs} envoi(s) en échec — vérifiez le service d'e-mails.` : ""),
+      (echecs > 0 ? ` ${echecs} envoi(s) en échec : vérifiez le service d'e-mails.` : ""),
   };
 }

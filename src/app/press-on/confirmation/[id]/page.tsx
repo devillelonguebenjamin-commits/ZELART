@@ -9,7 +9,7 @@ import Vagues from "@/components/Vagues";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Commande envoyée — Zelart Nails",
+  title: "Commande envoyée · Zelart Nails",
   robots: { index: false },
 };
 
@@ -59,7 +59,7 @@ export default async function ConfirmationPressOn({
 
           <div className="mt-8 space-y-3 text-left text-sm leading-relaxed text-foreground/75">
             <p>
-              ✉️ Zélia revient vers vous pour valider le design{" "}
+              ✉️ Je reviens vers vous pour valider le design{" "}
               {postal && (
                 <>
                   et vous communiquer les <strong>frais d&rsquo;envoi</strong>

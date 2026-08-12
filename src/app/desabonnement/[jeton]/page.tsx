@@ -7,7 +7,7 @@ import { desabonner } from "@/actions/campagnes";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Désinscription — Zelart Nails",
+  title: "Désinscription · Zelart Nails",
   robots: { index: false },
 };
 

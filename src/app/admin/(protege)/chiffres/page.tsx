@@ -1,6 +1,7 @@
 import { formatPrix } from "@/lib/format";
 import { formatMois } from "@/lib/creneaux";
 import { MOIS_AFFICHES, tableauDeBord } from "@/lib/chiffres";
+import { libelleProvenance } from "@/lib/provenance";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +80,7 @@ export default async function AdminChiffres() {
                 />
               </span>
               <span className="w-24 shrink-0 text-right font-medium text-pink-600">
-                {mois.totalCents > 0 ? formatPrix(mois.totalCents) : "—"}
+                {mois.totalCents > 0 ? formatPrix(mois.totalCents) : "0 €"}
               </span>
               <span className="hidden w-32 shrink-0 text-right text-xs text-foreground/50 sm:block">
                 {mois.poses > 0 && `${mois.poses} pose${mois.poses > 1 ? "s" : ""}`}
@@ -158,6 +159,44 @@ export default async function AdminChiffres() {
             L&rsquo;acompte des nouvelles clientes limite les rendez-vous non honorés.
           </p>
         </div>
+      </section>
+
+      {/* D'où viennent les clientes */}
+      <section className="rounded-2xl border border-pink-100 bg-white p-5">
+        <h2 className="font-semibold">D&rsquo;où viennent vos clientes</h2>
+        {bord.provenances.repondues === 0 ? (
+          <p className="mt-2 text-sm text-foreground/70">
+            La question « comment m&rsquo;avez-vous connue ? » est posée depuis peu, à la première
+            réservation seulement et sans obligation de répondre. Les premières réponses
+            apparaîtront ici.
+          </p>
+        ) : (
+          <>
+            <ul className="mt-3 space-y-2">
+              {bord.provenances.lignes.map((ligne) => (
+                <li key={ligne.id} className="text-sm">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-foreground/85">{libelleProvenance(ligne.id)}</span>
+                    <span className="shrink-0 tabular-nums text-foreground/60">
+                      {ligne.nombre} ({ligne.part} %)
+                    </span>
+                  </div>
+                  <div className="mt-1 h-2 rounded-full bg-pink-50">
+                    <div
+                      className="h-2 rounded-full bg-pink-400"
+                      style={{ width: `${Math.max(ligne.part, 2)}%` }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs text-foreground/60">
+              Sur {bord.provenances.repondues} cliente
+              {bord.provenances.repondues > 1 ? "s" : ""} ayant répondu. La question étant
+              facultative, ce sont des proportions, pas un décompte de toutes vos clientes.
+            </p>
+          </>
+        )}
       </section>
     </div>
   );

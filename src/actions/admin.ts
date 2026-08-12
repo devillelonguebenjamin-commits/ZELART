@@ -9,7 +9,7 @@ import { exigerAdmin, fermerSessionAdmin, ouvrirSessionAdmin } from "@/lib/auth"
 import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { z } from "zod";
 import { dateParis, formatHeure, formatJour } from "@/lib/creneaux";
-import { envoyerDemandeAcompte, estNouvelleCliente } from "@/lib/acompte";
+import { envoyerDemandeAcompte, estNouvelleCliente, verifierAcompte } from "@/lib/acompte";
 import { formatPrix, totalTarifs } from "@/lib/format";
 import {
   CLE_AUTRE_RESEAU,
@@ -35,6 +35,7 @@ import {
 import { notifierListeAttente } from "@/lib/liste-attente";
 import { recompenserMarraine } from "@/lib/parrainage-email";
 import { urlSite } from "@/lib/site";
+import { envoyerSmsSansBloquer } from "@/lib/sms";
 import type { StatutRendezVous } from "@/generated/prisma/client";
 
 // --- Session ---
@@ -97,21 +98,29 @@ export async function changerStatutRendezVous(
        <p>${rendezVous.lignes
          .map(
            (l) =>
-             `<strong>${echapperHtml(l.prestation.nom)}</strong> — ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}`
+             `<strong>${echapperHtml(l.prestation.nom)}</strong> : ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}`
          )
          .join("<br>")}<br>
        <strong>Total : ${formatPrix(total.prixCents, total.aPartirDe)}</strong></p>
        <p>${formatJour(rendezVous.debut)} à ${formatHeure(rendezVous.debut)}<br>
-       L'Atelier du Regard — 108 avenue de la République, 44600 Saint-Nazaire</p>
+       L'Atelier du Regard, 108 avenue de la République, 44600 Saint-Nazaire</p>
        <p><a href="${urlSite()}/api/calendrier/${rendezVous.id}">📅 Ajouter à mon calendrier</a></p>
        <p>À très vite,<br>Zélia ✨</p>
        ${await reseauxPourEmail()}`
+    );
+
+    // Doublé par SMS : c'est le message que la cliente lira vraiment. Court,
+    // sans lien, il ne remplace pas l'e-mail qui porte le détail et le
+    // calendrier.
+    await envoyerSmsSansBloquer(
+      rendezVous.cliente.telephone,
+      `Zelart Nails : votre rendez-vous du ${formatJour(rendezVous.debut)} a ${formatHeure(rendezVous.debut)} est confirme. A tres vite ! Zelia`
     );
   }
 
   // Une annulation libère le créneau : la liste d'attente peut être intéressée.
   if (statut === "ANNULE") {
-    await notifierListeAttente();
+    await notifierListeAttente({ debut: rendezVous.debut });
   }
 
   // Une filleule qui vient de passer en « Terminé » entre dans la squad de sa
@@ -246,6 +255,17 @@ export async function renvoyerLienAcompte(id: string): Promise<void> {
   revalidatePath("/admin");
 }
 
+// Demander à SumUp, tout de suite, où en est cet acompte.
+//
+// La tâche de 7 h le fait déjà toute seule et la sonnette de SumUp aussi, mais
+// aucune des deux n'est instantanée : ce bouton sert à trancher devant l'écran,
+// quand une cliente écrit « j'ai payé » et qu'il faut lui répondre maintenant.
+export async function verifierAcompteMaintenant(id: string): Promise<void> {
+  await exigerAdmin();
+  await verifierAcompte(id);
+  revalidatePath("/admin");
+}
+
 export async function enregistrerReglagesAcompte(
   _etatPrecedent: EtatAcompte,
   formData: FormData
@@ -270,7 +290,7 @@ export async function enregistrerReglagesAcompte(
   return {
     ok: true,
     message: lien
-      ? "Réglages enregistrés — le lien partira automatiquement aux nouvelles clientes."
+      ? "Réglages enregistrés. Le lien partira automatiquement aux nouvelles clientes."
       : "Lien retiré : plus aucun envoi automatique d'acompte.",
   };
 }
@@ -322,8 +342,8 @@ export async function enregistrerReseaux(
     ok: true,
     message:
       actifs > 0
-        ? `Enregistré — ${actifs} lien${actifs > 1 ? "s" : ""} affiché${actifs > 1 ? "s" : ""} sur le site.`
-        : "Enregistré — aucun réseau n'est affiché pour le moment.",
+        ? `Enregistré : ${actifs} lien${actifs > 1 ? "s" : ""} affiché${actifs > 1 ? "s" : ""} sur le site.`
+        : "Enregistré : aucun réseau n'est affiché pour le moment.",
   };
 }
 
@@ -361,7 +381,7 @@ export async function gererAvisGoogle(
     await oublierCacheAvis();
     revalidatePath("/");
     revalidatePath("/admin/reglages");
-    return { ok: true, message: "Établissement connecté — les avis apparaissent sur l'accueil." };
+    return { ok: true, message: "Établissement connecté : les avis apparaissent sur l'accueil." };
   }
 
   const cible = normaliserRechercheAvis(String(formData.get("requete") ?? ""));
@@ -411,7 +431,7 @@ export async function envoyerEmailTest(
 
   const resultat = await envoyerEmail(
     destinataire.data,
-    "Test d'envoi — Zelart Nails",
+    "Test d'envoi · Zelart Nails",
     `<p>Bonjour,</p>
      <p>Ceci est un e-mail de test envoyé depuis l'espace gérante du site Zelart Nails.</p>
      <p>Si vous le recevez, les notifications de rendez-vous fonctionnent ✨</p>`

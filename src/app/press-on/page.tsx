@@ -7,7 +7,7 @@ import Vagues from "@/components/Vagues";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Press-on nails — Zelart Nails",
+  title: "Press-on nails · Zelart Nails",
   description:
     "Commandez vos press-on nails : sets sur-mesure dessinés selon vos envies ou collections déjà prêtes. Remise en main propre à Saint-Nazaire ou envoi postal.",
 };
@@ -67,7 +67,7 @@ export default async function PressOn() {
 
         {modeles.length === 0 ? (
           <p className="mt-12 rounded-2xl bg-pink-50 px-6 py-8 text-center text-foreground/70">
-            Les commandes de press-on sont momentanément fermées. Écrivez à Zélia par SMS au
+            Les commandes de press-on sont momentanément fermées. Écrivez-moi par SMS au
             06 45 29 20 01 pour en savoir plus.
           </p>
         ) : (

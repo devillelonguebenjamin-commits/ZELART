@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { listerClientes } from "@/lib/clientes";
+import { groupesDoublons } from "@/lib/doublons";
 import { formatJour } from "@/lib/creneaux";
 import { formatPrix } from "@/lib/format";
 import FormulaireNouvelleCliente from "@/components/FormulaireNouvelleCliente";
@@ -14,7 +15,10 @@ export default async function Clientes({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q = "" } = await searchParams;
-  const clientes = await listerClientes(q);
+  const [clientes, groupes] = await Promise.all([listerClientes(q), groupesDoublons()]);
+  // Le compte porte sur les fiches en trop, pas sur les groupes : « 3 doublons »
+  // doit vouloir dire trois fiches à faire disparaître.
+  const doublons = groupes.reduce((somme, g) => somme + g.fiches.length - 1, 0);
 
   const consentantes = clientes.filter((c) => c.consentementMarketing && !c.desabonneLe).length;
   const chiffreAffaires = clientes.reduce((somme, c) => somme + c.totalCents, 0);
@@ -32,6 +36,14 @@ export default async function Clientes({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {doublons > 0 && (
+            <Link
+              href="/admin/clientes/doublons"
+              className="rounded-full border border-amber-300 bg-amber-50 px-5 py-2 text-sm font-medium text-amber-800 transition hover:bg-amber-100"
+            >
+              ⚠ {doublons} doublon{doublons > 1 ? "s" : ""} à vérifier
+            </Link>
+          )}
           <a
             href="/api/clientes/export"
             className="rounded-full border border-pink-300 px-5 py-2 text-sm font-medium text-pink-600 transition hover:bg-pink-50"
@@ -107,7 +119,7 @@ export default async function Clientes({
                   {formatPrix(cliente.totalCents)}
                 </td>
                 <td className="px-5 py-3 capitalize text-foreground/75">
-                  {cliente.dernierRdv ? formatJour(cliente.dernierRdv) : "—"}
+                  {cliente.dernierRdv ? formatJour(cliente.dernierRdv) : "jamais venue"}
                 </td>
                 <td className="px-5 py-3">
                   {cliente.desabonneLe ? (

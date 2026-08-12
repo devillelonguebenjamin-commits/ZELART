@@ -5,9 +5,11 @@ import { formatPrix, totalTarifs } from "@/lib/format";
 import {
   changerStatutRendezVous,
   marquerAcompteRegle,
+  verifierAcompteMaintenant,
   renvoyerLienAcompte,
 } from "@/actions/admin";
 import { supprimerListeAttente } from "@/actions/liste-attente";
+import { resumePreference } from "@/lib/attente-preferences";
 import { marquerAvantageUtilise } from "@/actions/avantages";
 import { LIBELLE_AVANTAGE, REMISE_FILLEULE_POURCENT } from "@/lib/parrainage";
 import ValidationVenue from "@/components/ValidationVenue";
@@ -150,7 +152,7 @@ function CarteRdv({
         {rdv.lignes.map((ligne) => (
           <li key={ligne.id}>
             {ligne.prestation.nom}
-            {ligne.automatique && <span className="text-foreground/50"> (dépose ajoutée)</span>} —{" "}
+            {ligne.automatique && <span className="text-foreground/50"> (dépose ajoutée)</span>} ·{" "}
             <span className="font-medium text-pink-600">
               {formatPrix(ligne.prestation.prixCents, ligne.prestation.aPartirDe)}
             </span>
@@ -158,7 +160,7 @@ function CarteRdv({
         ))}
         {rdv.lignes.length > 1 && (
           <li className="mt-0.5 font-semibold">
-            Total —{" "}
+            Total ·{" "}
             <span className="text-pink-600">
               {formatPrix(totalRdv.prixCents, totalRdv.aPartirDe)}
             </span>
@@ -213,7 +215,7 @@ function CarteRdv({
             <>
               <span className="text-violet-900">
                 {rdv.acompteDemandeLe
-                  ? `💳 Lien d'acompte envoyé le ${formatJour(rdv.acompteDemandeLe)} — en attente de paiement`
+                  ? `💳 Lien d'acompte envoyé le ${formatJour(rdv.acompteDemandeLe)}, en attente de paiement`
                   : "💳 Acompte à demander"}
               </span>
               <form action={marquerAcompteRegle.bind(null, rdv.id, true)}>
@@ -224,6 +226,17 @@ function CarteRdv({
                   Acompte reçu
                 </button>
               </form>
+              {rdv.acompteReference && (
+                <form action={verifierAcompteMaintenant.bind(null, rdv.id)}>
+                  <button
+                    type="submit"
+                    title="Interroger SumUp maintenant"
+                    className="rounded-full border border-violet-300 bg-white px-3 py-1 text-xs font-medium text-violet-700 transition hover:bg-violet-100"
+                  >
+                    Vérifier auprès de SumUp
+                  </button>
+                </form>
+              )}
               {lienAcompteConfigure && (
                 <form action={renvoyerLienAcompte.bind(null, rdv.id)}>
                   <button
@@ -246,7 +259,7 @@ function CarteRdv({
           </p>
           {rdv.remiseFilleule && (
             <p className="mt-1 font-medium text-pink-800">
-              💕 −{rdv.remiseFilleulePourcent ?? REMISE_FILLEULE_POURCENT} % — première prestation d&rsquo;une filleule
+              💕 −{rdv.remiseFilleulePourcent ?? REMISE_FILLEULE_POURCENT} % sur la première prestation d&rsquo;une filleule
             </p>
           )}
           {avantages.map((avantage) => (
@@ -500,7 +513,9 @@ export default async function Agenda({
           )}
         </h2>
         <p className="mt-1 text-sm text-foreground/60">
-          Prévenues automatiquement par e-mail dès qu&rsquo;un rendez-vous est annulé.
+          Prévenues automatiquement par e-mail dès qu&rsquo;un rendez-vous est annulé, et
+          seulement si le créneau libéré correspond à ce qu&rsquo;elles ont indiqué. Chacune
+          n&rsquo;est prévenue qu&rsquo;une fois.
         </p>
         <div className="mt-4 grid gap-3">
           {listeAttente.length === 0 ? (
@@ -529,7 +544,14 @@ export default async function Agenda({
                       </>
                     )}
                   </p>
-                  {personne.note && <p className="mt-0.5 text-foreground/70">{personne.note}</p>}
+                  {/* Ce que la personne accepterait : c'est cette ligne qui
+                      dit si l'annulation du jour la concerne. */}
+                  <p className="mt-0.5 text-foreground/70">
+                    🗓 {resumePreference(personne)}
+                  </p>
+                  {personne.note && (
+                    <p className="mt-0.5 text-foreground/70">💬 {personne.note}</p>
+                  )}
                   <p className="mt-0.5 text-xs text-foreground/50">
                     Depuis le {formatJour(personne.creeLe)}
                   </p>

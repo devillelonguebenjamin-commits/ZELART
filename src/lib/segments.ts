@@ -15,17 +15,17 @@ export const SEGMENTS: Segment[] = [
   {
     id: "inactives",
     libelle: "Clientes à relancer",
-    description: "Aucun rendez-vous depuis plus de 3 mois — idéal pour une offre de retour.",
+    description: "Aucun rendez-vous depuis plus de 3 mois : idéal pour une offre de retour.",
   },
   {
     id: "nouvelles",
     libelle: "Nouvelles clientes",
-    description: "Première venue il y a moins de 60 jours — parfait pour le parrainage.",
+    description: "Première venue il y a moins de 60 jours : parfait pour le parrainage.",
   },
   {
     id: "fideles",
     libelle: "Clientes fidèles",
-    description: "Au moins 3 rendez-vous honorés — à récompenser en priorité.",
+    description: "Au moins 3 rendez-vous honorés : à récompenser en priorité.",
   },
 ];
 

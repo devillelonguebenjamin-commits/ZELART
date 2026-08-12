@@ -4,13 +4,17 @@ import { prisma } from "@/lib/prisma";
 import { getCreneauxDisponibles } from "@/lib/creneaux";
 import { stockageConfigure } from "@/lib/blob";
 import ReservationWizard from "@/components/ReservationWizard";
+import AvisRassurance from "@/components/AvisRassurance";
+import { avisGoogle } from "@/lib/avis";
+import { niveauxNailArt } from "@/lib/explications";
+import { niveauxExpliques } from "@/lib/nail-art";
 import { clienteConnectee } from "@/lib/cliente-auth";
 import Vagues from "@/components/Vagues";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Prendre rendez-vous — Zelart Nails",
+  title: "Prendre rendez-vous · Zelart Nails",
 };
 
 export default async function Reserver() {
@@ -23,7 +27,7 @@ export default async function Reserver() {
       })
     : null;
 
-  const [prestations, creneaux] = await Promise.all([
+  const [prestations, creneaux, avis] = await Promise.all([
     prisma.prestation.findMany({
       where: { active: true },
       orderBy: { ordre: "asc" },
@@ -40,7 +44,13 @@ export default async function Reserver() {
       },
     }),
     getCreneauxDisponibles(),
+    avisGoogle(),
   ]);
+
+  // Le supplément de chaque niveau se mesure sur le catalogue complet, dépose
+  // et remplissages compris : la sélection affichée, elle, est filtrée.
+  const catalogue = await prisma.prestation.findMany({ where: { active: true } });
+  const niveaux = await niveauxExpliques(niveauxNailArt(catalogue));
 
   return (
     <>
@@ -52,7 +62,7 @@ export default async function Reserver() {
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-foreground/70">
             Quelques questions sur vos ongles, puis le choix de votre prestation et de votre
-            créneau. Une fois votre demande envoyée, Zélia vous répondra par message pour la
+            créneau. Une fois votre demande envoyée, je vous réponds par message pour la
             confirmer 🤍
           </p>
           {/* L'hésitation se produit ici, pas sur l'accueil : le lien s'ouvre à
@@ -69,12 +79,18 @@ export default async function Reserver() {
         </div>
       </section>
       <div className="mx-auto max-w-5xl px-4 pb-12 sm:px-6">
-        <ReservationWizard
-          prestations={prestations}
-          creneaux={creneaux}
-          envoiImagesActif={stockageConfigure()}
-          cliente={connue}
-        />
+        {/* La réassurance appartient à l'endroit où l'on hésite à laisser ses
+            coordonnées, pas au bas de la page d'accueil. */}
+        <AvisRassurance fiche={avis} />
+        <div className="mt-8">
+          <ReservationWizard
+            prestations={prestations}
+            creneaux={creneaux}
+            envoiImagesActif={stockageConfigure()}
+            niveauxNailArt={niveaux}
+            cliente={connue}
+          />
+        </div>
       </div>
     </>
   );

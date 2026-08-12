@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Mentions légales — Zelart Nails",
+  title: "Mentions légales · Zelart Nails",
 };
 
 export default function MentionsLegales() {
@@ -13,7 +13,7 @@ export default function MentionsLegales() {
         <section>
           <h2 className="font-display text-xl font-bold text-foreground">Éditeur du site</h2>
           <p className="mt-2">
-            Zélia Barreteau — Zelart, entrepreneuse individuelle (auto-entrepreneur), prothésiste
+            Zélia Barreteau (Zelart), entrepreneuse individuelle (auto-entrepreneur), prothésiste
             ongulaire.
             <br />
             SIRET : 903 178 101 00015
@@ -21,7 +21,7 @@ export default function MentionsLegales() {
             Adresse d&rsquo;exercice : L&rsquo;Atelier du Regard, 108 avenue de la République, 44600
             Saint-Nazaire
             <br />
-            Contact : Zelia.barreteaupro@outlook.fr — 06 45 29 20 01 (SMS uniquement)
+            Contact : Zelia.barreteaupro@outlook.fr · 06 45 29 20 01 (SMS uniquement)
           </p>
         </section>
 

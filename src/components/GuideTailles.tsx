@@ -139,8 +139,8 @@ export default function GuideTailles({ onReporter }: { onReporter: (texte: strin
               </li>
               <li>
                 <strong>2.</strong>{" "}
-                Marquez les <strong>deux bords latéraux</strong> — à la jonction entre l&rsquo;ongle
-                et la peau — avec un stylo fin.
+                Marquez les <strong>deux bords latéraux</strong>, à la jonction entre
+                l&rsquo;ongle et la peau, avec un stylo fin.
               </li>
               <li>
                 <strong>3.</strong>{" "}
@@ -149,7 +149,7 @@ export default function GuideTailles({ onReporter }: { onReporter: (texte: strin
               </li>
               <li>
                 <strong>4.</strong>{" "}
-                Reportez les mesures ci-dessous : Zélia les transpose sur sa grille de
+                Reportez les mesures ci-dessous : je les transpose sur ma grille de
                 correspondance.
               </li>
             </ol>
@@ -243,7 +243,7 @@ export default function GuideTailles({ onReporter }: { onReporter: (texte: strin
               <li>
                 <strong>3.</strong>{" "}
                 Photographiez <strong>à la verticale</strong>, l&rsquo;appareil au-dessus de la main
-                et non en biais — un angle fausse toutes les proportions.
+                et non en biais : un angle fausse toutes les proportions.
               </li>
               <li>
                 <strong>4.</strong> Une photo par main, à la lumière du jour de préférence.
@@ -253,21 +253,29 @@ export default function GuideTailles({ onReporter }: { onReporter: (texte: strin
 
           <p className="mt-4 rounded-xl bg-white px-4 py-3 text-sm text-foreground/80">
             📷 Joignez vos photos à l&rsquo;étape <strong>« Votre design »</strong>, juste en
-            dessous : elles arrivent avec votre commande. Zélia mesure vos ongles à partir du
-            repère et vous confirme les tailles avant de découper.
+            dessous : elles arrivent avec votre commande. Je mesure vos ongles à partir du repère
+            et vous confirme les tailles avant de découper.
           </p>
 
           <p className="mt-3 text-xs text-foreground/60">
             Cette méthode demande moins de matériel, mais reste moins précise que le ruban. En cas
-            de doute sur un ongle, Zélia vous écrira.
+            de doute sur un ongle, je vous écris.
           </p>
         </>
       )}
 
-      <p className="mt-4 border-t border-pink-200 pt-3 text-xs text-foreground/60">
-        Ni l&rsquo;une ni l&rsquo;autre ne vous tente ? Laissez le champ vide et dites-le : Zélia
-        vous prêtera un kit de taille, ou vous guidera par message.
-      </p>
+      <div className="mt-4 border-t border-pink-200 pt-3 text-xs text-foreground/70">
+        <p>
+          <strong>Ni l&rsquo;une ni l&rsquo;autre ne vous convient ?</strong> Passez à
+          l&rsquo;institut : je mesure vos ongles moi-même, c&rsquo;est l&rsquo;affaire de
+          quelques minutes et c&rsquo;est la méthode la plus sûre. Prévenez-moi par SMS au{" "}
+          <strong>06&nbsp;45&nbsp;29&nbsp;20&nbsp;01</strong> pour convenir d&rsquo;un moment.
+        </p>
+        <p className="mt-1 text-foreground/60">
+          Laissez alors le champ des mesures vide et signalez-le dans votre message : la commande
+          est mise de côté en attendant votre passage.
+        </p>
+      </div>
     </div>
   );
 }

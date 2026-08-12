@@ -64,9 +64,22 @@ voulu — Zélia ne reçoit qu'une cliente à la fois et garde de la marge — m
 chose qui surprend en regardant un agenda presque vide dont peu de créneaux sont proposés. Les
 trois créneaux quotidiens d'octobre atténuent l'effet en découpant la journée plus finement.
 
+**Une prestation longue peut déborder sur la fenêtre suivante.** Les créneaux d'une journée se
+touchent (9h–13h, 13h–16h, 16h–19h) : les traiter comme des boîtes étanches refusait des
+rendez-vous parfaitement tenables — un nail art niveau 3 avec dépose dépasse trois heures et
+n'était réservable qu'au premier créneau du jour. La limite est donc la **fin de la plage
+continue** (`finPlageContinue`), pas la fin de la fenêtre choisie : un trou dans la journée (pause
+déjeuner) l'arrête, la fermeture aussi. Le rendez-vous enregistré s'étend alors jusqu'à la fin
+réelle des prestations, ce qui fait disparaître le créneau suivant de la liste tout seul.
+
+Ce qui reste refusé, et c'est voulu : une demande qui finirait après la fermeture. À partir du
+créneau de 16 h, une pose Gel X ou Pop-it de niveau 3 **avec dépose** (3h15 à 3h30) dépasserait
+19 h — le message invite alors à prendre un créneau plus tôt ou à écrire par SMS.
+
 ### Jours d'ouverture et jours de repos
 
-Ouverture du **mardi au samedi**, 9h–12h30 et 14h–18h. Le dimanche est fermé de longue date ; le
+Ouverture du **lundi au samedi** (9h–12h30 et 14h–18h) jusqu'au 30 septembre 2026, puis du
+**mardi au samedi** (9h–13h, 13h–16h, 16h–19h). Le dimanche est fermé de longue date ; le
 **lundi l'est depuis le 1er octobre 2026**.
 
 Cette bascule a demandé une période de validité sur `Disponibilite` (`actifDu` / `actifJusquau`,
@@ -88,6 +101,115 @@ de repos, l'absence de rendez-vous ne distinguant pas un jour fermé d'un jour c
 > Les horaires n'ont pas d'interface d'administration : ils vivent dans le seed et se modifient
 > par migration. C'est une limite connue, pas un oubli de cette évolution.
 
+La phrase « À savoir avant de réserver » qui les annonce sur la page d'accueil est **lue dans cette
+même table** (`src/lib/horaires.ts`), jamais recopiée : « du lundi au samedi, à 9h ou 14h » y est
+restée affichée après que le régime eut changé, et une phrase figée survit toujours au changement
+qu'elle décrit. Comme deux régimes datés coexistent, elle en donne deux — celui du jour, et celui
+qui prendra le relais avec sa date. C'est aussi ce qu'une cliente veut savoir en réservant à deux
+mois.
+
+## La voix du site
+
+**Tout ce qu'une cliente lit est écrit à la première personne.** « Zélia vous confirme le niveau »
+est devenu « je vous confirme le niveau », « prévenez Zélia par SMS » est devenu « prévenez-moi ».
+Le site n'est pas une vitrine qui parle *de* Zélia : c'est Zélia qui parle. Une prothésiste seule
+qui se désigne à la troisième personne sonne comme une enseigne, et c'est précisément ce qu'elle
+n'est pas.
+
+La règle vaut pour les pages publiques, l'espace cliente, les messages d'erreur des formulaires et
+le corps des e-mails. Quatre exceptions, chacune pour une raison :
+
+- **les mentions légales et l'identification RGPD** (« Zélia Barreteau — Zelart, SIRET… ») : la loi
+  attend un nom, pas un « moi » ;
+- **la revendication de droit d'auteur** sur les photos, pour la même raison ;
+- **la description destinée aux moteurs de recherche** et la ligne du pied de page : une personne
+  qui découvre le site dans Google ne sait pas encore qui parle ;
+- **l'espace gérante**, qui s'adresse à Zélia et non à une cliente — « 3 doublons à vérifier » n'a
+  pas à devenir « mes doublons ».
+
+Les commentaires du code, eux, parlent de Zélia à la troisième personne : ils s'adressent à qui
+reprendra le projet, pas à une cliente.
+
+## Ponctuation
+
+**Pas de tiret cadratin dans ce que lisent les clientes.** Il était devenu un tic, présent dans
+presque chaque paragraphe, et une incise entre tirets sonne « écrit par une machine » avant même
+qu'on en lise le contenu. Les 150 occurrences ont été reprises une à une, et la règle vaut aussi
+pour l'espace gérante.
+
+Ce n'est pas un remplacement mécanique : chaque phrase a été rejouée avec la ponctuation qui
+convient à ce qu'elle fait.
+
+| Ce que le tiret faisait | Ce qui le remplace |
+| --- | --- |
+| une incise explicative | des parenthèses, ou une virgule |
+| l'annonce d'une cause ou d'une précision | deux-points |
+| deux idées collées | un point, et deux phrases |
+| séparer un libellé de sa valeur (`Gainage — 45 €`) | deux-points |
+| séparer deux données de même rang (titre d'onglet, nom et adresse) | un point médian `·` |
+| marquer une case vide dans un tableau | le mot qui convient (`sans légende`, `jamais venue`) |
+
+Restent en place, parce que ce sont d'autres caractères et d'autres usages : le trait d'union des
+mots composés (`rendez-vous`, `press-on`, `sur-mesure`), le tiret demi-cadratin des plages horaires
+(`9h–13h`) et le signe moins des remises (`−15 %`). Les commentaires du code gardent les leurs :
+ils s'adressent à qui reprendra le projet.
+
+## Acquisition et mesure
+
+Le site suivait parfaitement ses clientes une fois qu'elles étaient là, et ne savait rien de la
+façon dont elles arrivaient. Cinq manques comblés, du plus structurant au plus discret.
+
+**La mesure d'audience.** `@vercel/analytics` dans le `layout`, sans cookie donc sans bandeau de
+consentement. Sans elle, on optimisait à l'aveugle : impossible de savoir combien de personnes
+atteignent `/reserver` ni à quelle étape elles renoncent.
+
+**L'image de partage.** `src/app/opengraph-image.tsx` la dessine en code plutôt qu'en fichier
+déposé : rien à produire ni à maintenir, et **aucune photo de cliente ne part chez Meta** sans
+qu'on l'ait décidé. Sans elle, un lien collé dans une story Instagram ou un message WhatsApp
+s'affichait en texte gris, alors que c'est le premier contact de quelqu'un à qui on recommande le
+salon.
+
+**Les disponibilités réelles sur l'accueil** (`ProchainsCreneaux`). La disponibilité est le premier
+argument d'un salon et elle était cachée derrière un clic. Trois créneaux affichés, pas trente :
+une longue liste dirait « personne ne vient ici ».
+
+**Les avis là où l'on hésite** (`AvisRassurance`). Ils vivaient en bas de l'accueil ; deux d'entre
+eux passent au-dessus du formulaire de réservation, choisis parmi les plus courts pour ne pas
+repousser le formulaire hors de l'écran, et repris tels quels comme Google l'impose.
+
+**« Comment m'avez-vous connue ? »** (`src/lib/provenance.ts`). Facultative, posée une seule fois à
+la première réservation, sur une liste fermée pour que les réponses se comptent. La valeur ne
+s'écrase jamais : elle raconte la première venue, pas la dernière. Le résultat s'affiche en
+proportions dans la page Chiffres, avec le rappel que ce sont des proportions et non un décompte.
+
+## Questions fréquentes (`/questions`)
+
+Combien de temps ça tient, est-ce que ça fait mal, que se passe-t-il en cas de retard : ces
+questions partaient en SMS, et chacune coûtait du temps. Elles sont répondues une fois pour toutes
+dans `src/lib/faq.ts`, d'où sortent à la fois la page et le balisage `FAQPage` que Google peut
+afficher dans ses résultats.
+
+Celles qui touchent aux allergies et à la grossesse renvoient explicitement vers un échange **avant**
+le rendez-vous plutôt que de trancher à la place de Zélia.
+
+## SMS (`src/lib/sms.ts`)
+
+Tout le salon fonctionne par SMS ; le site ne parlait que par e-mail. Une cliente qui relève
+rarement sa boîte ratait sa confirmation, son rappel et sa demande d'acompte.
+
+Trois messages seulement le doublent : **confirmation**, **rappel de la veille**, **demande
+d'acompte**. Trois principes le tiennent :
+
+- il **ne remplace jamais l'e-mail**, qui porte le détail, les liens et la trace écrite ;
+- **rien de commercial n'y passe** : ce sont des messages liés à un rendez-vous demandé, ce qui
+  évite d'avoir à recueillir un consentement distinct. Une offre par SMS n'aurait pas sa place ici ;
+- **un échec ne casse rien** : sans `BREVO_SMS_SENDER` la fonction ne fait rien, et une erreur
+  d'envoi n'empêche jamais la confirmation d'exister.
+
+Un numéro fixe ou incomplet est écarté **avant** tout appel à Brevo (`numeroInternational`) plutôt
+que d'être envoyé au jugé. La page Réglages indique si le canal est actif et sous quel nom
+d'expéditeur (onze caractères au maximum, contrainte de l'opérateur).
+
 ## Parcours de réservation
 
 1. `/` — page d'accueil publique : présentation, prestations & tarifs, infos pratiques.
@@ -105,19 +227,42 @@ dépose), la règle de la pose qui ne se recouvre pas, et ce que chaque niveau d
 
 **Tout y est déduit du catalogue et des règles, jamais recopié à côté** (`src/lib/explications.ts`) :
 
-- les tarifs, durées et définitions viennent des `Prestation` actives ;
+- les tarifs et les définitions viennent des `Prestation` actives ;
 - « remplissage possible » se lit sur l'existence d'une prestation de remplissage dans la
   catégorie, pas sur une liste écrite en dur — c'est la même vérité que celle appliquée par
   `regles.ts` au moment de réserver ;
 - le retour conseillé reprend le délai de relance configuré dans les réglages ;
-- le supplément de chaque niveau de nail art est **mesuré** : écart de prix et de durée entre la
-  prestation décorée et la même sans décor, rendu sous forme de fourchette si les catégories
-  divergent.
+- le supplément de chaque niveau de nail art est **mesuré** : écart de prix entre la prestation
+  décorée et la même sans décor, rendu sous forme de fourchette si les catégories divergent.
 
 Le sens des niveaux (ce qui sépare un niveau 2 d'un niveau 3) ne vit nulle part dans le système :
 seule Zélia en juge, à la lecture d'une inspiration. La page s'en tient donc à ce qui est
-vérifiable — le supplément et le temps — et renvoie vers la photo d'inspiration pour le reste.
+vérifiable — le supplément tarifaire — et renvoie vers la photo d'inspiration pour le reste.
 Inventer des définitions que le salon ne suivrait pas serait pire que de ne rien dire.
+
+### La fenêtre de comparaison des niveaux
+
+« Niveau 2 » ne veut rien dire tant qu'on n'a pas vu. Un lien ouvre donc une fenêtre comparant les
+trois côte à côte — photo, description, supplément mesuré — depuis la page des prestations **et**
+depuis l'étape « choisissez vos prestations » de la réservation, pour que la question se règle sans
+quitter le formulaire en cours.
+
+Photos et textes se pilotent depuis `/admin/prestations`. Les textes livrés sont un point de
+départ délibérément prudent : ils parlent de complexité et de temps de dessin, jamais de motifs
+précis que le salon ne suivrait pas. Vider un champ fait revenir la formulation par défaut plutôt
+qu'un blanc, et une carte sans photo affiche « Photo à venir » — mieux qu'un cadre vide qui
+passerait pour une image en échec.
+
+Détail d'implémentation qui a coûté un aller-retour : le `<dialog>` était rendu **dans un `<p>`**,
+ce que l'analyseur HTML corrige en le sortant du paragraphe — l'hydratation ne retrouvait plus son
+arbre. Il vit désormais dans un `<div>`. Les boutons intérieurs sont tous `type="button"` : la
+fenêtre de `/reserver` est à l'intérieur du `<form>` de réservation, un `submit` égaré l'aurait
+envoyé.
+
+**Aucune durée n'est annoncée aux clientes**, ni sur cette page ni dans le parcours de réservation.
+Les durées restent indispensables au calcul des créneaux et Zélia les voit à la saisie manuelle,
+mais afficher « comptez 2h30 » engage à la minute près : un ongle abîmé, une hésitation sur la
+couleur, et le chiffre devient un reproche.
 
 Une prestation modifiée, retirée ou reprisée se répercute donc sans que personne pense à cette
 page. La description affichée est celle d'une **pose** de la catégorie : prise au premier venu,
@@ -293,18 +438,60 @@ test en affichant l'erreur exacte du service.
 
 ## Acompte des nouvelles clientes
 
-Zélia colle dans `/admin/reglages` un **lien de paiement SumUp réutilisable** (créé depuis
-l'application SumUp : *Paiements par lien* → montant fixe → *Activer lien réutilisable*). Toute
-cliente sans autre rendez-vous actif reçoit alors automatiquement, à sa réservation, un e-mail
-contenant ce lien et le rappel des conditions — sauf sur un horaire proposé, où la demande
-attend l'accord de Zélia (cf. *Horaire proposé par la cliente*).
+Toute cliente sans autre rendez-vous actif reçoit automatiquement, à sa réservation, un e-mail
+contenant un lien de paiement et le rappel des conditions — sauf sur un horaire proposé, où la
+demande attend l'accord de Zélia (cf. *Horaire proposé par la cliente*).
 
-Le lien réutilisable est préféré à l'API SumUp : les `hosted_checkout_url` créés par l'API
-n'ont qu'une validité de 30 minutes, incompatible avec un lien envoyé par e-mail.
+**Deux liens possibles, et la différence n'est pas cosmétique :**
 
-L'agenda signale les nouvelles clientes, l'état de l'acompte (`acompteDemandeLe`,
-`acompteRegleLe`) et permet de renvoyer le lien ou de marquer l'acompte reçu. Sans lien
-configuré, rien n'est envoyé : la demande reste manuelle.
+- **un paiement créé pour ce rendez-vous** (API SumUp configurée), qui porte une référence à
+  nous — `acompte-<id du rendez-vous>-<horodatage>`, conservée dans `acompteReference` ;
+- **le lien réutilisable collé dans `/admin/reglages`**, à défaut. Il fonctionne, mais reste
+  anonyme.
+
+Sans aucun des deux, rien n'est envoyé : la demande reste manuelle.
+
+### Constater le règlement sans rien saisir
+
+C'est la référence, et elle seule, qui rend le constat possible. **Une transaction SumUp ne porte
+aucune identité de payeuse** : ni nom, ni e-mail, ni téléphone, sur aucun des trois écrans de
+l'API (historique, détail d'une transaction, reçu). Vérifié sur la spécification officielle — les
+seuls champs disponibles sont le montant, l'horodatage, le statut, le code de transaction et
+`product_summary`, recopié de la description du paiement. Le champ `user` d'une transaction est
+l'adresse de **la marchande**, pas de la cliente. Un paiement de 15 € y est rigoureusement
+indiscernable d'un autre paiement de 15 €.
+
+Rapprocher par nom, e-mail ou téléphone n'est donc pas *approximatif* : c'est impossible, faute de
+données. D'où la règle : un lien par acompte, une référence par lien, et la question devient
+exacte — `GET /v0.1/checkouts?checkout_reference=…` → `PENDING` · `PAID` · `FAILED` · `EXPIRED`.
+
+Trois moments où la question est posée :
+
+1. **au retour de paiement**, via `return_url` → `/api/sumup/retour` ;
+2. **dans la tâche quotidienne de 7 h**, avant les relances — une cliente qui a réglé hier soir ne
+   doit pas recevoir ce matin un « je n'ai pas reçu votre acompte » ;
+3. **au bouton « Vérifier auprès de SumUp »** de l'agenda, pour trancher devant l'écran quand une
+   cliente écrit « j'ai payé ».
+
+> **La sonnette de SumUp n'est pas crue.** La spécification ne documente ni le format du message
+> ni aucune signature : un inconnu pourrait poster « la référence untel est payée ». Du corps reçu
+> on ne retient donc **que la référence**, uniquement pour savoir qui interroger ; l'état est
+> redemandé à l'API, seule autorité. Le pire qu'un plaisantin obtienne, c'est que le site pose une
+> question dont il connaît déjà la réponse. Vérifié : un faux `{"status":"PAID"}` ne coche rien.
+
+Deux prudences dans `verifierAcompte` : une absence de réponse ne vaut **jamais** « impayé » —
+sans quoi une coupure réseau relancerait une cliente qui a payé ; et un acompte déjà marqué réglé
+n'est ni réinterrogé ni démarqué, Zélia ayant pu le cocher à la main pour un règlement en espèces.
+
+Un renvoi réutilise le paiement déjà ouvert au lieu d'en créer un second : la cliente pourrait
+régler l'ancien lien resté dans sa boîte, et ce règlement-là échapperait au constat.
+
+**Ce qui reste manuel**, et le bouton « Acompte reçu » est là pour ça : les règlements en espèces
+ou par virement, et les acomptes partis avec le lien réutilisable — ceux-là n'ont pas de
+référence, rien ne peut les rattacher après coup.
+
+L'agenda signale les nouvelles clientes et l'état de l'acompte (`acompteDemandeLe`,
+`acompteRegleLe`, `acompteVerifieLe`).
 
 ## Paiement des press-on
 
@@ -372,37 +559,91 @@ la progression est visible, aucune requête ne dépasse le temps d'exécution au
 campagne interrompue reprend là où elle s'était arrêtée — chaque destinataire n'étant traité
 qu'une fois grâce à la contrainte d'unicité sur `EnvoiCampagne`.
 
-## À FAIRE : nom de domaine et adresse e-mail de Zélia
+## Nom de domaine (`zelart.fr`)
 
-Configuration actuelle (provisoire) : Resend sans domaine vérifié, ce qui impose deux limites —
-expéditeur figé à `onboarding@resend.dev`, et envoi possible uniquement vers l'adresse du compte
-Resend. Les notifications ne peuvent donc pas encore partir vers la boîte de Zélia.
+Le code n'a **rien à changer** le jour du branchement : `urlSite()` suit
+`VERCEL_PROJECT_PRODUCTION_URL`, qui pointe automatiquement sur le domaine de production. Les
+liens des e-mails, le sitemap, `robots.txt` et les fichiers `.ics` suivent donc tout seuls.
+`SITE_URL` n'existe que pour forcer une autre adresse en développement.
 
-Marche à suivre le jour de l'achat du domaine (ex. `zelart.fr`, ~10 €/an chez OVH ou Gandi,
-~15 €/an directement dans Vercel — cette dernière option évite toute manipulation DNS) :
+**Où l'acheter.** Deux voies, le choix se fait sur le confort et non sur le résultat :
 
-1. **Brancher le domaine au site** — Vercel → Settings → Domains → *Add*. Vercel affiche alors les
-   enregistrements DNS **propres à ce projet** : les recopier tels quels chez le registrar (ne pas
-   réutiliser des valeurs trouvées ailleurs, elles varient d'un projet à l'autre). Le certificat
-   HTTPS est automatique une fois la propagation faite.
-2. **Vérifier le domaine chez Resend** — resend.com → *Domains* → *Add Domain* → ajouter les
-   enregistrements DKIM/SPF fournis chez le registrar → attendre la validation.
-3. **Mettre à jour les variables Vercel** :
-   - `EMAIL_FROM` = `Zelart Nails <contact@zelart.fr>`
-   - `NOTIFY_EMAIL` = `Zelia.barreteaupro@outlook.fr`
-   - `SITE_URL` n'a pas à être renseignée : les liens des e-mails suivent automatiquement le
-     domaine de production (`src/lib/site.ts`).
-4. **Redéployer**, puis vérifier via `/admin/reglages` (test d'envoi vers l'adresse de Zélia) et
-   par une réservation réelle de bout en bout.
+- **Depuis Vercel** (Settings → Domains → *Buy*) : le domaine est branché et le DNS configuré
+  sans manipulation. Un peu plus cher, et le registrar est lié à l'hébergeur.
+- **Chez un registrar** (OVHcloud, Gandi, Infomaniak…) : moins cher, indépendant de
+  l'hébergement, mais il faut recopier chez lui les enregistrements DNS que Vercel affiche.
 
-Alternative sans achat de domaine : basculer sur [Brevo](https://brevo.com) (`BREVO_API_KEY`), qui
-autorise l'envoi vers n'importe quel destinataire ; l'adresse expéditrice se valide en cliquant un
-lien reçu dans la boîte concernée.
+`.fr` est géré par l'AFNIC : il faut résider ou être établi dans l'UE — le SIRET de Zélia suffit.
+Comptez une dizaine d'euros par an, à vérifier au moment de l'achat.
 
-`EMAIL_FROM` s'écrit indifféremment `zelia@exemple.fr` ou `Zelart Nails <zelia@exemple.fr>` : Brevo
-exige l'adresse et le nom séparément, la conversion est faite à l'envoi. L'onglet **Réglages**
-interroge la liste des expéditeurs validés chez Brevo et signale une adresse qui ne l'est pas
-encore, plutôt que de laisser surgir un refus au premier envoi réel.
+**Marche à suivre :**
+
+1. **Brancher le domaine** — Vercel → Settings → Domains → *Add*. Vercel affiche les
+   enregistrements DNS **propres à ce projet** : les recopier tels quels chez le registrar. Ne
+   jamais réutiliser des valeurs trouvées ailleurs, elles varient d'un projet à l'autre. Le
+   certificat HTTPS est automatique une fois la propagation faite.
+2. **Authentifier le domaine chez Brevo** — brevo.com → *Expéditeurs, domaines* → ajouter
+   `zelart.fr` → recopier les enregistrements DKIM et SPF chez le registrar. Sans cela, les
+   e-mails partent quand même mais atterrissent plus volontiers en indésirables.
+3. **Mettre à jour la variable Vercel** : `EMAIL_FROM` = `Zelart Nails <contact@zelart.fr>`.
+   `NOTIFY_EMAIL` reste l'adresse que Zélia relève réellement.
+4. **Redéployer**, puis vérifier dans `/admin/reglages` : la ligne « Adresse expéditrice » doit
+   passer au vert, l'écran interrogeant la liste des expéditeurs validés chez Brevo.
+
+> **Un domaine ne fournit pas de boîte aux lettres.** Brevo *envoie* depuis `contact@zelart.fr`
+> sans qu'elle existe, mais une réponse de cliente se perdrait. Prévoir chez le registrar une
+> **redirection** de `contact@zelart.fr` vers la boîte réelle de Zélia — gratuit chez la plupart —
+> ou une vraie messagerie si elle en veut une.
+
+### Zone DNS d'OVH : l'état visé
+
+Le branchement est fait. La zone ne doit contenir que **deux** enregistrements pour le site — les
+valeurs venant de *View DNS configuration* chez Vercel, qui varient d'un projet à l'autre :
+
+```
+@      A      216.198.79.1
+www    CNAME  2b7d7a4c12b1a30f.vercel-dns-017.com.
+```
+
+Le reste de la zone (`NS`, `MX`, `SPF`, `ftp`) n'a rien à voir avec le site et se laisse tranquille.
+
+### Quand Vercel affiche « Invalid Configuration »
+
+Le message ne dit qu'une chose : *l'adresse annoncée par le DNS n'est pas la mienne*. Il ne nomme
+pas la cause. Les cinq rencontrées au branchement, du plus fréquent au plus discret — les quatre
+premières sont des vestiges qu'OVH pose lui-même :
+
+1. **Le domaine n'est pas encore livré.** Un `.fr` fraîchement commandé reste quelques heures « en
+   cours de création » : la zone existe dans le manager mais n'est pas déléguée, et le nom ne
+   résout vers rien du tout. Rien à corriger, il faut attendre.
+2. **Une redirection web d'OVH tient l'apex.** Elle se reconnaît à un `TXT` de la forme
+   `"1|www.zelart.fr"`, avec un `A` sur `@` vers l'infrastructure de redirection. Tant qu'elle
+   existe, supprimer le `A` ne tient pas : il faut d'abord retirer la redirection dans l'onglet
+   **Redirection**, qui n'est pas la zone DNS. Aucune perte — c'est Vercel qui redirige ensuite
+   `zelart.fr` vers `www` (le `308` visible dans son écran).
+3. **Un `A` de parking subsiste**, ou cohabite avec celui de Vercel. Deux `A` sur `@`, c'est une
+   réponse fausse une fois sur deux : un seul doit rester.
+4. **Des `AAAA` d'OVH traînent** sur `@` et sur `www`. Ce sont les plus discrets, parce qu'un
+   navigateur en IPv4 ne les voit jamais — mais l'IPv6 est prioritaire là où elle existe, donc une
+   partie des visiteuses (mobile surtout) atterrirait chez OVH avec un `A` pourtant correct. À
+   supprimer.
+5. **`www` refuse le `CNAME`.** Un `CNAME` est le seul type qui ne cohabite avec **rien** sur le
+   même nom : tant qu'un `A`, un `AAAA` ou un `TXT` (le `"3|welcome"` d'OVH) porte `www`, OVH
+   rejette l'ajout. Vider `www` d'abord, créer le `CNAME` ensuite.
+
+Trois pièges de forme, tous vérifiés sur place : l'apex se configure en `A`, **jamais** en `CNAME`
+(la racine d'un `.fr` porte déjà ses `NS` et son `SOA`) ; le champ *Sous-domaine* du manager OVH
+refuse le vide et attend **`@`** ; et la cible d'un `CNAME` se termine par un **point**, sans quoi
+OVH la lit comme relative et fabrique `…vercel-dns-017.com.zelart.fr`. Copier la valeur au bouton
+plutôt qu'à la main : c'est une suite hexadécimale où `0` et `O` se confondent.
+
+Un `TXT` `v=spf1` est déjà présent (celui d'OVH). Le jour de Brevo il se **complète** ; on n'en crée
+pas un second, deux SPF valent SPF cassé.
+
+Compter de quelques minutes à quelques heures de propagation — et les deux serveurs d'OVH,
+`dns106` et `ns106`, ne se synchronisent pas ensemble : pendant la transition ils répondent des
+choses différentes et Vercel clignote rouge/vert sans que la zone soit en cause. Le bouton
+*Refresh* force la vérification. Pendant ce temps le site reste servi par `zelart.vercel.app`.
 
 ## Commandes de press-on (`/press-on`)
 
@@ -425,6 +666,11 @@ commande plutôt que d'essayer l'autre si on ne lui montrait pas les deux :
   déjà ; cette étape le rappelle explicitement, faute de quoi la cliente arriverait dans une
   section qui ne parle que d'inspiration et n'oserait pas y joindre ses mains.
 
+Une **troisième sortie** clôt le guide, parce que les deux méthodes supposent du matériel et de la
+patience que tout le monde n'a pas : passer à l'institut, où Zélia mesure elle-même, sur simple SMS.
+La cliente laisse alors le champ vide et le signale ; sa commande attend son passage. Sans cette
+issue, celle qui ne s'en sort ni au ruban ni en photo n'a plus qu'à abandonner.
+
 Les champs du guide n'ont **aucun attribut `name`** : ils vivent dans le `<form>` de commande et
 seraient sinon envoyés avec elle. Le report passe par un bouton et non par la frappe, pour ne pas
 effacer une précision écrite à la main ; le texte composé est tronqué à 300 caractères, la limite
@@ -445,6 +691,18 @@ propre parcours, sans créneau ni agenda.
    « prête » prévient la cliente par e-mail.
 
 La cliente suit l'avancement de sa commande depuis `/mon-espace`.
+
+### La photo du set
+
+On commande un press-on **à l'œil** : un nom de collection ne dit rien de ce qu'on recevra. Le
+modèle portait déjà un champ `photoUrl`, mais rien ne permettait de le remplir — il restait vide.
+Un clic sur la vignette d'un set, dans le catalogue de `/admin/press-on`, envoie ou remplace sa
+photo (même trajet que la galerie : compression dans le navigateur, dépôt sur Vercel Blob, seule
+l'adresse est conservée). Côté cliente, la vignette occupe assez de place pour qu'un motif se
+distingue, et s'ouvre en grand.
+
+Retirer une photo remet le champ à `null` sans effacer le fichier : une image orpheline coûte
+quelques kilo-octets, une image effacée à tort casse l'affichage d'une commande passée.
 
 ## Direction artistique
 
@@ -732,6 +990,52 @@ réservé par la RFC 2606, il ne peut atteindre aucune boîte réelle, ni aujour
 avantages, relances, il aurait suffi d'en oublier un pour accumuler les rejets chez le fournisseur
 d'envoi.
 
+## Une cliente, une fiche
+
+Cette commodité avait un revers : la fiche du carnet n'a qu'un numéro et une adresse fictive, celle
+du site a une vraie adresse. Le jour où l'habituée réserve en ligne, plus rien ne les relie —
+même personne, deux historiques, deux comptages de fidélité, et un espace cliente qui ignore les
+rendez-vous déjà pris.
+
+Le **numéro de téléphone** sert donc de second identifiant. Il est stocké réduit à ses chiffres
+(`Cliente.telephoneNormalise`, cf. `src/lib/telephone.ts`), indicatif `+33` ramené à `0`, en dessous
+de neuf chiffres rien n'est retenu — un numéro tronqué rapprocherait des clientes sans lien. La
+colonne n'est **pas unique** : un foyer partage parfois une ligne, et des doublons préexistaient.
+
+`src/lib/fiche-cliente.ts` est le seul endroit qui décide, pour la réservation comme pour la
+commande de press-on — auparavant chacune faisait son propre `upsert`, et la même personne pouvait
+exister deux fois selon la porte qu'elle poussait. L'ordre suit le degré de certitude :
+
+1. **l'e-mail**, identifiant réel de la fiche : aucune ambiguïté ;
+2. **le numéro**, mais uniquement vers une fiche *sans adresse réelle* — celle du carnet, qui
+   attendait précisément que sa cliente se connecte un jour. On lui donne son adresse.
+
+Ce qui n'est **pas** fait : rapprocher deux fiches portant chacune une vraie adresse. Une mère
+réserve pour sa fille, deux sœurs partagent un téléphone ; écraser l'adresse de l'une l'enfermerait
+dehors de son espace. Ces cas sont signalés, pas tranchés.
+
+### Fusionner (`/admin/clientes/doublons`)
+
+L'écran réunit les fiches qui se ressemblent — même numéro (fiable), à défaut mêmes nom et prénom
+(plus faible, mais c'est le seul indice qui reste quand un numéro manque). Un compteur apparaît sur
+la liste des clientes dès qu'il y en a. Rien n'est fusionné sans Zélia : elle seule reconnaît ses
+clientes.
+
+La fusion (`src/lib/fusion.ts`, isolée de l'action pour être vérifiable sans session) tient dans une
+transaction et penche toujours du côté de la conservation :
+
+- **l'historique se cumule** : rendez-vous, commandes, lots gagnés, filleules ;
+- **l'adresse réelle l'emporte** sur l'adresse de complaisance, quel que soit le sens choisi ;
+- **les refus l'emportent sur les accords** : une désinscription ou un blocage d'un seul côté vaut
+  pour la fiche fusionnée. Se réabonner est un geste de la cliente, jamais la conséquence d'un
+  ménage interne ;
+- **l'ancienneté est la plus vieille des deux** — c'est la date de la première venue qui compte ;
+- les deux tables à contrainte d'unicité (envois de campagne, avantages de parrainage) ne peuvent
+  pas être déplacées telles quelles : une ligne présente des deux côtés est supprimée plutôt que de
+  faire échouer toute la fusion ;
+- les liens de connexion de la fiche absorbée sont détruits : ils menaient à une adresse qui
+  disparaît.
+
 ## Ce qui attend Zélia
 
 `lib/en-attente.ts` compte, en un seul endroit, ce qui réclame un geste : demandes de rendez-vous
@@ -809,6 +1113,28 @@ si la cliente est en train de proposer un horaire, les deux chemins s'excluant.
 > champs, qui entreraient en collision avec les `prenom`/`email` de la réservation. Les
 > valeurs sont repérées par `data-champ`, invisible des formulaires.
 
+### Ce que la personne accepterait
+
+L'agenda n'affichait qu'une phrase libre (« plutôt un samedi »), écrite seulement si la cliente y
+avait pensé, et que rien ne pouvait exploiter. Le formulaire demande désormais **les jours qui
+l'arrangent** et **le moment de la journée**, sous une forme comparable à un créneau
+(`src/lib/attente-preferences.ts`), et l'agenda en affiche le résumé sur chaque ligne.
+
+Cela corrige une injustice du fonctionnement précédent. L'annonce partait à tout le monde sans dire
+de quel créneau il s'agissait : quelqu'un qui n'était libre que le samedi consommait son **unique**
+notification pour un mardi matin, et n'entendait plus jamais parler de rien. Le créneau est
+maintenant nommé dans le message, et une préférence explicite écarte l'annonce **sans la
+consommer**. Ne rien cocher veut toujours dire « n'importe quand », et reste le cas le plus
+fréquent : le silence ne filtre rien.
+
+Le téléphone est enfin demandé. La colonne existait en base depuis le début et le formulaire ne l'a
+jamais réclamée, alors que tout le salon marche par SMS.
+
+Contrainte technique héritée : le formulaire vit dans le `<form>` de réservation, ses champs n'ont
+donc aucun attribut `name`. Les libellés des jours vivent dans `attente-bornes.ts`, sans aucune
+dépendance : les importer depuis le module de correspondance entraînait Prisma et le pilote
+Postgres dans le paquet du navigateur.
+
 ## Sécurité et robustesse
 
 Points non évidents, issus d'un audit du code — chacun corrigeait un défaut reproduit, pas une
@@ -885,6 +1211,14 @@ L'accueil émet un bloc JSON-LD `NailSalon` (adresse, téléphone, horaires de p
 rendez-vous), enrichi de la note moyenne dès que les avis Google sont connectés. Les valeurs
 passent par `jsonLdSecurise()`, qui échappe les chevrons : un avis contenant `</script>`
 casserait sinon la page.
+
+La page `/questions` émet un second bloc, `FAQPage`, construit à partir des mêmes questions que
+celles affichées : Google peut alors les faire apparaître directement dans ses résultats, et il n'y
+a pas deux versions à maintenir.
+
+Les métadonnées de partage (`openGraph`, `twitter`) sont posées sur le `layout`, avec
+`metadataBase` calé sur l'adresse réelle du site pour que les chemins relatifs se résolvent. L'image
+est générée par `src/app/opengraph-image.tsx`.
 
 ## Ajout au calendrier
 

@@ -41,7 +41,7 @@ export default function CelluleCommentaire({ clienteId, valeur }: Props) {
         {enCours && "Enregistrement…"}
         {!enCours && etat === "enregistre" && <span className="text-emerald-700">Enregistré ✓</span>}
         {!enCours && etat === "erreur" && (
-          <span className="text-red-600">Échec — réessayez</span>
+          <span className="text-red-600">Échec, réessayez</span>
         )}
       </span>
     </div>

@@ -54,7 +54,7 @@ const prestations = [
 const DESC_SUR_MESURE = "Un set entièrement dessiné selon vos envies.";
 
 const modelesPressOn = [
-  { collection: "Sur-mesure", nom: "Set personnalisé — VSP simple", prixCents: 5000, surMesure: true, description: DESC_SUR_MESURE },
+  { collection: "Sur-mesure", nom: "Set personnalisé + VSP simple", prixCents: 5000, surMesure: true, description: DESC_SUR_MESURE },
   { collection: "Sur-mesure", nom: "Set personnalisé + nail art niveau 1", prixCents: 5500, surMesure: true, description: DESC_SUR_MESURE },
   { collection: "Sur-mesure", nom: "Set personnalisé + nail art niveau 2", prixCents: 6000, surMesure: true, description: DESC_SUR_MESURE },
   { collection: "Sur-mesure", nom: "Set personnalisé + nail art niveau 3", prixCents: 6500, surMesure: true, aPartirDe: true, description: DESC_SUR_MESURE },

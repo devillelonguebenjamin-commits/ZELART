@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import {
   creneauProposeDepuisSaisie,
   fenetrePourDebut,
+  finPlageContinue,
   formatHeure,
   formatJour,
   HORIZON_PROPOSITION_JOURS,
@@ -16,7 +17,8 @@ import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { envoyerDemandeAcompte, estNouvelleCliente } from "@/lib/acompte";
 import { clienteBloquee, MESSAGE_BLOCAGE } from "@/lib/blocage";
 import { urlSite } from "@/lib/site";
-import { nouveauCodeUnique } from "@/lib/cliente-auth";
+import { ficheCliente } from "@/lib/fiche-cliente";
+import { provenanceValide } from "@/lib/provenance";
 import { deposeNecessaire, prestationProposee, trouverDepose } from "@/lib/regles";
 import { REMISE_FILLEULE_POURCENT } from "@/lib/parrainage";
 import { formatDuree, formatPrix, totalDuree, totalTarifs } from "@/lib/format";
@@ -64,6 +66,7 @@ export async function creerReservation(
     inspiration: formData.get("inspiration") ?? undefined,
     etatOngles: formData.get("etatOngles") ?? undefined,
     typePoseActuel: formData.get("typePoseActuel") || null,
+    provenance: formData.get("provenance") ?? undefined,
   });
   if (!analyse.success) {
     return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
@@ -145,20 +148,32 @@ export async function creerReservation(
       return { erreur: CRENEAU_INDISPONIBLE };
     }
 
-    // La fenêtre servait au seul contrôle de chevauchement : rien ne vérifiait
-    // que les prestations y tenaient. Six prestations cumulées débordaient donc
-    // l'heure de fermeture sans que personne en soit averti — un rendez-vous de
-    // 9 h finissant à 14 h, pause déjeuner comprise. La cliente est renvoyée
-    // vers Zélia plutôt que bloquée sèchement : une soirée exceptionnelle reste
-    // possible, mais elle se décide entre elles, pas toute seule ici.
-    const ouvertureMin = (ouverte.fin.getTime() - ouverte.debut.getTime()) / 60_000;
-    if (dureeTotale > ouvertureMin) {
+    // Rien ne vérifiait que les prestations tenaient dans la journée : six
+    // prestations cumulées débordaient l'heure de fermeture sans que personne
+    // en soit averti — un rendez-vous de 9 h finissant à 14 h, pause déjeuner
+    // comprise.
+    //
+    // La limite n'est pas la fenêtre choisie mais la **plage continue** dans
+    // laquelle elle s'inscrit : les créneaux d'une journée se touchent, et une
+    // pose qui déborde sur le suivant ne gêne personne puisqu'il n'y a qu'une
+    // cliente à la fois. S'arrêter à la fenêtre rendait un nail art niveau 3
+    // avec dépose irréservable ailleurs qu'au premier créneau du jour.
+    const finPlage = await finPlageContinue(debut);
+    const finPrestations = new Date(debut.getTime() + dureeTotale * 60_000);
+    if (!finPlage || finPrestations > finPlage) {
+      const disponible = finPlage ? (finPlage.getTime() - debut.getTime()) / 60_000 : 0;
       return {
-        erreur: `Ces prestations demandent environ ${formatDuree(dureeTotale)}, plus que la plage d'ouverture de ce créneau (${formatDuree(ouvertureMin)}). Retirez-en une, ou écrivez à Zélia par SMS au 06 45 29 20 01 pour convenir d'un rendez-vous plus long.`,
+        erreur: `Ces prestations demandent environ ${formatDuree(dureeTotale)}, et il reste ${formatDuree(disponible)} avant la fermeture à partir de cet horaire. Choisissez un créneau plus tôt dans la journée, retirez une prestation, ou écrivez-moi par SMS au 06 45 29 20 01 pour convenir d'un rendez-vous plus long.`,
       };
     }
 
-    fenetre = ouverte;
+    // Le créneau retenu s'étend jusqu'à la fin des prestations quand elles
+    // débordent : sans cela, la fenêtre suivante resterait proposée à une autre
+    // cliente alors que Zélia y est déjà occupée.
+    fenetre = {
+      debut: ouverte.debut,
+      fin: finPrestations > ouverte.fin ? finPrestations : ouverte.fin,
+    };
   }
 
   const finRendezVous = new Date(debut.getTime() + dureeTotale * 60_000);
@@ -188,29 +203,15 @@ export async function creerReservation(
         });
         if (conflitRdv || conflitIndispo) throw new Error("CRENEAU_PRIS");
 
-        // Le consentement se donne, jamais ne se retire tout seul : une
-        // réservation sans la case cochée n'annule pas un accord antérieur.
         const accord = formData.get("consentementMarketing") === "on";
-        const cliente = await tx.cliente.upsert({
-          where: { email: donnees.email },
-          update: {
-            prenom: donnees.prenom,
-            nom: donnees.nom,
-            telephone: donnees.telephone,
-            ...(accord
-              ? { consentementMarketing: true, consentementLe: new Date(), desabonneLe: null }
-              : {}),
+        const cliente = await ficheCliente(
+          tx,
+          {
+            ...donnees,
+            provenance: provenanceValide(donnees.provenance ?? "") ? donnees.provenance : null,
           },
-          create: {
-            prenom: donnees.prenom,
-            nom: donnees.nom,
-            email: donnees.email,
-            telephone: donnees.telephone,
-            codeParrainage: await nouveauCodeUnique(tx),
-            consentementMarketing: accord,
-            consentementLe: accord ? new Date() : null,
-          },
-        });
+          accord
+        );
 
         // Une réservation annulée ne consomme pas l'offre de bienvenue : on
         // compte donc les rendez-vous encore valides, pas toutes les demandes.
@@ -306,13 +307,13 @@ export async function creerReservation(
   if (process.env.NOTIFY_EMAIL) {
     await envoyerEmail(
       process.env.NOTIFY_EMAIL,
-      `${propose ? "Créneau proposé" : "Nouvelle demande de RDV"} — ${donnees.prenom} ${donnees.nom}`,
+      `${propose ? "Créneau proposé" : "Nouvelle demande de RDV"} · ${donnees.prenom} ${donnees.nom}`,
       `<p>Nouvelle demande de rendez-vous à confirmer :</p>
-       ${propose ? "<p><strong>⚠ Horaire proposé par la cliente</strong>, hors de vos créneaux habituels — à accepter ou refuser.</p>" : ""}
+       ${propose ? "<p><strong>⚠ Horaire proposé par la cliente</strong>, hors de vos créneaux habituels, à accepter ou refuser.</p>" : ""}
        <p>${lignes
          .map(
            (l) =>
-             `<strong>${echapperHtml(l.prestation.nom)}</strong> — ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}${l.automatique ? " (dépose ajoutée)" : ""}`
+             `<strong>${echapperHtml(l.prestation.nom)}</strong> : ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}${l.automatique ? " (dépose ajoutée)" : ""}`
          )
          .join("<br>")}<br>
        <strong>Total : ${formatPrix(total.prixCents, total.aPartirDe)}</strong><br>

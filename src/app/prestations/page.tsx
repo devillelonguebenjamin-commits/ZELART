@@ -2,14 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { reglagesRappels } from "@/lib/parametres";
-import { formatDuree, formatPrix } from "@/lib/format";
+import { formatPrix } from "@/lib/format";
 import { niveauxNailArt, techniques } from "@/lib/explications";
+import { niveauxExpliques } from "@/lib/nail-art";
+import NiveauxNailArt from "@/components/NiveauxNailArt";
 import Vagues, { TraitVagues } from "@/components/Vagues";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Les prestations expliquées — Zelart Nails",
+  title: "Les prestations expliquées · Zelart Nails",
   description:
     "Gainage, pose Gel X, Pop-it, vernis semi-permanent : ce que chaque prestation veut dire, ce qu'elle coûte, combien de temps elle tient, et laquelle choisir. Zelart Nails, Saint-Nazaire.",
 };
@@ -22,6 +24,7 @@ export default async function Prestations() {
 
   const listeTechniques = techniques(catalogue, delais);
   const niveaux = niveauxNailArt(catalogue);
+  const niveauxIllustres = await niveauxExpliques(niveaux);
   const supplementIdentique = (n: { supplementMinCents: number; supplementMaxCents: number }) =>
     n.supplementMinCents === n.supplementMaxCents;
 
@@ -48,7 +51,7 @@ export default async function Prestations() {
           <h2 className="font-display text-2xl font-bold">Les quatre techniques</h2>
           <p className="mt-2 text-sm text-foreground/70">
             Elles se distinguent par ce qu&rsquo;on pose sur l&rsquo;ongle, et par la longueur
-            qu&rsquo;elles permettent d&rsquo;ajouter — ou non.
+            qu&rsquo;elles permettent d&rsquo;ajouter, ou non.
           </p>
 
           <div className="mt-6 grid gap-5 sm:grid-cols-2">
@@ -70,10 +73,6 @@ export default async function Prestations() {
                     <dd className="font-semibold text-pink-600">
                       {formatPrix(technique.aPartirDeCents)}
                     </dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-foreground/60">Comptez</dt>
-                    <dd className="font-medium">{formatDuree(technique.dureeMinimale)} sur place</dd>
                   </div>
                   <div className="flex justify-between gap-4">
                     <dt className="text-foreground/60">Prochain rendez-vous</dt>
@@ -129,8 +128,8 @@ export default async function Prestations() {
             <div className="rounded-2xl border border-pink-100 bg-white p-5">
               <p className="font-display text-lg font-bold text-pink-500">Le remplissage</p>
               <p className="mt-2 text-sm leading-relaxed text-foreground/80">
-                On comble la repousse sans tout retirer. Moins long et moins cher qu&rsquo;une pose
-                — mais réservé au gainage et au Pop-it, <strong>posés par Zélia</strong>.
+                On comble la repousse sans tout retirer. Réservé au gainage et au Pop-it,{" "}
+                <strong>que j&rsquo;ai posés moi-même</strong>.
               </p>
             </div>
             <div className="rounded-2xl border border-pink-100 bg-white p-5">
@@ -151,14 +150,14 @@ export default async function Prestations() {
           <p className="mt-3 leading-relaxed text-amber-900/90">
             Une pose ne se recouvre jamais : elle est <strong>soit remplie, soit retirée</strong>.
             Au moment de réserver, on vous demande donc d&rsquo;abord ce que vous portez, et la
-            dépose est ajoutée automatiquement à votre demande quand elle s&rsquo;impose — inutile
+            dépose est ajoutée automatiquement à votre demande quand elle s&rsquo;impose. Inutile
             d&rsquo;y penser, et aucune surprise sur le tarif le jour même.
           </p>
           <ul className="mt-4 space-y-2 text-sm text-amber-900/90">
             <li>
-              <strong>Pose faite ailleurs :</strong> elle est retirée avant la nouvelle. Zélia ne
-              reprend pas le travail d&rsquo;une autre prothésiste — c&rsquo;est la seule façon de
-              garantir ce qu&rsquo;elle pose.
+              <strong>Pose faite ailleurs :</strong> elle est retirée avant la nouvelle. Je ne
+              reprends pas le travail d&rsquo;une autre prothésiste : c&rsquo;est la seule façon de
+              garantir ce que je pose.
             </li>
             <li>
               <strong>Capsules Gel X :</strong> elles se retirent, elles ne se remplissent pas.
@@ -180,10 +179,17 @@ export default async function Prestations() {
             <p className="mt-2 leading-relaxed text-foreground/75">
               Le niveau dépend de la <strong>complexité du design</strong>, pas du nombre
               d&rsquo;ongles décorés. Pas besoin de le deviner : joignez une photo
-              d&rsquo;inspiration à votre demande, Zélia vous confirme le niveau et le tarif avant
-              le rendez-vous.
+              d&rsquo;inspiration à votre demande, je vous confirme le niveau et le tarif avant le
+              rendez-vous.
             </p>
-            <p className="mt-2 text-sm text-foreground/60">
+            <div className="mt-3">
+              <NiveauxNailArt
+                niveaux={niveauxIllustres}
+                libelle="Voir les trois niveaux en photo"
+                className="inline-flex items-center gap-1.5 rounded-full border border-pink-300 px-5 py-2 text-sm font-medium text-pink-600 transition hover:bg-pink-50"
+              />
+            </div>
+            <p className="mt-4 text-sm text-foreground/60">
               Voici ce que chaque niveau ajoute à une prestation sans décor :
             </p>
 
@@ -192,23 +198,17 @@ export default async function Prestations() {
                 <thead>
                   <tr className="border-b border-pink-200 text-left">
                     <th className="py-2 pr-4 font-semibold">Niveau</th>
-                    <th className="py-2 pr-4 font-semibold">Supplément</th>
-                    <th className="py-2 font-semibold">Temps en plus</th>
+                    <th className="py-2 font-semibold">Supplément</th>
                   </tr>
                 </thead>
                 <tbody>
                   {niveaux.map((n) => (
                     <tr key={n.niveau} className="border-b border-pink-100 last:border-0">
                       <td className="py-3 pr-4 font-medium">Niveau {n.niveau}</td>
-                      <td className="py-3 pr-4 text-pink-600">
+                      <td className="py-3 text-pink-600">
                         {supplementIdentique(n)
                           ? `+ ${formatPrix(n.supplementMinCents)}`
                           : `de + ${formatPrix(n.supplementMinCents)} à + ${formatPrix(n.supplementMaxCents)}`}
-                      </td>
-                      <td className="py-3">
-                        {n.tempsMin === n.tempsMax
-                          ? `environ ${formatDuree(n.tempsMin)}`
-                          : `de ${formatDuree(n.tempsMin)} à ${formatDuree(n.tempsMax)}`}
                       </td>
                     </tr>
                   ))}
@@ -240,11 +240,11 @@ export default async function Prestations() {
             </Link>
           </div>
           <p className="mt-5 text-sm text-foreground/60">
-            Une question avant de réserver ? Zélia répond par SMS au{" "}
+            Une question avant de réserver ? Je réponds par SMS au{" "}
             <a href="sms:0645292001" className="font-medium text-pink-600 hover:underline">
               06 45 29 20 01
             </a>{" "}
-            (elle ne prend pas les appels).
+            (je ne prends pas les appels).
           </p>
         </section>
       </div>

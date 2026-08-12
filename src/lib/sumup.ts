@@ -23,7 +23,7 @@ export function sumupConfigure(): boolean {
 }
 
 export type ResultatCheckout =
-  | { ok: true; url: string; reference: string }
+  | { ok: true; url: string; reference: string; checkoutId: string | null }
   | { ok: false; erreur: string };
 
 /**
@@ -36,7 +36,14 @@ export type ResultatCheckout =
 export async function creerLienPaiement(
   montantCents: number,
   description: string,
-  referenceBase: string
+  referenceBase: string,
+  /**
+   * Adresse que SumUp appelle quand l'état du paiement change. La spécification
+   * ne documente **ni le format du message, ni aucune signature** : on ne lit
+   * donc rien de son contenu. Elle ne sert que de sonnette — « quelque chose a
+   * bougé » — après quoi le site va vérifier lui-même auprès de l'API.
+   */
+  retourUrl?: string
 ): Promise<ResultatCheckout> {
   const cle = process.env.SUMUP_API_KEY?.trim();
   const marchand = process.env.SUMUP_MERCHANT_CODE?.trim();
@@ -61,6 +68,7 @@ export async function creerLienPaiement(
         currency: "EUR",
         merchant_code: marchand,
         description: description.slice(0, 100),
+        ...(retourUrl ? { return_url: retourUrl } : {}),
         // `valid_until` volontairement omis : le lien part par e-mail et doit
         // rester valable le temps que la cliente le règle.
         hosted_checkout: { enabled: true },
@@ -72,14 +80,14 @@ export async function creerLienPaiement(
       return { ok: false, erreur: `SumUp a refusé la demande (${reponse.status}) : ${corps}` };
     }
 
-    const donnees = (await reponse.json()) as { hosted_checkout_url?: string };
+    const donnees = (await reponse.json()) as { hosted_checkout_url?: string; id?: string };
     if (!donnees.hosted_checkout_url) {
       return {
         ok: false,
         erreur: "SumUp n'a pas renvoyé d'adresse de paiement (Hosted Checkout non activé ?).",
       };
     }
-    return { ok: true, url: donnees.hosted_checkout_url, reference };
+    return { ok: true, url: donnees.hosted_checkout_url, reference, checkoutId: donnees.id ?? null };
   } catch (erreur) {
     const expire = erreur instanceof Error && erreur.name === "TimeoutError";
     return {
@@ -88,6 +96,64 @@ export async function creerLienPaiement(
         ? "SumUp n'a pas répondu dans le délai imparti."
         : `Appel à SumUp impossible : ${erreur instanceof Error ? erreur.message : String(erreur)}`,
     };
+  }
+}
+
+/**
+ * Où en est un paiement, interrogé par **notre** référence.
+ *
+ * C'est le seul rapprochement fiable possible avec SumUp, et il faut savoir
+ * pourquoi : une transaction SumUp ne porte **aucune identité de payeuse** —
+ * ni nom, ni e-mail, ni téléphone, sur aucun des trois écrans de l'API
+ * (historique, détail, reçu). Un paiement de 15 € y est rigoureusement
+ * indiscernable d'un autre paiement de 15 €. Chercher « qui a payé » dans
+ * l'historique reviendrait à chercher un mot dans une page blanche.
+ *
+ * Ce que l'on maîtrise, en revanche, c'est la référence qu'on écrit à la
+ * création du paiement. D'où la règle : un lien par acompte, une référence par
+ * lien, et la question devient exacte.
+ *
+ * `null` signifie « pas de réponse exploitable » — clé absente, réseau coupé,
+ * référence inconnue. Jamais « impayé » : confondre les deux ferait relancer
+ * une cliente qui a réglé.
+ */
+export type EtatPaiement = "PENDING" | "PAID" | "FAILED" | "EXPIRED";
+
+/** L'état, et l'adresse de la page de paiement quand elle est encore ouverte. */
+export type Paiement = { etat: EtatPaiement; url: string | null };
+
+export async function lirePaiement(reference: string): Promise<Paiement | null> {
+  const cle = process.env.SUMUP_API_KEY?.trim();
+  if (!cle || !reference) return null;
+
+  try {
+    const reponse = await fetch(
+      `${racine()}/checkouts?checkout_reference=${encodeURIComponent(reference)}`,
+      {
+        headers: { Authorization: `Bearer ${cle}`, Accept: "application/json" },
+        cache: "no-store",
+        signal: AbortSignal.timeout(DELAI_MS),
+      }
+    );
+    if (!reponse.ok) return null;
+
+    type Brut = { status?: string; hosted_checkout_url?: string };
+    const donnees = (await reponse.json()) as Brut[] | Brut;
+    // L'endpoint renvoie une liste ; un objet seul reste toléré par prudence.
+    const items = (Array.isArray(donnees) ? donnees : [donnees]).filter(
+      (c): c is Brut & { status: EtatPaiement } =>
+        c?.status === "PENDING" ||
+        c?.status === "PAID" ||
+        c?.status === "FAILED" ||
+        c?.status === "EXPIRED"
+    );
+    if (items.length === 0) return null;
+    // Un règlement l'emporte sur tout le reste : une tentative refusée suivie
+    // d'une réussie doit se lire « payé ».
+    const retenu = items.find((c) => c.status === "PAID") ?? items[0];
+    return { etat: retenu.status, url: retenu.hosted_checkout_url ?? null };
+  } catch {
+    return null;
   }
 }
 

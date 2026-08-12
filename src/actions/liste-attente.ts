@@ -5,13 +5,14 @@ import { prisma } from "@/lib/prisma";
 import { exigerAdmin } from "@/lib/auth";
 import { clienteBloquee, MESSAGE_BLOCAGE } from "@/lib/blocage";
 import { listeAttenteSchema } from "@/lib/validations";
+import { ecrireJours, lireJours, lireMoment } from "@/lib/attente-preferences";
 
 export type EtatListeAttente = { ok?: boolean; message?: string };
 
 // Réponse unique, que l'inscription vienne d'être créée ou qu'elle existe déjà :
 // la cliente n'a pas à savoir laquelle des deux, et une réponse différenciée
 // dirait qui figure sur la liste.
-const MESSAGE_INSCRITE = "C'est noté — je vous préviens dès qu'une place se libère 🤍";
+const MESSAGE_INSCRITE = "C'est noté, je vous préviens dès qu'une place se libère 🤍";
 
 /** Délai avant qu'une même adresse puisse se réinscrire. */
 const DELAI_REINSCRIPTION_MS = 60 * 60 * 1000;
@@ -25,6 +26,8 @@ export async function rejoindreListeAttente(
     email: formData.get("email"),
     telephone: formData.get("telephone") || undefined,
     note: formData.get("note") || undefined,
+    joursSouhaites: formData.get("joursSouhaites") || undefined,
+    momentSouhaite: formData.get("momentSouhaite") || undefined,
   });
   if (!analyse.success) {
     return { ok: false, message: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
@@ -61,7 +64,18 @@ export async function rejoindreListeAttente(
     return { ok: true, message: MESSAGE_INSCRITE };
   }
 
-  await prisma.listeAttente.create({ data: donnees });
+  // Les préférences sont normalisées avant d'entrer en base : une saisie
+  // fantaisiste ne doit pas produire un filtre que personne ne pourra relire.
+  await prisma.listeAttente.create({
+    data: {
+      prenom: donnees.prenom,
+      email: donnees.email,
+      telephone: donnees.telephone || null,
+      note: donnees.note || null,
+      joursSouhaites: ecrireJours(lireJours(donnees.joursSouhaites ?? null)),
+      momentSouhaite: lireMoment(donnees.momentSouhaite ?? null),
+    },
+  });
   revalidatePath("/admin");
 
   return { ok: true, message: MESSAGE_INSCRITE };
