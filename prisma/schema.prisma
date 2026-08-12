@@ -20,6 +20,12 @@ model Cliente {
   telephoneNormalise String?
   notes     String? // suivi : allergies, préférences, particularités des ongles…
 
+  // « Comment m'avez-vous connue ? », demandé une seule fois, à la première
+  // réservation, et facultatif. Sans lui, le temps passé sur Instagram et
+  // l'effet du bouche-à-oreille restent invérifiables : on saurait combien de
+  // clientes viennent, jamais par quel chemin.
+  provenance String?
+
   // Prospection : consentement recueilli à la réservation, révocable à tout
   // moment via le lien de désinscription (jeton non devinable).
   consentementMarketing Boolean   @default(false)

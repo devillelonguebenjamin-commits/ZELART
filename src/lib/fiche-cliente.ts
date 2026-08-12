@@ -35,6 +35,8 @@ export type Coordonnees = {
   nom: string;
   email: string;
   telephone: string;
+  /** « Comment m'avez-vous connue ? », posée à la première réservation. */
+  provenance?: string | null;
 };
 
 type Db = Prisma.TransactionClient;
@@ -59,6 +61,10 @@ export async function ficheCliente(
     nom: coordonnees.nom,
     ...champsTelephone(coordonnees.telephone),
   };
+  // La provenance ne s'écrase jamais : elle raconte la **première** venue. Une
+  // cliente qui réserve une deuxième fois répondrait « une amie » sans que ce
+  // soit ce qui l'a amenée la première fois.
+  const provenance = coordonnees.provenance || null;
   // Le consentement se donne, jamais ne se retire tout seul : une demande sans
   // la case cochée n'annule pas un accord antérieur.
   const consentement = accordMarketing
@@ -90,7 +96,12 @@ export async function ficheCliente(
     if (memeNumero.length === 1 && orpheline.length === 1) {
       return db.cliente.update({
         where: { id: orpheline[0].id },
-        data: { ...champs, email: coordonnees.email, ...consentement },
+        data: {
+          ...champs,
+          email: coordonnees.email,
+          ...consentement,
+          ...(provenance ? { provenance } : {}),
+        },
         select: CHAMPS,
       });
     }
@@ -100,6 +111,7 @@ export async function ficheCliente(
     data: {
       ...champs,
       email: coordonnees.email,
+      provenance,
       codeParrainage: await nouveauCodeUnique(db),
       consentementMarketing: accordMarketing,
       consentementLe: accordMarketing ? new Date() : null,

@@ -20,6 +20,7 @@ import {
 } from "@/lib/regles";
 import type { EtatOngles, TypeActe, TypePose } from "@/generated/prisma/client";
 import ChampInspiration from "@/components/ChampInspiration";
+import { PROVENANCES } from "@/lib/provenance";
 import NiveauxNailArt from "@/components/NiveauxNailArt";
 import type { NiveauExplique } from "@/lib/nail-art";
 
@@ -512,6 +513,30 @@ export default function ReservationWizard({
                 maxLength={20}
                 className="mt-1 w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 uppercase outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
               />
+            </label>
+          )}
+          {/* Posée une seule fois, à la première réservation, et facultative :
+              c'est la seule donnée qui dise par quel chemin une cliente arrive.
+              Une liste fermée plutôt qu'un champ libre, sans quoi rien ne se
+              compte. */}
+          {!cliente && (
+            <label className="block sm:col-span-2">
+              <span className="text-sm font-medium">
+                Comment m&rsquo;avez-vous connue ?{" "}
+                <span className="text-foreground/50">(facultatif, ça m&rsquo;aide beaucoup)</span>
+              </span>
+              <select
+                name="provenance"
+                defaultValue=""
+                className="mt-1 w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
+              >
+                <option value="">Je préfère ne pas dire</option>
+                {PROVENANCES.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.libelle}
+                  </option>
+                ))}
+              </select>
             </label>
           )}
           <label className="block sm:col-span-2">

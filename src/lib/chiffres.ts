@@ -31,6 +31,10 @@ export type TableauDeBord = {
   remplissage: { occupes: number; ouverts: number; part: number };
   clientes: { total: number; fidelisees: number; part: number; nouvellesCeMois: number };
   annulations: { annules: number; absences: number };
+  provenances: {
+    repondues: number;
+    lignes: { id: string; nombre: number; part: number }[];
+  };
 };
 
 function ligneVide(cle: string): LigneMois {
@@ -155,6 +159,26 @@ export async function tableauDeBord(): Promise<TableauDeBord> {
     (c) => c._min.debut !== null && c._min.debut >= debutMoisCourant
   ).length;
 
+  // D'où viennent les clientes, sur celles qui ont répondu. On compte les
+  // fiches, pas les rendez-vous : une habituée qui revient dix fois ne doit pas
+  // faire croire que son canal en a amené dix.
+  const parProvenance = await prisma.cliente.groupBy({
+    by: ["provenance"],
+    where: { provenance: { not: null } },
+    _count: { _all: true },
+  });
+  const repondues = parProvenance.reduce((somme, p) => somme + p._count._all, 0);
+  const provenances = {
+    repondues,
+    lignes: parProvenance
+      .map((p) => ({
+        id: p.provenance ?? "",
+        nombre: p._count._all,
+        part: repondues > 0 ? Math.round((p._count._all / repondues) * 100) : 0,
+      }))
+      .sort((a, b) => b.nombre - a.nombre),
+  };
+
   return {
     mois,
     moisCourant: mois.at(-1) ?? ligneVide(moisParis(maintenant)),
@@ -178,5 +202,6 @@ export async function tableauDeBord(): Promise<TableauDeBord> {
       nouvellesCeMois,
     },
     annulations: { annules, absences },
+    provenances,
   };
 }

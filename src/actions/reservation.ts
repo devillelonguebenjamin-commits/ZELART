@@ -18,6 +18,7 @@ import { envoyerDemandeAcompte, estNouvelleCliente } from "@/lib/acompte";
 import { clienteBloquee, MESSAGE_BLOCAGE } from "@/lib/blocage";
 import { urlSite } from "@/lib/site";
 import { ficheCliente } from "@/lib/fiche-cliente";
+import { provenanceValide } from "@/lib/provenance";
 import { deposeNecessaire, prestationProposee, trouverDepose } from "@/lib/regles";
 import { REMISE_FILLEULE_POURCENT } from "@/lib/parrainage";
 import { formatDuree, formatPrix, totalDuree, totalTarifs } from "@/lib/format";
@@ -65,6 +66,7 @@ export async function creerReservation(
     inspiration: formData.get("inspiration") ?? undefined,
     etatOngles: formData.get("etatOngles") ?? undefined,
     typePoseActuel: formData.get("typePoseActuel") || null,
+    provenance: formData.get("provenance") ?? undefined,
   });
   if (!analyse.success) {
     return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
@@ -202,7 +204,14 @@ export async function creerReservation(
         if (conflitRdv || conflitIndispo) throw new Error("CRENEAU_PRIS");
 
         const accord = formData.get("consentementMarketing") === "on";
-        const cliente = await ficheCliente(tx, donnees, accord);
+        const cliente = await ficheCliente(
+          tx,
+          {
+            ...donnees,
+            provenance: provenanceValide(donnees.provenance ?? "") ? donnees.provenance : null,
+          },
+          accord
+        );
 
         // Une réservation annulée ne consomme pas l'offre de bienvenue : on
         // compte donc les rendez-vous encore valides, pas toutes les demandes.
