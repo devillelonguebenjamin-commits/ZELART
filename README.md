@@ -154,6 +154,62 @@ mots composés (`rendez-vous`, `press-on`, `sur-mesure`), le tiret demi-cadratin
 (`9h–13h`) et le signe moins des remises (`−15 %`). Les commentaires du code gardent les leurs :
 ils s'adressent à qui reprendra le projet.
 
+## Acquisition et mesure
+
+Le site suivait parfaitement ses clientes une fois qu'elles étaient là, et ne savait rien de la
+façon dont elles arrivaient. Cinq manques comblés, du plus structurant au plus discret.
+
+**La mesure d'audience.** `@vercel/analytics` dans le `layout`, sans cookie donc sans bandeau de
+consentement. Sans elle, on optimisait à l'aveugle : impossible de savoir combien de personnes
+atteignent `/reserver` ni à quelle étape elles renoncent.
+
+**L'image de partage.** `src/app/opengraph-image.tsx` la dessine en code plutôt qu'en fichier
+déposé : rien à produire ni à maintenir, et **aucune photo de cliente ne part chez Meta** sans
+qu'on l'ait décidé. Sans elle, un lien collé dans une story Instagram ou un message WhatsApp
+s'affichait en texte gris, alors que c'est le premier contact de quelqu'un à qui on recommande le
+salon.
+
+**Les disponibilités réelles sur l'accueil** (`ProchainsCreneaux`). La disponibilité est le premier
+argument d'un salon et elle était cachée derrière un clic. Trois créneaux affichés, pas trente :
+une longue liste dirait « personne ne vient ici ».
+
+**Les avis là où l'on hésite** (`AvisRassurance`). Ils vivaient en bas de l'accueil ; deux d'entre
+eux passent au-dessus du formulaire de réservation, choisis parmi les plus courts pour ne pas
+repousser le formulaire hors de l'écran, et repris tels quels comme Google l'impose.
+
+**« Comment m'avez-vous connue ? »** (`src/lib/provenance.ts`). Facultative, posée une seule fois à
+la première réservation, sur une liste fermée pour que les réponses se comptent. La valeur ne
+s'écrase jamais : elle raconte la première venue, pas la dernière. Le résultat s'affiche en
+proportions dans la page Chiffres, avec le rappel que ce sont des proportions et non un décompte.
+
+## Questions fréquentes (`/questions`)
+
+Combien de temps ça tient, est-ce que ça fait mal, que se passe-t-il en cas de retard : ces
+questions partaient en SMS, et chacune coûtait du temps. Elles sont répondues une fois pour toutes
+dans `src/lib/faq.ts`, d'où sortent à la fois la page et le balisage `FAQPage` que Google peut
+afficher dans ses résultats.
+
+Celles qui touchent aux allergies et à la grossesse renvoient explicitement vers un échange **avant**
+le rendez-vous plutôt que de trancher à la place de Zélia.
+
+## SMS (`src/lib/sms.ts`)
+
+Tout le salon fonctionne par SMS ; le site ne parlait que par e-mail. Une cliente qui relève
+rarement sa boîte ratait sa confirmation, son rappel et sa demande d'acompte.
+
+Trois messages seulement le doublent : **confirmation**, **rappel de la veille**, **demande
+d'acompte**. Trois principes le tiennent :
+
+- il **ne remplace jamais l'e-mail**, qui porte le détail, les liens et la trace écrite ;
+- **rien de commercial n'y passe** : ce sont des messages liés à un rendez-vous demandé, ce qui
+  évite d'avoir à recueillir un consentement distinct. Une offre par SMS n'aurait pas sa place ici ;
+- **un échec ne casse rien** : sans `BREVO_SMS_SENDER` la fonction ne fait rien, et une erreur
+  d'envoi n'empêche jamais la confirmation d'exister.
+
+Un numéro fixe ou incomplet est écarté **avant** tout appel à Brevo (`numeroInternational`) plutôt
+que d'être envoyé au jugé. La page Réglages indique si le canal est actif et sous quel nom
+d'expéditeur (onze caractères au maximum, contrainte de l'opérateur).
+
 ## Parcours de réservation
 
 1. `/` — page d'accueil publique : présentation, prestations & tarifs, infos pratiques.
@@ -1057,6 +1113,28 @@ si la cliente est en train de proposer un horaire, les deux chemins s'excluant.
 > champs, qui entreraient en collision avec les `prenom`/`email` de la réservation. Les
 > valeurs sont repérées par `data-champ`, invisible des formulaires.
 
+### Ce que la personne accepterait
+
+L'agenda n'affichait qu'une phrase libre (« plutôt un samedi »), écrite seulement si la cliente y
+avait pensé, et que rien ne pouvait exploiter. Le formulaire demande désormais **les jours qui
+l'arrangent** et **le moment de la journée**, sous une forme comparable à un créneau
+(`src/lib/attente-preferences.ts`), et l'agenda en affiche le résumé sur chaque ligne.
+
+Cela corrige une injustice du fonctionnement précédent. L'annonce partait à tout le monde sans dire
+de quel créneau il s'agissait : quelqu'un qui n'était libre que le samedi consommait son **unique**
+notification pour un mardi matin, et n'entendait plus jamais parler de rien. Le créneau est
+maintenant nommé dans le message, et une préférence explicite écarte l'annonce **sans la
+consommer**. Ne rien cocher veut toujours dire « n'importe quand », et reste le cas le plus
+fréquent : le silence ne filtre rien.
+
+Le téléphone est enfin demandé. La colonne existait en base depuis le début et le formulaire ne l'a
+jamais réclamée, alors que tout le salon marche par SMS.
+
+Contrainte technique héritée : le formulaire vit dans le `<form>` de réservation, ses champs n'ont
+donc aucun attribut `name`. Les libellés des jours vivent dans `attente-bornes.ts`, sans aucune
+dépendance : les importer depuis le module de correspondance entraînait Prisma et le pilote
+Postgres dans le paquet du navigateur.
+
 ## Sécurité et robustesse
 
 Points non évidents, issus d'un audit du code — chacun corrigeait un défaut reproduit, pas une
@@ -1133,6 +1211,14 @@ L'accueil émet un bloc JSON-LD `NailSalon` (adresse, téléphone, horaires de p
 rendez-vous), enrichi de la note moyenne dès que les avis Google sont connectés. Les valeurs
 passent par `jsonLdSecurise()`, qui échappe les chevrons : un avis contenant `</script>`
 casserait sinon la page.
+
+La page `/questions` émet un second bloc, `FAQPage`, construit à partir des mêmes questions que
+celles affichées : Google peut alors les faire apparaître directement dans ses résultats, et il n'y
+a pas deux versions à maintenir.
+
+Les métadonnées de partage (`openGraph`, `twitter`) sont posées sur le `layout`, avec
+`metadataBase` calé sur l'adresse réelle du site pour que les chemins relatifs se résolvent. L'image
+est générée par `src/app/opengraph-image.tsx`.
 
 ## Ajout au calendrier
 
