@@ -35,6 +35,7 @@ import {
 import { notifierListeAttente } from "@/lib/liste-attente";
 import { recompenserMarraine } from "@/lib/parrainage-email";
 import { urlSite } from "@/lib/site";
+import { envoyerSmsSansBloquer } from "@/lib/sms";
 import type { StatutRendezVous } from "@/generated/prisma/client";
 
 // --- Session ---
@@ -106,6 +107,14 @@ export async function changerStatutRendezVous(
        <p><a href="${urlSite()}/api/calendrier/${rendezVous.id}">📅 Ajouter à mon calendrier</a></p>
        <p>À très vite,<br>Zélia ✨</p>
        ${await reseauxPourEmail()}`
+    );
+
+    // Doublé par SMS : c'est le message que la cliente lira vraiment. Court,
+    // sans lien, il ne remplace pas l'e-mail qui porte le détail et le
+    // calendrier.
+    await envoyerSmsSansBloquer(
+      rendezVous.cliente.telephone,
+      `Zelart Nails : votre rendez-vous du ${formatJour(rendezVous.debut)} a ${formatHeure(rendezVous.debut)} est confirme. A tres vite ! Zelia`
     );
   }
 

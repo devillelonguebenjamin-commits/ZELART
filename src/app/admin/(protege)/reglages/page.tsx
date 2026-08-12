@@ -23,6 +23,7 @@ import ReglagesReseauxForm from "@/components/ReglagesReseauxForm";
 import ReglagesAvisForm from "@/components/ReglagesAvisForm";
 import { CLE_ETABLISSEMENT, cleGoogle } from "@/lib/avis";
 import { verifierSumUp } from "@/lib/sumup";
+import { expediteurSms, smsConfigure } from "@/lib/sms";
 import { dernierEchecConnexion } from "@/lib/parametres";
 import { formatJour } from "@/lib/creneaux";
 
@@ -178,6 +179,16 @@ export default async function Reglages() {
             sumupPret
               ? "un lien de paiement est créé pour chaque rendez-vous"
               : "lien de paiement SumUp réutilisable"
+          }
+        />
+        <Ligne
+          label="SMS (confirmation, rappel, acompte)"
+          valeur={smsConfigure() ? `activé, expéditeur « ${expediteurSms()} »` : "non configuré"}
+          ok={smsConfigure()}
+          aide={
+            smsConfigure()
+              ? "double l'e-mail sur les trois messages liés à un rendez-vous. Aucun message commercial n'est envoyé par SMS."
+              : "BREVO_SMS_SENDER (11 caractères maximum) avec la clé Brevo déjà en place. Sans lui, tout part par e-mail seulement."
           }
         />
         <Ligne

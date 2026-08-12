@@ -5,6 +5,7 @@ import { formatPrix, totalTarifs } from "@/lib/format";
 import { reglagesAcompte } from "@/lib/parametres";
 import { creerLienPaiement, lirePaiement, sumupConfigure, type EtatPaiement } from "@/lib/sumup";
 import { urlSite } from "@/lib/site";
+import { envoyerSmsSansBloquer } from "@/lib/sms";
 
 // Une cliente est « nouvelle » tant qu'elle n'a pas d'autre rendez-vous actif
 // que celui qu'elle vient de prendre.
@@ -179,6 +180,14 @@ export async function envoyerDemandeAcompte(rendezVousId: string): Promise<boole
       une fois.</p>
       <p>À très vite,<br>Zélia ✨</p>
     </div>`
+  );
+
+  // L'acompte est ce qui bloque le plus souvent : un e-mail non lu, et le
+  // rendez-vous reste en attente. Le SMS porte le lien, seul cas où il en
+  // contient un.
+  await envoyerSmsSansBloquer(
+    rendezVous.cliente.telephone,
+    `Zelart Nails : pour confirmer votre rendez-vous du ${formatJour(rendezVous.debut)}, un acompte de ${formatPrix(montantCents)} est demande. ${adressePaiement}`
   );
 
   if (!resultat.ok) return false;

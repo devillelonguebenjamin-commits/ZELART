@@ -8,6 +8,7 @@ import { attribuerAvantages } from "@/lib/parrainage";
 import { compterEnAttente } from "@/lib/en-attente";
 import { verifierAcomptesEnAttente } from "@/lib/acompte";
 import { urlSite } from "@/lib/site";
+import { envoyerSmsSansBloquer } from "@/lib/sms";
 import type { TypePose } from "@/generated/prisma/client";
 
 export type BilanRappels = {
@@ -100,6 +101,13 @@ async function envoyerRappels(): Promise<{ envoyes: number; echecs: number }> {
          quelqu'un d'autre : <a href="${urlSite()}/mon-espace">votre espace</a> ou par SMS au
          06 45 29 20 01.</p>`
       )
+    );
+
+    // Le rappel est le message le plus utile de tous : c'est lui qui évite le
+    // rendez-vous oublié. Il part aussi par SMS, où il sera lu.
+    await envoyerSmsSansBloquer(
+      rdv.cliente.telephone,
+      `Zelart Nails : rappel de votre rendez-vous ${quand} a ${formatHeure(rdv.debut)}, 108 av. de la Republique. Un empechement ? Repondez a ce message.`
     );
 
     if (resultat.ok) {
