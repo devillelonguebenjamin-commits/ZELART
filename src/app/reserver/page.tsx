@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getCreneauxDisponibles } from "@/lib/creneaux";
 import { stockageConfigure } from "@/lib/blob";
 import ReservationWizard from "@/components/ReservationWizard";
+import AvisRassurance from "@/components/AvisRassurance";
+import { avisGoogle } from "@/lib/avis";
 import { niveauxNailArt } from "@/lib/explications";
 import { niveauxExpliques } from "@/lib/nail-art";
 import { clienteConnectee } from "@/lib/cliente-auth";
@@ -25,7 +27,7 @@ export default async function Reserver() {
       })
     : null;
 
-  const [prestations, creneaux] = await Promise.all([
+  const [prestations, creneaux, avis] = await Promise.all([
     prisma.prestation.findMany({
       where: { active: true },
       orderBy: { ordre: "asc" },
@@ -42,6 +44,7 @@ export default async function Reserver() {
       },
     }),
     getCreneauxDisponibles(),
+    avisGoogle(),
   ]);
 
   // Le supplément de chaque niveau se mesure sur le catalogue complet, dépose
@@ -76,13 +79,18 @@ export default async function Reserver() {
         </div>
       </section>
       <div className="mx-auto max-w-5xl px-4 pb-12 sm:px-6">
-        <ReservationWizard
-          prestations={prestations}
-          creneaux={creneaux}
-          envoiImagesActif={stockageConfigure()}
-          niveauxNailArt={niveaux}
-          cliente={connue}
-        />
+        {/* La réassurance appartient à l'endroit où l'on hésite à laisser ses
+            coordonnées, pas au bas de la page d'accueil. */}
+        <AvisRassurance fiche={avis} />
+        <div className="mt-8">
+          <ReservationWizard
+            prestations={prestations}
+            creneaux={creneaux}
+            envoiImagesActif={stockageConfigure()}
+            niveauxNailArt={niveaux}
+            cliente={connue}
+          />
+        </div>
       </div>
     </>
   );

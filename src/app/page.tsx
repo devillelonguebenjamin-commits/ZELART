@@ -6,6 +6,8 @@ import LiensReseaux from "@/components/LiensReseaux";
 import Vagues, { TraitVagues } from "@/components/Vagues";
 import Carrousel from "@/components/Carrousel";
 import AvisGoogle from "@/components/AvisGoogle";
+import ProchainsCreneaux from "@/components/ProchainsCreneaux";
+import { getCreneauxDisponibles } from "@/lib/creneaux";
 import { avisGoogle } from "@/lib/avis";
 import { jsonLdSecurise } from "@/lib/json-ld";
 import { urlSite } from "@/lib/site";
@@ -14,7 +16,7 @@ import { horaires } from "@/lib/horaires";
 export const dynamic = "force-dynamic";
 
 export default async function Accueil() {
-  const [prestations, photos, realisations, pressOnMoinsCher, reseaux, avis, ouverture] =
+  const [prestations, photos, realisations, pressOnMoinsCher, reseaux, avis, ouverture, creneaux] =
     await Promise.all([
       prisma.prestation.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
       prisma.photo.findMany({ orderBy: [{ ordre: "asc" }, { creeLe: "desc" }], take: 12 }),
@@ -32,6 +34,7 @@ export default async function Accueil() {
       reglagesReseaux(),
       avisGoogle(),
       horaires(),
+      getCreneauxDisponibles(),
     ]);
   // La galerie réunit les photos ajoutées à la main et les réalisations publiées.
   const visuels = [
@@ -276,13 +279,10 @@ export default async function Accueil() {
               </div>
             ))}
           </div>
-          <div className="mt-10 text-center">
-            <Link
-              href="/reserver"
-              className="rounded-full bg-pink-500 px-8 py-3 text-lg font-medium text-white shadow-md transition hover:bg-pink-600"
-            >
-              Prendre rendez-vous ✨
-            </Link>
+          {/* La disponibilité réelle plutôt qu'un bouton nu : c'est elle qui
+              décide une visiteuse hésitante. */}
+          <div className="mt-10">
+            <ProchainsCreneaux creneaux={creneaux} />
           </div>
         </section>
 
