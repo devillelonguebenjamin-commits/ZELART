@@ -262,7 +262,20 @@ async function envoyerDemandesAvis(): Promise<{ envoyees: number; echecs: number
       )
     );
 
-    if (resultat.ok) {
+    // Le SMS double l'e-mail, et c'est ici qu'il compte le plus : une demande
+    // d'avis se décide en dix secondes ou jamais, et un e-mail lu trois jours
+    // plus tard ne se transforme pas en avis. Il porte l'adresse courte du
+    // site, pas celle de Google : celle de Google fait plus de cent caractères,
+    // mange deux segments de SMS et se lit comme un lien suspect.
+    const smsOk = await envoyerSmsSansBloquer(
+      rdv.cliente.telephone,
+      `Zelart Nails : j'espere que votre pose vous plait toujours ! Un avis Google m'aiderait beaucoup, ca prend deux minutes : ${urlSite()}/avis`
+    );
+
+    // Un canal suffit à considérer la demande faite. Sans cela, un e-mail en
+    // échec laisserait la demande « à faire », et le SMS repartirait le
+    // lendemain, puis le surlendemain, à quelqu'un qui l'a déjà reçu.
+    if (resultat.ok || smsOk) {
       await prisma.rendezVous.update({
         where: { id: rdv.id },
         data: { demandeAvisEnvoyeeLe: new Date() },

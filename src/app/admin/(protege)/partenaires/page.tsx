@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { modifierPartenaire, supprimerPartenaire } from "@/actions/partenaires";
 import FormulaireNouveauPartenaire from "@/components/FormulaireNouveauPartenaire";
@@ -31,9 +32,9 @@ export default async function Partenaires() {
         </p>
         <p className="mt-2 text-sm text-foreground/60">
           Les partenaires actifs apparaissent sur la page{" "}
-          <a href="/pro" className="text-pink-600 hover:underline">
+          <Link href="/pro" className="text-pink-600 hover:underline">
             {domaine}/pro
-          </a>
+          </Link>
           , destinée aux consœurs et non aux clientes.
         </p>
       </div>
