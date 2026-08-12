@@ -5,6 +5,8 @@ import "./globals.css";
 import { reglagesReseaux } from "@/lib/parametres";
 import LiensReseaux from "@/components/LiensReseaux";
 import { CreteVagues } from "@/components/Vagues";
+import { Analytics } from "@vercel/analytics/next";
+import { urlSite } from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,10 +18,27 @@ const playfair = Playfair_Display({
   subsets: ["latin"],
 });
 
+const TITRE = "Zelart Nails · Prothésiste ongulaire à Saint-Nazaire";
+const DESCRIPTION =
+  "Zélia, prothésiste ongulaire et nail artist certifiée à Saint-Nazaire. Prenez rendez-vous en ligne : vernis semi-permanent, gainage, pose Gel X, pose Pop-it et nail art.";
+
 export const metadata: Metadata = {
-  title: "Zelart Nails · Prothésiste ongulaire à Saint-Nazaire",
-  description:
-    "Zélia, prothésiste ongulaire et nail artist certifiée à Saint-Nazaire. Prenez rendez-vous en ligne : vernis semi-permanent, gainage, pose Gel X, pose Pop-it et nail art.",
+  metadataBase: new URL(urlSite()),
+  title: TITRE,
+  description: DESCRIPTION,
+  // Sans ces blocs, un lien collé dans une story Instagram ou un message
+  // WhatsApp s'affiche en texte gris. C'est pourtant le premier contact de
+  // quelqu'un à qui on recommande le salon : l'image occupe alors un quart
+  // d'écran, le texte gris rien du tout.
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    siteName: "Zelart Nails",
+    title: TITRE,
+    description: DESCRIPTION,
+    url: urlSite(),
+  },
+  twitter: { card: "summary_large_image", title: TITRE, description: DESCRIPTION },
 };
 
 export default async function RootLayout({
@@ -133,6 +152,9 @@ export default async function RootLayout({
             </div>
           </div>
         </footer>
+
+        {/* Mesure d'audience sans cookie : aucun bandeau à ajouter. */}
+        <Analytics />
       </body>
     </html>
   );
