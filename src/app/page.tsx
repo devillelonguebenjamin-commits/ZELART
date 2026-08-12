@@ -10,7 +10,8 @@ import ProchainsCreneaux from "@/components/ProchainsCreneaux";
 import { getCreneauxDisponibles } from "@/lib/creneaux";
 import { avisGoogle } from "@/lib/avis";
 import { jsonLdSecurise } from "@/lib/json-ld";
-import { urlSite } from "@/lib/site";
+import { ficheEtablissement } from "@/lib/donnees-structurees";
+import { descriptionRealisation, LEGENDE_PAR_DEFAUT } from "@/lib/galerie";
 import { horaires } from "@/lib/horaires";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +25,14 @@ export default async function Accueil() {
         where: { publiee: true },
         orderBy: { creeLe: "desc" },
         take: 12,
-        select: { id: true, url: true },
+        select: {
+          id: true,
+          url: true,
+          // Sert à décrire la photo (cf. src/lib/galerie.ts), pas à l'afficher.
+          rendezVous: {
+            select: { lignes: { select: { prestation: { select: { categorie: true, nom: true } } } } },
+          },
+        },
       }),
       prisma.modelePressOn.findFirst({
         where: { actif: true },
@@ -38,40 +46,30 @@ export default async function Accueil() {
     ]);
   // La galerie réunit les photos ajoutées à la main et les réalisations publiées.
   const visuels = [
-    ...photos.map((p) => ({ id: p.id, url: p.url, legende: p.legende })),
-    ...realisations.map((r) => ({ id: r.id, url: r.url, legende: null as string | null })),
+    ...photos.map((p) => ({
+      id: p.id,
+      url: p.url,
+      legende: p.legende,
+      description: p.legende ?? LEGENDE_PAR_DEFAUT,
+    })),
+    ...realisations.map((r) => ({
+      id: r.id,
+      url: r.url,
+      legende: null as string | null,
+      description: descriptionRealisation(r.rendezVous.lignes.map((l) => l.prestation)),
+    })),
   ].slice(0, 16);
   const categories = grouperParCategorie(prestations);
 
-  // Repris par Google pour un encart enrichi dans les résultats de recherche
-  // (adresse, téléphone, et note moyenne dès que les avis sont connectés).
-  const donneesStructurees = {
-    "@context": "https://schema.org",
-    "@type": "NailSalon",
-    name: "Zelart Nails",
-    description:
-      "Prothésiste ongulaire et nail artist certifiée à Saint-Nazaire : vernis semi-permanent, gainage, pose Gel X, pose Pop-it, nail art et press-on nails, sur rendez-vous.",
-    url: urlSite(),
-    telephone: "+33645292001",
-    priceRange: "€€",
-    address: {
-      "@type": "PostalAddress",
-      streetAddress: "108 avenue de la République",
-      addressLocality: "Saint-Nazaire",
-      postalCode: "44600",
-      addressCountry: "FR",
-    },
-    ...(visuels[0] ? { image: visuels[0].url } : {}),
-    ...(avis?.note
-      ? {
-          aggregateRating: {
-            "@type": "AggregateRating",
-            ratingValue: avis.note,
-            reviewCount: avis.nombre ?? avis.avis.length,
-          },
-        }
-      : {}),
-  };
+  // Repris par Google pour un encart enrichi dans les résultats de recherche :
+  // adresse, téléphone, horaires, prestations et tarifs. Le détail, et ce qui
+  // en est volontairement absent, se lisent dans le module.
+  const donneesStructurees = await ficheEtablissement({
+    prestations,
+    reseaux,
+    avis,
+    images: visuels.map((v) => v.url),
+  });
 
   return (
     <>
@@ -202,7 +200,7 @@ export default async function Accueil() {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={visuel.url}
-                        alt={visuel.legende ?? "Réalisation Zelart"}
+                        alt={visuel.description}
                         loading={rang < 3 ? "eager" : "lazy"}
                         decoding="async"
                         // Sans cela, le navigateur lance son propre glisser-déposer
