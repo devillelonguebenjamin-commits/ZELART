@@ -281,6 +281,11 @@ export default async function Accueil() {
           </div>
           {/* La disponibilité réelle plutôt qu'un bouton nu : c'est elle qui
               décide une visiteuse hésitante. */}
+          <p className="mt-6 text-center text-sm">
+            <Link href="/questions" className="font-medium text-pink-600 hover:underline">
+              Une autre question ? Voir toutes les réponses →
+            </Link>
+          </p>
           <div className="mt-10">
             <ProchainsCreneaux creneaux={creneaux} />
           </div>

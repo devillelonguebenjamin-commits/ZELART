@@ -84,6 +84,12 @@ export default async function RootLayout({
                 Infos pratiques
               </Link>
               <Link
+                href="/questions"
+                className="hidden whitespace-nowrap text-foreground/80 hover:text-pink-500 lg:block"
+              >
+                Questions
+              </Link>
+              <Link
                 href="/press-on"
                 className="whitespace-nowrap text-foreground/80 hover:text-pink-500"
               >
