@@ -374,7 +374,17 @@ model ListeAttente {
   prenom     String
   email      String
   telephone  String?
-  note       String? // jour souhaité, prestation envisagée…
+  note       String? // précision libre : prestation envisagée, contrainte particulière…
+
+  // Ce que la personne accepterait, sous forme exploitable plutôt qu'en texte
+  // libre. Sans cela, prévenir « tout le monde à chaque annulation » brûlait la
+  // seule notification promise à quelqu'un pour un créneau qui ne lui allait
+  // pas — elle était marquée prévenue et n'entendait plus jamais parler de rien.
+  //
+  // Vide veut dire « n'importe quand » : c'est le cas le plus fréquent, et il
+  // ne faut surtout pas le confondre avec « aucun jour ne convient ».
+  joursSouhaites String? // numéros de jour séparés par des virgules, 1 = lundi
+  momentSouhaite String? // "matin" | "apresmidi", vide = peu importe
   creeLe     DateTime  @default(now())
   notifieeLe DateTime? // avertie une fois ; à elle de rejoindre la liste si besoin
 

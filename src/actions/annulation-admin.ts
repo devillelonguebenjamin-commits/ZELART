@@ -71,7 +71,7 @@ export async function annulerAvecMessage(
 
   // Le créneau libéré peut intéresser la liste d'attente — mais seulement s'il
   // était réellement retenu. Une demande jamais confirmée n'occupait rien.
-  if (etaitConfirme) await notifierListeAttente();
+  if (etaitConfirme) await notifierListeAttente({ debut: rdv.debut });
 
   let envoi: string;
   if (!note && libres.length === 0) {

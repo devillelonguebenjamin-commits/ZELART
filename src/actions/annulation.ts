@@ -44,7 +44,7 @@ export async function annulerParCliente(rendezVousId: string): Promise<EtatAnnul
   });
 
   // Le créneau libéré peut intéresser une cliente en liste d'attente.
-  await notifierListeAttente();
+  await notifierListeAttente({ debut: rdv.debut });
 
   // Zélia doit le savoir tout de suite pour reproposer le créneau.
   if (process.env.NOTIFY_EMAIL) {

@@ -111,7 +111,7 @@ export async function changerStatutRendezVous(
 
   // Une annulation libère le créneau : la liste d'attente peut être intéressée.
   if (statut === "ANNULE") {
-    await notifierListeAttente();
+    await notifierListeAttente({ debut: rendezVous.debut });
   }
 
   // Une filleule qui vient de passer en « Terminé » entre dans la squad de sa

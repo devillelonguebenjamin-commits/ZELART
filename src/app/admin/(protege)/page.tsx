@@ -9,6 +9,7 @@ import {
   renvoyerLienAcompte,
 } from "@/actions/admin";
 import { supprimerListeAttente } from "@/actions/liste-attente";
+import { resumePreference } from "@/lib/attente-preferences";
 import { marquerAvantageUtilise } from "@/actions/avantages";
 import { LIBELLE_AVANTAGE, REMISE_FILLEULE_POURCENT } from "@/lib/parrainage";
 import ValidationVenue from "@/components/ValidationVenue";
@@ -512,7 +513,9 @@ export default async function Agenda({
           )}
         </h2>
         <p className="mt-1 text-sm text-foreground/60">
-          Prévenues automatiquement par e-mail dès qu&rsquo;un rendez-vous est annulé.
+          Prévenues automatiquement par e-mail dès qu&rsquo;un rendez-vous est annulé, et
+          seulement si le créneau libéré correspond à ce qu&rsquo;elles ont indiqué. Chacune
+          n&rsquo;est prévenue qu&rsquo;une fois.
         </p>
         <div className="mt-4 grid gap-3">
           {listeAttente.length === 0 ? (
@@ -541,7 +544,14 @@ export default async function Agenda({
                       </>
                     )}
                   </p>
-                  {personne.note && <p className="mt-0.5 text-foreground/70">{personne.note}</p>}
+                  {/* Ce que la personne accepterait : c'est cette ligne qui
+                      dit si l'annulation du jour la concerne. */}
+                  <p className="mt-0.5 text-foreground/70">
+                    🗓 {resumePreference(personne)}
+                  </p>
+                  {personne.note && (
+                    <p className="mt-0.5 text-foreground/70">💬 {personne.note}</p>
+                  )}
                   <p className="mt-0.5 text-xs text-foreground/50">
                     Depuis le {formatJour(personne.creeLe)}
                   </p>

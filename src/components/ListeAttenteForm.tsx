@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { rejoindreListeAttente, type EtatListeAttente } from "@/actions/liste-attente";
+import { JOURS_ATTENTE, MOMENTS } from "@/lib/attente-bornes";
 
 // Ce bloc s'affiche au milieu du parcours de réservation, lui-même enveloppé
 // dans un <form>. Deux pièges en découlent, d'où la construction inhabituelle :
@@ -19,6 +20,16 @@ export default function ListeAttenteForm({ ouvert = false }: { ouvert?: boolean 
   const [etat, setEtat] = useState<EtatListeAttente>({});
   const [enCours, demarrer] = useTransition();
   const [depliee, setDepliee] = useState(ouvert);
+  const [jours, setJours] = useState<number[]>([]);
+  const [moment, setMoment] = useState<string>("");
+
+  function basculerJour(numero: number) {
+    setJours((precedents) =>
+      precedents.includes(numero)
+        ? precedents.filter((j) => j !== numero)
+        : [...precedents, numero]
+    );
+  }
 
   function envoyer() {
     const conteneur = bloc.current;
@@ -27,6 +38,8 @@ export default function ListeAttenteForm({ ouvert = false }: { ouvert?: boolean 
     for (const champ of conteneur.querySelectorAll<HTMLInputElement>("input[data-champ]")) {
       donnees.set(champ.dataset.champ!, champ.value);
     }
+    donnees.set("joursSouhaites", jours.join(","));
+    donnees.set("momentSouhaite", moment);
     demarrer(async () => setEtat(await rejoindreListeAttente({}, donnees)));
   }
 
@@ -76,11 +89,71 @@ export default function ListeAttenteForm({ ouvert = false }: { ouvert?: boolean 
         </label>
         <label className="block text-sm sm:col-span-2">
           <span className="font-medium">
-            Jour souhaité <span className="font-normal text-foreground/50">(facultatif)</span>
+            Téléphone <span className="font-normal text-foreground/50">(facultatif)</span>
+          </span>
+          <input
+            data-champ="telephone"
+            type="tel"
+            autoComplete="tel"
+            placeholder="06 12 34 56 78"
+            className="mt-1 w-full rounded-xl border border-pink-200 px-3 py-2 outline-none focus:border-pink-500"
+          />
+        </label>
+
+        {/* Sans préférence exprimée, la personne est prévenue de toutes les
+            annulations. En cocher fait l'inverse de ce qu'on croit : cela ne
+            réduit pas les chances, cela évite de consommer l'unique
+            notification pour un créneau qui ne convient pas. */}
+        <fieldset className="sm:col-span-2">
+          <legend className="text-sm font-medium">
+            Quels jours vous arrangeraient ?{" "}
+            <span className="font-normal text-foreground/50">
+              (facultatif, rien de coché = n&rsquo;importe quand)
+            </span>
+          </legend>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {JOURS_ATTENTE.map((jour) => (
+              <button
+                key={jour.numero}
+                type="button"
+                onClick={() => basculerJour(jour.numero)}
+                aria-pressed={jours.includes(jour.numero)}
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+                  jours.includes(jour.numero)
+                    ? "bg-pink-500 text-white"
+                    : "border border-pink-200 bg-white text-pink-600 hover:bg-pink-50"
+                }`}
+              >
+                {jour.libelle}
+              </button>
+            ))}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {MOMENTS.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setMoment(moment === m.id ? "" : m.id)}
+                aria-pressed={moment === m.id}
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+                  moment === m.id
+                    ? "bg-pink-500 text-white"
+                    : "border border-pink-200 bg-white text-pink-600 hover:bg-pink-50"
+                }`}
+              >
+                {m.libelle}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <label className="block text-sm sm:col-span-2">
+          <span className="font-medium">
+            Autre précision <span className="font-normal text-foreground/50">(facultatif)</span>
           </span>
           <input
             data-champ="note"
-            placeholder="Ex. plutôt un samedi, ou la semaine du 15"
+            placeholder="Ex. la semaine du 15, ou plutôt en fin de journée"
             maxLength={300}
             className="mt-1 w-full rounded-xl border border-pink-200 px-3 py-2 outline-none focus:border-pink-500"
           />
