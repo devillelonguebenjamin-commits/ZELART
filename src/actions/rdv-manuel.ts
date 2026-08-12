@@ -163,6 +163,9 @@ export async function creerRendezVousManuel(
               // facultatif ici, même si la colonne ne l'est pas.
               ...champsTelephone(nouvelles.telephone || ""),
               codeParrainage: await nouveauCodeUnique(tx),
+              // Un rendez-vous pris de vive voix vient de quelqu'un que Zélia a
+              // au bout du fil : l'acompte des inconnues n'a pas lieu d'être.
+              acompteDispense: true,
             },
             select: { id: true, prenom: true, nom: true },
           });

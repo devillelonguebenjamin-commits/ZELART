@@ -14,6 +14,7 @@ import FicheTechnique from "@/components/FicheTechnique";
 import { enregistrerNotesCliente } from "@/actions/admin";
 import {
   basculerConsentement,
+  basculerDispenseAcompte,
   marquerRecompenseUtilisee,
   supprimerCliente,
 } from "@/actions/clientes";
@@ -204,6 +205,33 @@ export default async function FicheCliente({
             {cliente.consentementMarketing && !cliente.desabonneLe
               ? "Retirer son accord"
               : "Enregistrer son accord"}
+          </button>
+        </form>
+      </section>
+
+      <section className="rounded-2xl border border-pink-100 bg-white p-5">
+        <h2 className="font-semibold">Acompte</h2>
+        {cliente.acompteDispense ? (
+          <p className="mt-1 text-sm text-foreground/70">
+            Aucun acompte ne lui sera demandé, quelle que soit son ancienneté dans le site. C&rsquo;est
+            le cas de toutes les clientes que vous connaissiez déjà et de celles que vous inscrivez
+            vous-même.
+          </p>
+        ) : (
+          <p className="mt-1 text-sm text-foreground/70">
+            La règle commune s&rsquo;applique : un acompte lui sera demandé si elle réserve sans avoir
+            de rendez-vous déjà enregistré ici. Dispensez-la si vous la connaissez.
+          </p>
+        )}
+        <form
+          action={basculerDispenseAcompte.bind(null, cliente.id, !cliente.acompteDispense)}
+          className="mt-3"
+        >
+          <button
+            type="submit"
+            className="rounded-full border border-pink-200 px-5 py-2 text-sm font-medium text-pink-600 transition hover:bg-pink-50"
+          >
+            {cliente.acompteDispense ? "Lui appliquer la règle commune" : "La dispenser d'acompte"}
           </button>
         </form>
       </section>

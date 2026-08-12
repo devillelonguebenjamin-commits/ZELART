@@ -58,6 +58,9 @@ export async function creerCliente(
       codeParrainage: await nouveauCodeUnique(prisma),
       consentementMarketing: accord,
       consentementLe: accord ? new Date() : null,
+      // Une fiche saisie par Zélia est celle d'une cliente qu'elle connaît :
+      // lui réclamer un acompte de nouvelle venue serait absurde.
+      acompteDispense: true,
     },
   });
 
@@ -77,6 +80,24 @@ export async function basculerConsentement(clienteId: string, accorder: boolean)
   });
   revalidatePath(`/admin/clientes/${clienteId}`);
   revalidatePath("/admin/clientes");
+}
+
+// Dispenser une cliente d'acompte, ou lui rendre la règle commune.
+//
+// Le cas courant est celui de l'habituée que Zélia connaît de longue date mais
+// dont le site n'a encore rien vu : sans ce geste, elle se verrait réclamer
+// l'acompte des inconnues. Le cas inverse existe aussi, plus rare : une cliente
+// qui a posé deux lapins et à qui la règle commune redevient applicable.
+export async function basculerDispenseAcompte(
+  clienteId: string,
+  dispenser: boolean
+): Promise<void> {
+  await exigerAdmin();
+  await prisma.cliente.update({
+    where: { id: clienteId },
+    data: { acompteDispense: dispenser },
+  });
+  revalidatePath(`/admin/clientes/${clienteId}`);
 }
 
 // Commentaire libre, modifiable depuis la liste comme depuis la fiche.

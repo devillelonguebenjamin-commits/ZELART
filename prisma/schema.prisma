@@ -43,6 +43,21 @@ model Cliente {
   // période d'absence : la date est comparée à la dernière venue.
   reconqueteEnvoyeeLe DateTime?
 
+  // Acompte non demandé, quel que soit l'historique visible dans le site.
+  //
+  // L'acompte protège d'une inconnue qui ne vient pas. Il n'a aucun sens pour
+  // une cliente que Zélia reçoit depuis un an : le site ne voyait d'elle qu'une
+  // fiche sans rendez-vous, la déclarait « nouvelle », et lui réclamait quinze
+  // euros pour un fauteuil qu'elle occupe tous les mois.
+  //
+  // D'où un drapeau plutôt qu'une déduction. Il vaut pour toutes les fiches qui
+  // existaient à la mise en place, pour celles que Zélia saisit elle-même — si
+  // elle vous inscrit, c'est qu'elle vous connaît — et pour celles auxquelles
+  // elle l'accorde à la main. Une inscription en ligne, elle, ne le donne pas :
+  // sans cela, créer un compte suffirait à contourner l'acompte, et il ne
+  // servirait plus à rien.
+  acompteDispense Boolean @default(false)
+
   // Espace cliente (facultatif) : connexion par lien envoyé par e-mail,
   // sans mot de passe à créer ni à retenir.
   codeParrainage String  @unique
