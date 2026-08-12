@@ -313,9 +313,40 @@ serveur pour n'accepter que celles de notre propre stockage.
 
 ## Espace cliente (`/mon-espace`)
 
-Entièrement **facultatif** : aucune inscription, aucun mot de passe. La cliente saisit l'adresse
-utilisée lors de sa réservation et reçoit un lien de connexion valable 30 minutes et à usage
-unique (`JetonConnexion`). La session tient ensuite 60 jours dans un cookie signé.
+Entièrement **facultatif** : aucun mot de passe obligatoire. La cliente saisit l'adresse de son
+compte et reçoit un lien de connexion valable 30 minutes et à usage unique (`JetonConnexion`). La
+session tient ensuite 60 jours dans un cookie signé.
+
+### Ouvrir un compte sans réserver (`/mon-espace/inscription`)
+
+Jusqu'ici, la seule façon d'exister dans le site était de réserver : l'espace n'accueillait que
+celles qui avaient déjà franchi le pas. Une personne qui découvre le salon, veut noter son code de
+parrainage ou préparer sa venue n'avait aucune porte.
+
+Cette porte-là est **silencieuse** : à la différence d'une demande de rendez-vous, rien ne passe
+ensuite sous les yeux de Zélia. Trois précautions en découlent, et une abstention.
+
+- **La réponse ne dit jamais si l'adresse était déjà connue.** Elle est mot pour mot la même dans
+  les deux cas, sinon le formulaire deviendrait un moyen de vérifier qui est cliente chez Zélia,
+  une adresse à la fois.
+- **Une fiche existante n'est pas touchée.** Ni nom, ni téléphone, ni mot de passe : le lien de
+  connexion part chez sa titulaire, et elle seule le reçoit. S'inscrire avec l'adresse d'une autre
+  ne prend rien à personne.
+- **Pas de rapprochement par téléphone** (`rapprocherParTelephone: false`). La réservation se
+  l'autorise parce qu'elle est relue ; ici, un numéro deviné donnerait accès à l'historique d'une
+  habituée enregistrée de vive voix. Une deuxième fiche vaut mieux : elle apparaît dans
+  « Doublons », où Zélia tranche.
+- **Aucun mot de passe ne se choisit à l'inscription.** La règle « il faut déjà être entrée pour en
+  créer un » garantit que la possession de l'adresse a été prouvée ; un mot de passe posé ici la
+  briserait, puisqu'il suffirait de s'inscrire avec l'adresse d'une autre pour garder une clé de la
+  fiche qu'elle utilisera plus tard.
+
+L'envoi du lien de connexion est sorti dans `src/lib/lien-connexion.ts` : deux portes y mènent
+désormais, et les laisser écrire chacune leur version aurait donné deux e-mails différents, deux
+durées de validité, et un jour un verrou anti-renvoi appliqué d'un seul côté.
+
+Un compte ouvert de cette façon n'est **pas** dispensé d'acompte : sans cela, s'inscrire suffirait
+à contourner l'acompte des nouvelles clientes.
 
 Elle y retrouve ses rendez-vous à venir avec le détail des prestations, l'historique de ses poses,
 son **code de parrainage** et la liste de celles venues grâce à elle, ainsi qu'un interrupteur pour
@@ -444,9 +475,31 @@ test en affichant l'erreur exacte du service.
 
 ## Acompte des nouvelles clientes
 
-Toute cliente sans autre rendez-vous actif reçoit automatiquement, à sa réservation, un e-mail
+Une cliente sans autre rendez-vous actif reçoit automatiquement, à sa réservation, un e-mail
 contenant un lien de paiement et le rappel des conditions — sauf sur un horaire proposé, où la
 demande attend l'accord de Zélia (cf. *Horaire proposé par la cliente*).
+
+### Qui en est dispensée
+
+`acompteADemander()` pose deux questions, et la dispense passe avant le décompte : ce que Zélia
+sait de sa cliente l'emporte sur ce que la base a eu le temps d'enregistrer.
+
+L'acompte protège d'une inconnue qui ne vient pas. La règle initiale, « aucun autre rendez-vous
+enregistré, donc cliente nouvelle », se trompait sur tout un pan de la clientèle : les habituées
+saisies à la main n'ont, dans le site, aucun rendez-vous passé. Elles étaient traitées en
+inconnues et se voyaient réclamer quinze euros après un an de fidélité.
+
+Le drapeau `Cliente.acompteDispense` vaut donc pour :
+
+- **toutes les fiches existant à la migration**, qui sont par définition celles de clientes déjà
+  connues ;
+- **celles que Zélia saisit elle-même**, à la main ou en enregistrant un rendez-vous pris de vive
+  voix : si elle vous inscrit, c'est qu'elle vous connaît ;
+- **celles auxquelles elle l'accorde** depuis la fiche cliente, où l'interrupteur se trouve.
+
+Il ne vaut **pas** pour les fiches nées en ligne, réservation ou inscription : sans cela, créer un
+compte suffirait à contourner l'acompte et il ne servirait plus à rien. La dispense survit à une
+fusion de doublons, comme le blocage.
 
 **Deux liens possibles, et la différence n'est pas cosmétique :**
 
