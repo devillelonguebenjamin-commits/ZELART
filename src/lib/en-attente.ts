@@ -12,6 +12,8 @@ export type EnAttente = {
   pressOn: number;
   parrainage: number;
   listeAttente: number;
+  /** Messages de clientes que Zélia n'a pas encore lus. */
+  clientes: number;
   /** Vrai dès qu'un onglet réclame quelque chose. */
   total: number;
 };
@@ -19,7 +21,7 @@ export type EnAttente = {
 export async function compterEnAttente(): Promise<EnAttente> {
   const maintenant = new Date();
 
-  const [agenda, pressOn, parrainage, listeAttente] = await Promise.all([
+  const [agenda, pressOn, parrainage, listeAttente, clientes] = await Promise.all([
     // Demandes de rendez-vous encore à trancher. Celles dont l'heure est passée
     // ne comptent plus : les relancer n'aurait plus d'objet.
     prisma.rendezVous.count({ where: { statut: "EN_ATTENTE", fin: { gte: maintenant } } }),
@@ -27,6 +29,9 @@ export async function compterEnAttente(): Promise<EnAttente> {
     prisma.commandePressOn.count({ where: { statut: "DEMANDE" } }),
     prisma.avantageParrainage.count({ where: { utiliseLe: null } }),
     prisma.listeAttente.count({ where: { notifieeLe: null } }),
+    // Un message sans réponse est ce qui se voit le plus de l'extérieur : une
+    // cliente qui a écrit sait qu'elle a écrit.
+    prisma.messageCliente.count({ where: { deZelia: false, luLe: null } }),
   ]);
 
   return {
@@ -34,6 +39,7 @@ export async function compterEnAttente(): Promise<EnAttente> {
     pressOn,
     parrainage,
     listeAttente,
-    total: agenda + pressOn + parrainage,
+    clientes,
+    total: agenda + pressOn + parrainage + clientes,
   };
 }

@@ -6,6 +6,7 @@ import { formatPrix } from "@/lib/format";
 import FormulaireNouvelleCliente from "@/components/FormulaireNouvelleCliente";
 import CelluleCommentaire from "@/components/CelluleCommentaire";
 import BoutonSupprimerCliente from "@/components/BoutonSupprimerCliente";
+import { fichesEnAttenteDeReponse } from "@/lib/messages";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,11 @@ export default async function Clientes({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q = "" } = await searchParams;
-  const [clientes, groupes] = await Promise.all([listerClientes(q), groupesDoublons()]);
+  const [clientes, groupes, enAttenteDeReponse] = await Promise.all([
+    listerClientes(q),
+    groupesDoublons(),
+    fichesEnAttenteDeReponse(),
+  ]);
   // Le compte porte sur les fiches en trop, pas sur les groupes : « 3 doublons »
   // doit vouloir dire trois fiches à faire disparaître.
   const doublons = groupes.reduce((somme, g) => somme + g.fiches.length - 1, 0);
@@ -53,6 +58,38 @@ export default async function Clientes({
           <FormulaireNouvelleCliente />
         </div>
       </div>
+
+      {/* Les messages sans réponse passent avant la liste : une cliente qui a
+          écrit sait qu'elle a écrit, et l'attente se voit de l'extérieur. La
+          plus ancienne d'abord, sinon celle qui attend depuis trois jours se
+          retrouve sous celle qui vient d'envoyer. */}
+      {enAttenteDeReponse.length > 0 && (
+        <section className="rounded-2xl border border-pink-200 bg-pink-50/60 p-5">
+          <h2 className="font-semibold">
+            {enAttenteDeReponse.length} message{enAttenteDeReponse.length > 1 ? "s" : ""} sans
+            réponse
+          </h2>
+          <ul className="mt-3 space-y-2">
+            {enAttenteDeReponse.map((fiche) => (
+              <li key={fiche.clienteId}>
+                <Link
+                  href={`/admin/clientes/${fiche.clienteId}`}
+                  className="flex flex-wrap items-baseline gap-x-2 rounded-xl bg-white px-4 py-2.5 text-sm transition hover:bg-pink-50"
+                >
+                  <strong className="font-semibold">
+                    {fiche.prenom} {fiche.nom}
+                  </strong>
+                  <span className="text-foreground/60">« {fiche.extrait} »</span>
+                  <span className="ml-auto whitespace-nowrap text-xs text-foreground/45">
+                    depuis le {formatJour(fiche.depuis)}
+                    {fiche.nombre > 1 && ` · ${fiche.nombre} messages`}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <form className="flex flex-wrap gap-2">
         <input

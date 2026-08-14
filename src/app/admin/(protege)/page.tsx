@@ -324,6 +324,7 @@ function CarteRdv({
             prenomMarraine={rdv.cliente.parraine?.prenom}
             dejaValide={rdv.statut === "TERMINE"}
             commentaire={rdv.commentaireVisite}
+            passe={rdv.fin <= new Date()}
           />
         )}
         {rdv.statut === "CONFIRME" && (

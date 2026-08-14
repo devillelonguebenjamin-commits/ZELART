@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatJour } from "@/lib/creneaux";
-import { marquerAvantageUtilise } from "@/actions/avantages";
+import { marquerAvantageUtilise, retirerAvantage } from "@/actions/avantages";
 import {
   classementSquad,
   LIBELLE_AVANTAGE,
@@ -94,6 +94,18 @@ export default async function Parrainage() {
                       className="rounded-full bg-pink-500 px-4 py-1.5 text-xs font-medium text-white transition hover:bg-pink-600"
                     >
                       Honoré
+                    </button>
+                  </form>
+                  {/* Pour l'avantage né d'une venue validée par erreur : tant
+                      qu'il n'est pas honoré, il se retire. Après, il n'y a plus
+                      rien à annuler. */}
+                  <form action={retirerAvantage.bind(null, avantage.id)}>
+                    <button
+                      type="submit"
+                      title="Retirer cet avantage accordé par erreur"
+                      className="rounded-full border border-stone-300 px-3 py-1.5 text-xs font-medium text-foreground/60 transition hover:bg-stone-50"
+                    >
+                      Retirer
                     </button>
                   </form>
                 </div>

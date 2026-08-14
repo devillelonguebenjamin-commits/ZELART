@@ -8,6 +8,9 @@ import { deconnexionCliente } from "@/actions/espace-cliente";
 import FormulaireLienConnexion from "@/components/FormulaireLienConnexion";
 import BoutonAccordOffres from "@/components/BoutonAccordOffres";
 import MesInformations from "@/components/MesInformations";
+import Conversation from "@/components/Conversation";
+import { conversation, marquerLus } from "@/lib/messages";
+import { ecrireAZelia } from "@/actions/messages";
 import ConnexionMotDePasse from "@/components/ConnexionMotDePasse";
 import MotDePasseCliente from "@/components/MotDePasseCliente";
 import BoutonAnnulation from "@/components/BoutonAnnulation";
@@ -144,6 +147,11 @@ export default async function MonEspace({
     },
   });
   if (!cliente) return null;
+
+  // La cliente ouvre son espace : les réponses de Zélia sont vues. On marque
+  // avant de lire, pour que le fil s'affiche déjà à jour.
+  await marquerLus(cliente.id, "cliente");
+  const messages = await conversation(cliente.id);
 
   const maintenant = new Date();
   const aVenir = cliente.rendezVous
@@ -365,6 +373,29 @@ export default async function MonEspace({
               Votre historique apparaîtra ici après votre première pose.
             </p>
           )}
+        </div>
+      </section>
+
+      {/* Écrire à Zélia */}
+      <section className="rounded-2xl border border-pink-100 bg-white p-6">
+        <h2 className="font-semibold">Une question pour Zélia ?</h2>
+        <p className="mt-1 text-sm text-foreground/70">
+          Écrivez-lui ici : votre message arrive directement sur votre fiche, avec l&rsquo;historique
+          de vos poses sous les yeux. Elle vous répond au même endroit et vous prévient par e-mail.
+        </p>
+        {/* Le fil n'est pas un canal d'urgence, et le dire évite qu'une cliente
+            en retard l'utilise en pensant être lue tout de suite. */}
+        <p className="mt-1 text-xs text-foreground/55">
+          Pour une urgence le jour même, un retard ou un empêchement, le SMS au 06 45 29 20 01 reste
+          le plus sûr.
+        </p>
+        <div className="mt-4">
+          <Conversation
+            messages={messages}
+            cote="cliente"
+            action={ecrireAZelia}
+            placeholder="Ex. je voudrais un nail art dans les tons verts, est-ce que c'est possible sur des ongles courts ?"
+          />
         </div>
       </section>
 

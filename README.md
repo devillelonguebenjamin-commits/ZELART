@@ -919,6 +919,18 @@ filleule, et **annonce en retour le palier débloqué chez la marraine** — sin
 une manucure sans le savoir. Le commentaire se retrouve dans l'historique de la fiche cliente,
 distinct de la fiche technique : celle-ci décrit la pose, celui-là raconte la visite.
 
+**Le bouton n'apparaît qu'une fois l'heure de fin passée**, et le contrôle est aussi côté serveur :
+un bouton caché reste atteignable. Un clic sur la mauvaise carte avait marqué « bien venue » une
+cliente attendue un mois plus tard. Là où il ne s'affiche pas, une mention prend sa place, sinon
+son absence passerait pour une panne. La retouche du commentaire échappe à la règle : elle ne
+prétend rien sur la présence de la cliente.
+
+**L'annulation** ramène le rendez-vous en « confirmé ». Ce qu'elle ne peut pas défaire, elle le dit :
+si la cliente est une filleule, la validation a pu débloquer un palier chez sa marraine et l'e-mail
+est parti. Le palier redescend seul, puisqu'il se recalcule ; l'avantage accordé reste, parce qu'un
+avantage se consomme. D'où le bouton **Retirer** de l'écran Parrainage, limité aux avantages non
+honorés : une fois la pose offerte réalisée, il n'y a plus rien à annuler.
+
 Ce retour impose une contrainte de rendu : les sections de l'agenda sont découpées **par date
 seule, jamais par statut**. Un composant qui changerait de section à la validation serait
 démonté puis remonté, et le message disparaîtrait avant d'être lu. Ce découpage corrige au
@@ -1350,6 +1362,37 @@ Pour `/avis`, le motif est le SMS : l'adresse de Google fait plus de cent caract
 segments à elle seule et se lit comme un lien suspect. Sur une carte glissée dans un sac, elle ne
 se recopie pas. `notFound()` tant qu'aucun établissement Google n'est relié : mieux vaut une 404
 franche qu'une redirection vers nulle part.
+
+## Fil de discussion (`/mon-espace`, fiche cliente)
+
+Tout passait par le SMS personnel de Zélia, où une question sur une pose se mêlait à sa vie privée,
+se lisait entre deux clientes et se perdait. Le fil rattache le message à la fiche, à côté de
+l'historique des poses et des notes techniques, c'est-à-dire là où la réponse se prépare.
+
+`MessageCliente` porte un booléen `deZelia` plutôt qu'un auteur : la conversation n'oppose jamais
+que deux personnes, et une table d'auteurs laisserait croire à une généralité qui n'existe pas.
+
+`luLe` désigne la lecture **par le destinataire**. Ouvrir son espace marque comme lus les messages
+de Zélia ; ouvrir la fiche marque comme lus ceux de la cliente. Les confondre ferait disparaître la
+pastille de Zélia dès qu'une cliente consulte sa page, sans que rien n'ait été lu de son côté.
+
+Un seul composant d'affichage pour les deux espaces : ce sont les mêmes messages, et deux rendus
+finiraient par ne pas montrer la même chose. L'accusé de lecture ne s'affiche que sur ses propres
+messages, savoir si l'on a lu ce qu'on a sous les yeux n'apprenant rien.
+
+Trois choix qui méritent d'être dits :
+
+- **Une cliente bloquée peut écrire.** Le blocage empêche de réserver, pas de parler : couper la
+  parole à quelqu'un avec qui un différend est en cours ne fait que le déplacer vers le téléphone
+  personnel de Zélia, ce que ce fil sert précisément à éviter.
+- **La réponse part par e-mail même à une désinscrite.** Répondre à sa propre question n'est pas de
+  la prospection, et se taire parce qu'elle refuse les nouveautés serait absurde.
+- **Ce n'est pas un canal d'urgence**, et l'espace cliente le dit : pour un retard ou un
+  empêchement le jour même, le SMS reste le plus sûr.
+
+Les fiches sans réponse s'affichent en tête de `/admin/clientes`, **la plus ancienne d'abord** :
+trier par message le plus récent ferait remonter celle qui vient d'écrire et laisserait en bas
+celle qui attend depuis trois jours. Le compteur alimente la pastille de l'onglet Clientes.
 
 ## Ajout au calendrier
 

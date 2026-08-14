@@ -77,6 +77,7 @@ model Cliente {
   commandes   CommandePressOn[]
   changementsEmail ChangementEmail[]
   avantages   AvantageParrainage[]
+  messages    MessageCliente[]
 
   @@index([telephoneNormalise])
 }
@@ -115,6 +116,35 @@ model AvantageParrainage {
   // Un même avantage ne peut être accordé deux fois pour la même période.
   @@unique([clienteId, type, periode])
   @@index([clienteId])
+}
+
+// Fil de discussion entre une cliente et Zélia.
+//
+// Tout passait jusqu'ici par le SMS personnel de Zélia, où une question sur une
+// pose se mêlait à sa vie privée et se perdait. Une question posée depuis
+// l'espace cliente arrive au bon endroit : rattachée à la fiche, à côté de
+// l'historique des poses et des notes techniques, là où la réponse se prépare.
+//
+// Deux voix seulement, d'où un booléen plutôt qu'un auteur : la conversation
+// n'oppose jamais que la cliente et la gérante, et une table d'auteurs
+// laisserait croire à une généralité qui n'existe pas.
+model MessageCliente {
+  id        String  @id @default(cuid())
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String
+
+  /** Vrai si Zélia écrit, faux si la cliente écrit. */
+  deZelia Boolean
+  texte   String
+
+  // Lu par le destinataire, pas par l'expéditeur : c'est ce qui permet à
+  // chacune de savoir si l'autre a vu, et à la pastille de ne compter que ce
+  // qui attend vraiment une lecture.
+  luLe   DateTime?
+  creeLe DateTime  @default(now())
+
+  @@index([clienteId, creeLe])
+  @@index([deZelia, luLe])
 }
 
 // Changement d'adresse e-mail demandé depuis l'espace cliente. L'adresse
