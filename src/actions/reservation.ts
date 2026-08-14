@@ -19,7 +19,7 @@ import { clienteBloquee, MESSAGE_BLOCAGE } from "@/lib/blocage";
 import { urlSite } from "@/lib/site";
 import { ficheCliente } from "@/lib/fiche-cliente";
 import { provenanceValide } from "@/lib/provenance";
-import { deposeNecessaire, prestationProposee, trouverDepose } from "@/lib/regles";
+import { comporteNailArt, deposeNecessaire, prestationProposee, trouverDepose } from "@/lib/regles";
 import { REMISE_FILLEULE_POURCENT } from "@/lib/parrainage";
 import { formatDuree, formatPrix, totalDuree, totalTarifs } from "@/lib/format";
 
@@ -90,6 +90,34 @@ export async function creerReservation(
     return { erreur: "Une des prestations choisies n'est plus proposée." };
   }
   const prestations = demandees.filter((p) => p !== undefined);
+
+  // Les niveaux de nail art ne se choisissent pas : la cliente coche « avec nail
+  // art », Zélia tranche ensuite. Le contrôle est ici parce qu'un identifiant se
+  // recopie, et qu'il suffirait de renvoyer celui du niveau 1 pour réserver au
+  // tarif le plus bas ce qui vient d'être retiré du menu.
+  if (!prestations.every((p) => p.choixCliente)) {
+    return {
+      erreur:
+        "Le niveau de nail art ne se choisit pas à la réservation : cochez « avec nail art » et décrivez ce que vous souhaitez.",
+    };
+  }
+
+  // Un nail art sans un mot ni une photo n'est pas une demande : c'est un tarif
+  // de départ réservé. Zélia détermine le niveau à la lecture de ce que la
+  // cliente décrit ; sans description, elle ne peut ni le fixer ni s'y préparer.
+  const imagesJointes = formData
+    .getAll("inspirationImages")
+    .filter((v) => typeof v === "string" && v.trim().length > 0);
+  if (
+    prestations.some(comporteNailArt) &&
+    !donnees.inspiration?.trim() &&
+    imagesJointes.length === 0
+  ) {
+    return {
+      erreur:
+        "Décrivez le nail art souhaité, ou joignez une photo : c'est ce qui me permet d'en déterminer le niveau et de préparer votre design.",
+    };
+  }
 
   // Le formulaire filtre déjà, mais il est contournable : on revalide ici.
   if (!prestations.every((p) => prestationProposee(p, etatOngles, typePoseActuel))) {

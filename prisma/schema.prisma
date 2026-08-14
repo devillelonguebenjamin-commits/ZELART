@@ -253,6 +253,20 @@ model Prestation {
   typeActe TypeActe @default(POSE)
   typePose TypePose
 
+  // Proposée ou non à la cliente au moment de réserver.
+  //
+  // Les trois niveaux de nail art sont passés à `false`. Les clientes cochaient
+  // massivement le niveau 1, le moins cher, puis décrivaient et envoyaient des
+  // photos d'un dessin qui relevait du niveau 2 ou 3. L'écart se découvrait au
+  // fauteuil, une main déjà limée, quand il était trop tard pour en parler
+  // sereinement.
+  //
+  // La cliente choisit désormais **avec ou sans nail art**, décrit ce qu'elle
+  // veut, et Zélia détermine le niveau à la lecture de la description et des
+  // photos, puis ajuste la ligne. Les niveaux restent au catalogue, expliqués et
+  // tarifés publiquement : ils ne sont plus cochables, ils ne sont pas cachés.
+  choixCliente Boolean @default(true)
+
   lignes LignePrestation[]
 }
 

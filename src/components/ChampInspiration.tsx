@@ -7,7 +7,21 @@ const MAX_IMAGES = 3;
 
 type Image = { url: string; apercu: string };
 
-export default function ChampInspiration({ actif }: { actif: boolean }) {
+export default function ChampInspiration({
+  actif,
+  obligatoire = false,
+}: {
+  actif: boolean;
+  /**
+   * Vrai quand la sélection comporte du nail art.
+   *
+   * Depuis que la cliente ne choisit plus son niveau, c'est Zélia qui le
+   * détermine, et elle ne peut le faire qu'à partir de ce qui lui est décrit ou
+   * montré. La description devient la contrepartie du choix qu'on ne demande
+   * plus.
+   */
+  obligatoire?: boolean;
+}) {
   const [images, setImages] = useState<Image[]>([]);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -50,16 +64,22 @@ export default function ChampInspiration({ actif }: { actif: boolean }) {
 
   return (
     <div className="mt-6 rounded-2xl border border-pink-100 bg-pink-50/50 p-5">
-      <h3 className="font-display text-lg font-bold">Votre inspiration 💅</h3>
+      <h3 className="font-display text-lg font-bold">
+        Votre inspiration 💅{obligatoire ? " *" : ""}
+      </h3>
       <p className="mt-1 text-sm text-foreground/70">
-        Décrivez vos envies (couleurs, formes, ambiance) et joignez si vous le souhaitez des photos
-        qui vous plaisent. Je prépare ainsi votre design à l&rsquo;avance.
+        {obligatoire
+          ? "Décrivez le nail art que vous souhaitez (couleurs, motifs, ambiance) ou joignez une photo. C'est à partir de là que je détermine le niveau, que je vous confirme le tarif et que je prépare votre design."
+          : "Décrivez vos envies (couleurs, formes, ambiance) et joignez si vous le souhaitez des photos qui vous plaisent. Je prépare ainsi votre design à l'avance."}
       </p>
 
       <textarea
         name="inspiration"
         rows={3}
         maxLength={1000}
+        // Obligatoire seulement tant qu'aucune photo n'est jointe : une image
+        // vaut description, et exiger les deux serait une brimade.
+        required={obligatoire && images.length === 0}
         placeholder="Ex. : des tons nude avec un peu de chrome, forme amande, plutôt discret…"
         className="mt-3 w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
       />

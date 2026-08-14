@@ -45,6 +45,22 @@ export function aUnePose(etat: EtatOngles | null): boolean {
   return etat === "POSE_ZELART" || etat === "POSE_EXTERIEURE";
 }
 
+/**
+ * Cette prestation comporte-t-elle du nail art.
+ *
+ * Le nom fait foi, comme partout ailleurs où le niveau se lit : c'est la seule
+ * marque dont dispose le catalogue, et Zélia la maîtrise depuis l'écran
+ * Prestations.
+ *
+ * Sert à imposer une description. Depuis que la cliente ne choisit plus son
+ * niveau, c'est Zélia qui le détermine, et elle ne peut le faire que si quelque
+ * chose lui est décrit ou montré. Un « avec nail art » envoyé sans un mot ne
+ * serait pas une demande, seulement un tarif de départ réservé.
+ */
+export function comporteNailArt(prestation: { nom: string }): boolean {
+  return /nail art/i.test(prestation.nom);
+}
+
 // Une pose existante ne se recouvre pas : elle est soit remplie, soit retirée.
 // Dès lors que la sélection ne comporte ni remplissage ni dépose, la dépose
 // correspondante est ajoutée d'office.

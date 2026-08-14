@@ -22,7 +22,16 @@ export default async function Prestations() {
     reglagesRappels(),
   ]);
 
-  const listeTechniques = techniques(catalogue, delais);
+  // Le tableau des tarifs ne montre que ce qui se choisit : avec ou sans nail
+  // art. Les trois niveaux restent expliqués et chiffrés dans la fenêtre de
+  // comparaison. Les retirer de la vue laisserait un « à partir de » sans
+  // plafond visible, ce qui se lit comme une réserve plutôt que comme un tarif.
+  const listeTechniques = techniques(
+    catalogue.filter((p) => p.choixCliente),
+    delais
+  );
+  // Le supplément de chaque niveau se mesure en revanche sur le catalogue
+  // complet, puisque c'est là que vivent les niveaux.
   const niveaux = niveauxNailArt(catalogue);
   const niveauxIllustres = await niveauxExpliques(niveaux);
   const supplementIdentique = (n: { supplementMinCents: number; supplementMaxCents: number }) =>
@@ -178,9 +187,15 @@ export default async function Prestations() {
             <h2 className="font-display text-2xl font-bold">Les niveaux de nail art</h2>
             <p className="mt-2 leading-relaxed text-foreground/75">
               Le niveau dépend de la <strong>complexité du design</strong>, pas du nombre
-              d&rsquo;ongles décorés. Pas besoin de le deviner : joignez une photo
-              d&rsquo;inspiration à votre demande, je vous confirme le niveau et le tarif avant le
-              rendez-vous.
+              d&rsquo;ongles décorés. <strong>Vous n&rsquo;avez pas à le choisir</strong> : à la
+              réservation, vous cochez « avec nail art » et vous décrivez ce que vous voulez, en
+              joignant une photo si vous en avez une. C&rsquo;est moi qui détermine le niveau à
+              partir de là, et je vous confirme le tarif avant le rendez-vous.
+            </p>
+            <p className="mt-2 leading-relaxed text-foreground/75">
+              Pourquoi ainsi : un niveau se juge à l&rsquo;œil et à l&rsquo;expérience, pas sur un
+              menu déroulant. Vous demander de deviner, c&rsquo;était vous exposer à découvrir un
+              écart de tarif au moment de la pose. Autant que la question soit réglée avant.
             </p>
             <div className="mt-3">
               <NiveauxNailArt

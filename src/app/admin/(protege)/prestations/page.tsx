@@ -19,6 +19,13 @@ export default async function Prestations() {
         Modifiez le prix, la durée ou décochez « visible » pour retirer une prestation de la
         réservation sans la supprimer. Chaque ligne s&rsquo;enregistre avec son bouton ✓.
       </p>
+      <p className="mt-2 text-sm text-foreground/60">
+        <strong>« Au choix »</strong> décide si la cliente peut cocher la prestation elle-même. Les
+        trois niveaux de nail art sont décochés : la cliente demande « avec nail art » et décrit ce
+        qu&rsquo;elle veut, c&rsquo;est vous qui fixez le niveau depuis l&rsquo;agenda, avec
+        « Ajuster le niveau ». Les niveaux restent affichés et tarifés sur le site public, ils ne
+        sont simplement plus cochables.
+      </p>
       <div className="mt-6 space-y-8">
         {categories.map((categorie) => (
           <section key={categorie.nom}>
@@ -32,6 +39,7 @@ export default async function Prestations() {
                     <th className="px-4 py-2.5 font-medium">« à partir de »</th>
                     <th className="px-4 py-2.5 font-medium">Durée (min)</th>
                     <th className="px-4 py-2.5 font-medium">Visible</th>
+                    <th className="px-4 py-2.5 font-medium">Au choix</th>
                     <th className="px-4 py-2.5"></th>
                   </tr>
                 </thead>
@@ -74,6 +82,15 @@ export default async function Prestations() {
                           type="checkbox"
                           name="active"
                           defaultChecked={p.active}
+                          className="accent-pink-500"
+                        />
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <input
+                          form={`form-${p.id}`}
+                          type="checkbox"
+                          name="choixCliente"
+                          defaultChecked={p.choixCliente}
                           className="accent-pink-500"
                         />
                       </td>

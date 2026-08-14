@@ -191,6 +191,10 @@ export async function modifierPrestation(formData: FormData): Promise<void> {
       dureeMin,
       active: formData.get("active") === "on",
       aPartirDe: formData.get("aPartirDe") === "on",
+      // Décoché, la prestation reste au catalogue mais disparaît du formulaire
+      // de réservation. C'est le cas des trois niveaux de nail art : ils servent
+      // à ajuster une ligne, la cliente ne les choisit plus.
+      choixCliente: formData.get("choixCliente") === "on",
     },
   });
   revalidatePath("/admin/prestations");

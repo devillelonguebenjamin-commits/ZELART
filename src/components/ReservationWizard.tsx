@@ -10,6 +10,7 @@ import { REMISE_FILLEULE_POURCENT } from "@/lib/parrainage-bareme";
 import { formatPrix, totalTarifs } from "@/lib/format";
 import {
   aUnePose,
+  comporteNailArt,
   deposeNecessaire,
   ETATS_ONGLES,
   motifDepose,
@@ -237,10 +238,19 @@ export default function ReservationWizard({
         <p className="mt-2 text-sm text-foreground/70">
           Vous pouvez en cocher plusieurs si vous souhaitez cumuler.
         </p>
-        {/* La question du niveau se pose ici, devant la liste — pas sur une
-            autre page qu'il faudrait aller chercher en perdant sa sélection. */}
+        {/* Le niveau ne se choisit plus : il se comprend. La fenêtre reste donc
+            ici, devant la liste, mais elle explique ce que Zélia va déterminer
+            plutôt que ce que la cliente devrait cocher. */}
+        <p className="mt-2 text-sm text-foreground/70">
+          Le nail art se demande en un mot : avec ou sans. Il en existe trois niveaux selon la
+          complexité du dessin, et c&rsquo;est moi qui détermine le vôtre à partir de ce que vous
+          décrivez et des photos que vous joignez, avant le rendez-vous.
+        </p>
         <div className="mt-2">
-          <NiveauxNailArt niveaux={niveauxNailArt} />
+          <NiveauxNailArt
+            niveaux={niveauxNailArt}
+            libelle="Voir les trois niveaux et leurs tarifs"
+          />
         </div>
         {etatOngles === "NATUREL" && (
           <p className="mt-2 text-sm text-foreground/70">
@@ -553,7 +563,10 @@ export default function ReservationWizard({
           </label>
         </div>
 
-        <ChampInspiration actif={envoiImagesActif} />
+        <ChampInspiration
+          actif={envoiImagesActif}
+          obligatoire={prestationsChoisies.some(comporteNailArt)}
+        />
 
         <label className="mt-6 flex items-start gap-3 rounded-2xl border border-pink-200 bg-white px-4 py-3 text-sm">
           <input type="checkbox" name="consentementSante" required className="mt-1 accent-pink-500" />
