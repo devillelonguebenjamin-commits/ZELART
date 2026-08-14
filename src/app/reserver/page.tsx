@@ -29,7 +29,10 @@ export default async function Reserver() {
 
   const [prestations, creneaux, avis] = await Promise.all([
     prisma.prestation.findMany({
-      where: { active: true },
+      // `choixCliente` écarte les trois niveaux de nail art : la cliente coche
+      // « avec nail art », c'est Zélia qui détermine le niveau à la lecture de
+      // sa description et de ses photos.
+      where: { active: true, choixCliente: true },
       orderBy: { ordre: "asc" },
       select: {
         id: true,

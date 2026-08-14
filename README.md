@@ -1363,12 +1363,37 @@ segments à elle seule et se lit comme un lien suspect. Sur une carte glissée d
 se recopie pas. `notFound()` tant qu'aucun établissement Google n'est relié : mieux vaut une 404
 franche qu'une redirection vers nulle part.
 
-## Ajuster le niveau de nail art (agenda)
+## Le niveau de nail art ne se choisit pas (réservation)
 
-Le cas est fréquent et coûteux : une cliente coche « nail art niveau 1 » parce que c'est le moins
-cher, puis décrit dans ses inspirations un dessin qui relève clairement du niveau 3. L'écart se
-découvrait au fauteuil, une main déjà limée : soit Zélia offrait la différence, soit elle annonçait
-un supplément à quelqu'un qui ne s'y attendait pas.
+L'abus était constaté et coûteux : les clientes cochaient massivement le niveau 1, le moins cher,
+puis décrivaient et envoyaient des photos d'un dessin qui relevait du niveau 2 ou 3. L'écart se
+découvrait au fauteuil, une main déjà limée, quand il était trop tard pour en parler sereinement.
+
+La cliente choisit donc **avec ou sans nail art**, et rien de plus. Une prestation « + nail art »
+par technique et par nature d'acte est **dérivée** de celles des niveaux plutôt que recopiée, dans
+la migration comme dans le seed : le tarif de départ est celui du niveau 1, puisque le nail art
+commence là, et la durée celle du niveau 2, la plus demandée, parce qu'une durée calée sur le
+niveau 1 ferait déborder une pose sur deux. Le prix s'annonce « à partir de » : le montant final
+dépend du niveau retenu, et annoncer un prix ferme serait une promesse que la pose ne tiendra pas.
+
+`Prestation.choixCliente` retire les trois niveaux du formulaire de réservation **sans les retirer
+du catalogue** : ils servent à Zélia pour ajuster la ligne, et ils restent expliqués et chiffrés sur
+le site public, dans la fenêtre de comparaison. Les effacer de la vue aurait laissé un « à partir
+de » sans plafond visible, ce qui se lit comme une réserve plutôt que comme un tarif. Le drapeau se
+décoche depuis l'écran Prestations, colonne « Au choix ».
+
+**La description devient la contrepartie du choix qu'on ne demande plus.** Un nail art commandé sans
+un mot ni une photo est refusé : Zélia détermine le niveau à la lecture de ce que la cliente décrit,
+et sans description elle ne peut ni le fixer ni s'y préparer. Le champ n'est obligatoire que tant
+qu'aucune photo n'est jointe, une image valant description.
+
+Deux contrôles vivent côté serveur, parce qu'un identifiant se recopie : un niveau envoyé
+directement est refusé, et l'absence de description aussi.
+
+## Ajuster le niveau après coup (agenda)
+
+C'est le pendant de ce qui précède : la cliente demande « avec nail art », Zélia lit, tranche, et
+ajuste la ligne avant le rendez-vous.
 
 Chaque ligne de rendez-vous propose donc **Ajuster le niveau**, qui remplace la prestation par une
 autre **de même technique et de même nature d'acte**. Cette règle délimite exactement les variantes

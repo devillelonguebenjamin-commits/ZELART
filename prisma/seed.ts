@@ -110,17 +110,60 @@ function typeActe(nom: string): "POSE" | "REMPLISSAGE" | "DEPOSE" {
   return "POSE";
 }
 
+/**
+ * Le catalogue tel qu'il est proposé : les niveaux de nail art existent, mais
+ * la cliente ne les choisit pas.
+ *
+ * Elle coche « avec nail art », décrit ce qu'elle veut, et Zélia détermine le
+ * niveau à la lecture de la description et des photos. Les entrées « avec nail
+ * art » sont dérivées de celles des niveaux plutôt que recopiées : le jour où un
+ * tarif change, il n'y a qu'un endroit à corriger. Même règle que la migration
+ * correspondante, le prix de départ est celui du niveau 1 et la durée celle du
+ * niveau 2, le plus demandé.
+ */
+function catalogueAvecNailArtSansNiveau() {
+  const enrichies = prestations.map((p) => ({
+    ...p,
+    choixCliente: !/nail art niveau \d/.test(p.nom),
+  }));
+
+  const sansNiveau = prestations
+    .filter((p) => p.nom.endsWith("nail art niveau 1"))
+    .map((niveau1) => {
+      const niveau2 = prestations.find(
+        (p) => p.nom === niveau1.nom.replace("niveau 1", "niveau 2")
+      );
+      return {
+        ...niveau1,
+        nom: niveau1.nom.replace(" niveau 1", ""),
+        dureeMin: niveau2?.dureeMin ?? niveau1.dureeMin,
+        aPartirDe: true,
+        choixCliente: true,
+      };
+    });
+
+  // Chaque « avec nail art » se range juste avant les niveaux de sa catégorie,
+  // là où la cliente s'attend à le trouver.
+  const ordonnees = [...enrichies];
+  for (const entree of sansNiveau) {
+    const position = ordonnees.findIndex((p) => p.nom === `${entree.nom} niveau 1`);
+    ordonnees.splice(position === -1 ? ordonnees.length : position, 0, entree);
+  }
+  return ordonnees;
+}
+
 async function main() {
   if ((await prisma.prestation.count()) === 0) {
+    const catalogue = catalogueAvecNailArtSansNiveau();
     await prisma.prestation.createMany({
-      data: prestations.map((p, i) => ({
+      data: catalogue.map((p, i) => ({
         ...p,
         ordre: i,
         typeActe: typeActe(p.nom),
         typePose: TYPE_POSE[p.categorie],
       })),
     });
-    console.log(`${prestations.length} prestations créées`);
+    console.log(`${catalogue.length} prestations créées`);
   } else {
     console.log("Prestations déjà présentes, seed ignoré");
   }

@@ -67,9 +67,10 @@ export default function NiveauxNailArt({
               <h2 className="font-display text-2xl font-bold">Les trois niveaux de nail art</h2>
               <p className="mt-1 text-sm text-foreground/70">
                 Le niveau dépend de la <strong>complexité du dessin</strong>, pas du nombre
-                d&rsquo;ongles décorés. Pas besoin de le deviner : joignez une photo
-                d&rsquo;inspiration à votre demande, je vous confirme le niveau et le tarif avant le
-                rendez-vous.
+                d&rsquo;ongles décorés. <strong>Vous n&rsquo;avez pas à le choisir</strong> :
+                demandez « avec nail art », décrivez ce que vous voulez et joignez une photo si
+                vous en avez une. Je détermine le niveau à partir de là et je vous confirme le
+                tarif avant le rendez-vous.
               </p>
             </div>
             <button
