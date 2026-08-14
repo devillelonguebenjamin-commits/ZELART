@@ -22,6 +22,7 @@ import CalendrierMois from "@/components/CalendrierMois";
 import FormulaireRdvManuel from "@/components/FormulaireRdvManuel";
 import FormulaireCreneauPerso from "@/components/FormulaireCreneauPerso";
 import AnnulationAvecMessage from "@/components/AnnulationAvecMessage";
+import AjusterPrestation, { type Variante } from "@/components/AjusterPrestation";
 import { getCreneauxDisponibles, type Creneau } from "@/lib/creneaux";
 
 const JOUR_MS = 24 * 60 * 60 * 1000;
@@ -117,12 +118,15 @@ function CarteRdv({
   lienAcompteConfigure,
   avantages,
   creneauxLibres,
+  variantes,
 }: {
   rdv: RdvComplet;
   nouvelle: boolean;
   lienAcompteConfigure: boolean;
   avantages: AvantageEnAttente[];
   creneauxLibres: Creneau[];
+  /** Variantes disponibles, par « acte|technique ». */
+  variantes: Map<string, Variante[]>;
 }) {
   const badge = BADGES[rdv.statut] ?? BADGES.EN_ATTENTE;
   const totalRdv = totalTarifs(rdv.lignes.map((l) => l.prestation));
@@ -149,15 +153,33 @@ function CarteRdv({
         </span>
       </div>
       <ul className="mt-1 text-sm">
-        {rdv.lignes.map((ligne) => (
-          <li key={ligne.id}>
-            {ligne.prestation.nom}
-            {ligne.automatique && <span className="text-foreground/50"> (dépose ajoutée)</span>} ·{" "}
-            <span className="font-medium text-pink-600">
-              {formatPrix(ligne.prestation.prixCents, ligne.prestation.aPartirDe)}
-            </span>
-          </li>
-        ))}
+        {rdv.lignes.map((ligne) => {
+          // Ajustable seulement s'il existe une autre variante, et seulement
+          // tant que la pose n'a pas eu lieu : corriger le niveau d'un
+          // rendez-vous déjà réalisé ne préviendrait plus personne à temps.
+          const groupe = variantes.get(`${ligne.prestation.typeActe}|${ligne.prestation.typePose}`) ?? [];
+          const ajustable =
+            groupe.length > 1 && (rdv.statut === "EN_ATTENTE" || rdv.statut === "CONFIRME");
+          return (
+            <li key={ligne.id}>
+              {ligne.prestation.nom}
+              {ligne.automatique && <span className="text-foreground/50"> (dépose ajoutée)</span>} ·{" "}
+              <span className="font-medium text-pink-600">
+                {formatPrix(ligne.prestation.prixCents, ligne.prestation.aPartirDe)}
+              </span>
+              {ajustable && (
+                <>
+                  {" · "}
+                  <AjusterPrestation
+                    ligneId={ligne.id}
+                    prestationActuelleId={ligne.prestationId}
+                    variantes={groupe}
+                  />
+                </>
+              )}
+            </li>
+          );
+        })}
         {rdv.lignes.length > 1 && (
           <li className="mt-0.5 font-semibold">
             Total ·{" "}
@@ -397,12 +419,31 @@ export default async function Agenda({
       }),
       prisma.prestation.findMany({
         where: { active: true },
-        select: { id: true, nom: true, categorie: true, dureeMin: true, prixCents: true, aPartirDe: true },
+        select: {
+          id: true,
+          nom: true,
+          categorie: true,
+          dureeMin: true,
+          prixCents: true,
+          aPartirDe: true,
+          typeActe: true,
+          typePose: true,
+        },
         orderBy: { ordre: "asc" },
       }),
       prisma.disponibilite.findMany(),
       getCreneauxDisponibles(),
     ]);
+
+  // Les variantes d'une même prestation : même technique, même nature d'acte,
+  // c'est-à-dire les quatre niveaux de nail art d'une même pose. Groupées ici
+  // plutôt qu'interrogées carte par carte, ce qui ferait une requête par ligne
+  // de rendez-vous affichée.
+  const variantes = new Map<string, Variante[]>();
+  for (const prestation of catalogue) {
+    const cle = `${prestation.typeActe}|${prestation.typePose}`;
+    variantes.set(cle, [...(variantes.get(cle) ?? []), prestation]);
+  }
 
   // Jours de repos : aucune ouverture ne s'applique. Les hachures du calendrier
   // le disent d'un coup d'œil, là où l'absence de rendez-vous ne distingue pas
@@ -499,6 +540,7 @@ export default async function Agenda({
                 lienAcompteConfigure={Boolean(acompte.lien)}
                 avantages={avantagesParCliente.get(rdv.clienteId) ?? []}
                 creneauxLibres={creneauxLibres}
+                variantes={variantes}
               />)
           )}
         </div>
@@ -586,6 +628,7 @@ export default async function Agenda({
                 lienAcompteConfigure={Boolean(acompte.lien)}
                 avantages={avantagesParCliente.get(rdv.clienteId) ?? []}
                 creneauxLibres={creneauxLibres}
+                variantes={variantes}
               />)
           )}
         </div>
@@ -606,6 +649,7 @@ export default async function Agenda({
                 lienAcompteConfigure={Boolean(acompte.lien)}
                 avantages={avantagesParCliente.get(rdv.clienteId) ?? []}
                 creneauxLibres={creneauxLibres}
+                variantes={variantes}
               />)
           )}
         </div>

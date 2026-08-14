@@ -9,7 +9,7 @@ import FormulaireLienConnexion from "@/components/FormulaireLienConnexion";
 import BoutonAccordOffres from "@/components/BoutonAccordOffres";
 import MesInformations from "@/components/MesInformations";
 import Conversation from "@/components/Conversation";
-import { conversation, marquerLus } from "@/lib/messages";
+import { conversation, marquerLus, peutEcrire } from "@/lib/messages";
 import { ecrireAZelia } from "@/actions/messages";
 import ConnexionMotDePasse from "@/components/ConnexionMotDePasse";
 import MotDePasseCliente from "@/components/MotDePasseCliente";
@@ -151,7 +151,10 @@ export default async function MonEspace({
   // La cliente ouvre son espace : les réponses de Zélia sont vues. On marque
   // avant de lire, pour que le fil s'affiche déjà à jour.
   await marquerLus(cliente.id, "cliente");
-  const messages = await conversation(cliente.id);
+  const [messages, filOuvert] = await Promise.all([
+    conversation(cliente.id),
+    peutEcrire(cliente.id),
+  ]);
 
   const maintenant = new Date();
   const aVenir = cliente.rendezVous
@@ -395,6 +398,8 @@ export default async function MonEspace({
             cote="cliente"
             action={ecrireAZelia}
             placeholder="Ex. je voudrais un nail art dans les tons verts, est-ce que c'est possible sur des ongles courts ?"
+            ouvert={filOuvert}
+            raisonFermeture="La messagerie s'ouvre dès que votre rendez-vous est confirmé. En attendant, un SMS au 06 45 29 20 01 est le plus sûr."
           />
         </div>
       </section>

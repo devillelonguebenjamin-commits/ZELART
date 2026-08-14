@@ -6,6 +6,7 @@ import { exigerAdmin } from "@/lib/auth";
 import { clienteConnectee } from "@/lib/cliente-auth";
 import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { LONGUEUR_MAX } from "@/lib/messages-bornes";
+import { peutEcrire } from "@/lib/messages";
 import { urlSite } from "@/lib/site";
 
 export type EtatMessage = { ok?: boolean; message?: string };
@@ -35,6 +36,16 @@ export async function ecrireAZelia(
   const texte = lireTexte(formData);
   if (texte.length === 0) {
     return { ok: false, message: "Votre message est vide." };
+  }
+
+  // Le contrôle est ici et pas seulement dans l'affichage : masquer un
+  // formulaire ne l'empêche pas d'être soumis.
+  if (!(await peutEcrire(clienteId))) {
+    return {
+      ok: false,
+      message:
+        "La messagerie s'ouvre une fois votre rendez-vous confirmé. En attendant, un SMS au 06 45 29 20 01 est le plus sûr.",
+    };
   }
 
   const cliente = await prisma.cliente.findUnique({

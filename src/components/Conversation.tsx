@@ -27,12 +27,24 @@ export default function Conversation({
   cote,
   action,
   placeholder,
+  ouvert = true,
+  raisonFermeture,
 }: {
   messages: MessagePublic[];
   /** Qui regarde : ses propres messages sont à droite, en rose. */
   cote: "cliente" | "zelia";
   action: (etat: EtatMessage, formData: FormData) => Promise<EtatMessage>;
   placeholder: string;
+  /**
+   * Faux, le fil se lit mais ne s'écrit pas.
+   *
+   * Sert au cas de la cliente sans rendez-vous confirmé : son historique reste
+   * visible, ce qui vaut mieux que de faire disparaître une conversation dont
+   * elle se souvient, mais la zone de saisie cède la place à une explication.
+   */
+  ouvert?: boolean;
+  /** Ce qu'on répond quand le fil est fermé. */
+  raisonFermeture?: string;
 }) {
   const router = useRouter();
   const formulaire = useRef<HTMLFormElement>(null);
@@ -81,6 +93,13 @@ export default function Conversation({
         </ul>
       )}
 
+      {!ouvert && (
+        <p className="rounded-2xl bg-pink-50/70 px-4 py-3 text-sm text-foreground/70">
+          {raisonFermeture}
+        </p>
+      )}
+
+      {ouvert && (
       <form ref={formulaire} action={envoyer}>
         <label className="block">
           <span className="sr-only">Votre message</span>
@@ -113,6 +132,7 @@ export default function Conversation({
           {enCours ? "Envoi…" : "Envoyer"}
         </button>
       </form>
+      )}
     </div>
   );
 }
