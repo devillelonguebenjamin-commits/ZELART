@@ -1363,6 +1363,34 @@ segments à elle seule et se lit comme un lien suspect. Sur une carte glissée d
 se recopie pas. `notFound()` tant qu'aucun établissement Google n'est relié : mieux vaut une 404
 franche qu'une redirection vers nulle part.
 
+## Ajuster le niveau de nail art (agenda)
+
+Le cas est fréquent et coûteux : une cliente coche « nail art niveau 1 » parce que c'est le moins
+cher, puis décrit dans ses inspirations un dessin qui relève clairement du niveau 3. L'écart se
+découvrait au fauteuil, une main déjà limée : soit Zélia offrait la différence, soit elle annonçait
+un supplément à quelqu'un qui ne s'y attendait pas.
+
+Chaque ligne de rendez-vous propose donc **Ajuster le niveau**, qui remplace la prestation par une
+autre **de même technique et de même nature d'acte**. Cette règle délimite exactement les variantes
+comparables : les quatre niveaux d'une pose Gel X entre eux, les quatre d'un remplissage Pop-it
+entre eux. Au-delà, on ne change plus le niveau mais la prestation, ce qui ne se règle pas d'un menu
+déroulant.
+
+Ce que l'ajustement entraîne :
+
+- **le prix figé de la ligne suit la nouvelle prestation**, sinon un niveau 3 posé serait facturé
+  au tarif du niveau 1 ;
+- **l'heure de fin est recalculée** depuis la somme des durées ;
+- **la cliente reçoit un e-mail** avec l'ancienne prestation barrée, la nouvelle, le nouveau total,
+  la nouvelle heure de fin et, si Zélia en a laissé un, son mot d'explication.
+
+Le bouton ne s'affiche que tant que le rendez-vous est en attente ou confirmé : ajuster une pose
+déjà réalisée ne préviendrait plus personne à temps.
+
+Un niveau supérieur allonge la pose et peut mordre sur le rendez-vous suivant. Le cas est
+**appliqué puis signalé**, jamais refusé : refuser laisserait Zélia sans moyen d'enregistrer la
+réalité, alors que le message lui dit quel rendez-vous est mordu et à quelle heure.
+
 ## Fil de discussion (`/mon-espace`, fiche cliente)
 
 Tout passait par le SMS personnel de Zélia, où une question sur une pose se mêlait à sa vie privée,
@@ -1379,6 +1407,14 @@ pastille de Zélia dès qu'une cliente consulte sa page, sans que rien n'ait ét
 Un seul composant d'affichage pour les deux espaces : ce sont les mêmes messages, et deux rendus
 finiraient par ne pas montrer la même chose. L'accusé de lecture ne s'affiche que sur ses propres
 messages, savoir si l'on a lu ce qu'on a sous les yeux n'apprenant rien.
+
+**Le fil s'ouvre avec le rendez-vous confirmé**, pas avant : une demande en attente n'engage
+encore personne, et la messagerie n'est pas une boîte de contact ouverte à tous. Deux nuances
+tiennent à des impasses évidentes. Si Zélia a écrit la première, la cliente peut répondre, sinon un
+message de la gérante serait sans retour possible. Et un rendez-vous compte tant qu'il n'est pas
+validé comme réalisé, ce qui laisse la conversation ouverte les jours suivant la pose, quand
+arrivent justement les questions d'entretien. Le fil fermé reste **lisible** : faire disparaître une
+conversation dont la cliente se souvient serait pire que de la laisser en lecture seule.
 
 Trois choix qui méritent d'être dits :
 
