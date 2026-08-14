@@ -1390,6 +1390,28 @@ qu'aucune photo n'est jointe, une image valant description.
 Deux contrôles vivent côté serveur, parce qu'un identifiant se recopie : un niveau envoyé
 directement est refusé, et l'absence de description aussi.
 
+### Les press-on suivent la même règle
+
+`ModelePressOn.choixCliente` fait pour la boutique ce que `Prestation.choixCliente` fait pour la
+réservation : les niveaux sortent de la vitrine, un « Set personnalisé + nail art » les remplace, et
+Zélia fixe le niveau depuis la commande. La description était déjà obligatoire pour un set
+sur-mesure, ce qui lui donne de quoi juger.
+
+Une différence change tout : **un set se paie avant d'être fabriqué**. Trois conséquences, toutes
+dans `ajusterSetPressOn` :
+
+- la fenêtre pour corriger se situe **entre la commande et le règlement**. Une commande réglée ou
+  close ne se renchérit plus : revenir dessus reviendrait à changer un contrat exécuté, ce qui se
+  règle de vive voix et pas par un formulaire ;
+- si le règlement **a déjà été demandé**, le lien envoyé portait l'ancien montant. Le garder ferait
+  payer le mauvais prix en toute discrétion : il est retiré, la cliente est prévenue qu'il n'est
+  plus valable, et Zélia est invitée à en renvoyer un ;
+- si **rien n'a encore été demandé**, aucun e-mail ne part. La demande de règlement portera le bon
+  tarif, et un message de plus n'apprendrait rien à personne.
+
+L'ajustement ne s'affiche que sur le sur-mesure : un modèle de collection est dessiné une fois pour
+toutes, seules les mesures changent.
+
 ## Ajuster le niveau après coup (agenda)
 
 C'est le pendant de ce qui précède : la cliente demande « avec nail art », Zélia lit, tranche, et

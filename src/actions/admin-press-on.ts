@@ -278,6 +278,10 @@ export async function modifierModelePressOn(formData: FormData): Promise<void> {
       prixCents: Math.round(euros * 100),
       aPartirDe: formData.get("aPartirDe") === "on",
       actif: formData.get("actif") === "on",
+      // Décoché, le set reste au catalogue mais disparaît de la vitrine. C'est
+      // le cas des niveaux de nail art : ils servent à ajuster une commande, la
+      // cliente ne les choisit plus.
+      choixCliente: formData.get("choixCliente") === "on",
     },
   });
 

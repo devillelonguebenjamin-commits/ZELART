@@ -47,6 +47,15 @@ export async function commanderPressOn(
   }
 
   const modele = await prisma.modelePressOn.findUnique({ where: { id: donnees.modeleId } });
+  // Le niveau ne se commande pas : le contrôle est ici parce qu'un identifiant
+  // se recopie, et qu'il suffirait de renvoyer celui du niveau 1 pour commander
+  // au tarif le plus bas ce qui vient d'être retiré du catalogue.
+  if (modele && !modele.choixCliente) {
+    return {
+      erreur:
+        "Le niveau de nail art ne se choisit pas à la commande : demandez « avec nail art » et décrivez le set souhaité.",
+    };
+  }
   if (!modele || !modele.actif) {
     return { erreur: "Ce modèle n'est plus proposé." };
   }

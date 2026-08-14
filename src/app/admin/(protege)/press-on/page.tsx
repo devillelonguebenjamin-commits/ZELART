@@ -189,6 +189,15 @@ export default async function AdminPressOn() {
                       />
                       <span className="text-xs">en vitrine</span>
                     </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        name="choixCliente"
+                        defaultChecked={modele.choixCliente}
+                        className="accent-pink-500"
+                      />
+                      <span className="text-xs">commandable</span>
+                    </label>
                     <span className="text-xs text-foreground/50">
                       {modele._count.commandes} commande
                       {modele._count.commandes > 1 ? "s" : ""}
