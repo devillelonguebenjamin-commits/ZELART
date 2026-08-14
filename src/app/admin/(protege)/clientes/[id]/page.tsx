@@ -18,6 +18,9 @@ import {
   marquerRecompenseUtilisee,
   supprimerCliente,
 } from "@/actions/clientes";
+import Conversation from "@/components/Conversation";
+import { conversation, marquerLus } from "@/lib/messages";
+import { repondreALaCliente } from "@/actions/messages";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +55,11 @@ export default async function FicheCliente({
     },
   });
   if (!cliente) notFound();
+
+  // Ouvrir la fiche vaut lecture : la pastille ne doit pas rester allumée sur
+  // un message que Zélia a sous les yeux.
+  await marquerLus(cliente.id, "zelia");
+  const messages = await conversation(cliente.id);
 
   const stockagePret = stockageConfigure();
 
@@ -234,6 +242,22 @@ export default async function FicheCliente({
             {cliente.acompteDispense ? "Lui appliquer la règle commune" : "La dispenser d'acompte"}
           </button>
         </form>
+      </section>
+
+      <section className="rounded-2xl border border-pink-100 bg-white p-5">
+        <h2 className="font-semibold">Conversation</h2>
+        <p className="mt-1 text-xs text-foreground/60">
+          Ce qu&rsquo;elle vous écrit depuis son espace, et vos réponses. Elle est prévenue par
+          e-mail à chaque fois.
+        </p>
+        <div className="mt-4">
+          <Conversation
+            messages={messages}
+            cote="zelia"
+            action={repondreALaCliente.bind(null, cliente.id)}
+            placeholder="Votre réponse…"
+          />
+        </div>
       </section>
 
       <section className="rounded-2xl border border-pink-100 bg-white p-5">

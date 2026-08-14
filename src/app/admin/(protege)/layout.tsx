@@ -13,7 +13,7 @@ export const metadata = { robots: { index: false } };
 const liens: { href: string; label: string; cle?: keyof EnAttente }[] = [
   { href: "/admin", label: "Agenda", cle: "agenda" },
   { href: "/admin/chiffres", label: "Chiffres" },
-  { href: "/admin/clientes", label: "Clientes" },
+  { href: "/admin/clientes", label: "Clientes", cle: "clientes" },
   { href: "/admin/prestations", label: "Prestations" },
   { href: "/admin/press-on", label: "Press-on", cle: "pressOn" },
   { href: "/admin/conges", label: "Congés" },
