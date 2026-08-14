@@ -53,7 +53,17 @@ const prestations = [
 // collections déjà dessinées (les prix sont ceux de l'ancien site).
 const DESC_SUR_MESURE = "Un set entièrement dessiné selon vos envies.";
 
-const modelesPressOn = [
+type ModeleSeed = {
+  collection: string;
+  nom: string;
+  prixCents: number;
+  surMesure?: boolean;
+  aPartirDe?: boolean;
+  description?: string;
+  choixCliente?: boolean;
+};
+
+const modelesPressOn: ModeleSeed[] = [
   { collection: "Sur-mesure", nom: "Set personnalisé + VSP simple", prixCents: 5000, surMesure: true, description: DESC_SUR_MESURE },
   { collection: "Sur-mesure", nom: "Set personnalisé + nail art niveau 1", prixCents: 5500, surMesure: true, description: DESC_SUR_MESURE },
   { collection: "Sur-mesure", nom: "Set personnalisé + nail art niveau 2", prixCents: 6000, surMesure: true, description: DESC_SUR_MESURE },
@@ -152,6 +162,34 @@ function catalogueAvecNailArtSansNiveau() {
   return ordonnees;
 }
 
+/**
+ * Les sets press-on tels qu'ils se commandent : les niveaux existent, mais la
+ * cliente ne les choisit pas. Même dérivation que pour les prestations, sans la
+ * durée, qui n'a pas de sens ici.
+ */
+function catalogueSetsSansNiveau(): ModeleSeed[] {
+  const enrichis: ModeleSeed[] = modelesPressOn.map((m) => ({
+    ...m,
+    choixCliente: !/nail art niveau \d/.test(m.nom),
+  }));
+
+  const sansNiveau: ModeleSeed[] = modelesPressOn
+    .filter((m) => m.nom.endsWith("nail art niveau 1"))
+    .map((niveau1) => ({
+      ...niveau1,
+      nom: niveau1.nom.replace(" niveau 1", ""),
+      aPartirDe: true,
+      choixCliente: true,
+    }));
+
+  const ordonnes: ModeleSeed[] = [...enrichis];
+  for (const entree of sansNiveau) {
+    const position = ordonnes.findIndex((m) => m.nom === `${entree.nom} niveau 1`);
+    ordonnes.splice(position === -1 ? ordonnes.length : position, 0, entree);
+  }
+  return ordonnes;
+}
+
 async function main() {
   if ((await prisma.prestation.count()) === 0) {
     const catalogue = catalogueAvecNailArtSansNiveau();
@@ -169,10 +207,11 @@ async function main() {
   }
 
   if ((await prisma.modelePressOn.count()) === 0) {
+    const sets = catalogueSetsSansNiveau();
     await prisma.modelePressOn.createMany({
-      data: modelesPressOn.map((m, i) => ({ ...m, ordre: i })),
+      data: sets.map((m, i) => ({ ...m, ordre: i })),
     });
-    console.log(`${modelesPressOn.length} modèles de press-on créés`);
+    console.log(`${sets.length} modèles de press-on créés`);
   } else {
     console.log("Modèles de press-on déjà présents, seed ignoré");
   }

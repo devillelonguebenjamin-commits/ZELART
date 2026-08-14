@@ -14,7 +14,9 @@ export const metadata: Metadata = {
 
 export default async function PressOn() {
   const modeles = await prisma.modelePressOn.findMany({
-    where: { actif: true },
+    // `choixCliente` écarte les niveaux de nail art : la cliente commande
+    // « avec nail art » et décrit son set, Zélia fixe le niveau ensuite.
+    where: { actif: true, choixCliente: true },
     orderBy: { ordre: "asc" },
     select: {
       id: true,

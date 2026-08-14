@@ -537,6 +537,15 @@ model ModelePressOn {
   actif       Boolean @default(true)
   ordre       Int     @default(0)
 
+  // Proposé ou non à la cliente au moment de commander.
+  //
+  // Même motif que pour les prestations : les clientes commandaient le niveau 1
+  // de nail art, le moins cher, puis décrivaient un set qui relevait du niveau 2
+  // ou 3. Elles commandent désormais « avec nail art » et décrivent ce
+  // qu'elles veulent ; Zélia fixe le niveau et ajuste la commande avant de
+  // demander le règlement.
+  choixCliente Boolean @default(true)
+
   commandes CommandePressOn[]
 }
 

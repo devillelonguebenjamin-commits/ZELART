@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import AjusterSetPressOn from "@/components/AjusterSetPressOn";
+import { variantesSet } from "@/actions/ajuster-set-press-on";
 import { prisma } from "@/lib/prisma";
 import { formatPrix } from "@/lib/format";
 import { formatJour } from "@/lib/creneaux";
@@ -35,6 +37,7 @@ export default async function CommandePressOnDetail({
   });
   if (!commande) notFound();
 
+  const variantes = await variantesSet(commande.modeleId);
   const total = totalCommande(commande);
   const postal = commande.modeRemise === "POSTAL";
   const { montantCents: acompteCents } = await reglagesAcompte();
@@ -78,6 +81,19 @@ export default async function CommandePressOnDetail({
       {/* Le set */}
       <section className="rounded-2xl border border-pink-100 bg-white p-5">
         <h2 className="font-semibold">Le set</h2>
+        {/* L'ajustement ne concerne que le sur-mesure, et seulement s'il existe
+            une autre variante : un modèle de collection est dessiné une fois
+            pour toutes, seules les mesures changent. */}
+        {variantes.length > 1 && (
+          <div className="mt-2">
+            <AjusterSetPressOn
+              commandeId={commande.id}
+              modeleActuelId={commande.modeleId}
+              variantes={variantes}
+              reglementDemande={commande.paiementDemandeLe !== null}
+            />
+          </div>
+        )}
         <dl className="mt-3 space-y-2 text-sm">
           <div className="flex justify-between gap-4">
             <dt className="text-foreground/60">Modèle</dt>
