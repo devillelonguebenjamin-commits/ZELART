@@ -92,8 +92,8 @@ export default async function MonEspace({
 
           <div className="rounded-3xl border border-pink-100 bg-white p-6 shadow-sm">
             <p className="text-sm text-foreground/70">
-              Pas de mot de passe à créer : indiquez l&rsquo;adresse utilisée lors de votre
-              réservation, vous recevrez un lien pour vous connecter.
+              Pas de mot de passe à créer : indiquez l&rsquo;adresse de votre compte ou celle de
+              votre réservation, vous recevrez un lien pour vous connecter.
             </p>
             <div className="mt-4">
               <FormulaireLienConnexion />
@@ -101,12 +101,26 @@ export default async function MonEspace({
             <ConnexionMotDePasse />
           </div>
 
-          <p className="mt-6 text-center text-sm text-foreground/60">
-            Pas encore venue chez Zelart ?{" "}
-            <Link href="/reserver" className="font-medium text-pink-600 hover:underline">
-              Prendre un premier rendez-vous
-            </Link>
-          </p>
+          <div className="mt-6 rounded-3xl bg-pink-50/70 px-6 py-5 text-center">
+            <p className="text-sm text-foreground/75">
+              Pas encore de compte ? Vous pouvez en ouvrir un sans prendre rendez-vous.
+            </p>
+            <p className="mt-3">
+              <Link
+                href="/mon-espace/inscription"
+                className="inline-block rounded-full border border-pink-300 bg-white px-6 py-2.5 text-sm font-medium text-pink-600 transition hover:bg-pink-50"
+              >
+                Créer mon compte
+              </Link>
+            </p>
+            <p className="mt-4 text-sm text-foreground/60">
+              Ou directement{" "}
+              <Link href="/reserver" className="font-medium text-pink-600 hover:underline">
+                prendre un premier rendez-vous
+              </Link>
+              .
+            </p>
+          </div>
         </div>
       </>
     );

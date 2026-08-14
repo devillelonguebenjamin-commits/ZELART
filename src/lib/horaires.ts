@@ -69,6 +69,27 @@ export type Horaires = {
   aVenir: string | null;
 };
 
+/** Une fenêtre d'ouverture telle qu'elle vaut à une date donnée. */
+export type Plage = { jourSemaine: number; heureDebut: string; heureFin: string };
+
+/**
+ * Les fenêtres d'ouverture en vigueur, sous forme brute.
+ *
+ * Même source que la phrase affichée, pour la même raison : les horaires
+ * annoncés à Google ne doivent pas pouvoir diverger de ceux du site. Un
+ * établissement dont la fiche annonce le lundi alors que le lundi est fermé
+ * récolte des clientes devant une porte close, et des avis à l'avenant.
+ */
+export async function plagesActives(reference = new Date()): Promise<Plage[]> {
+  const toutes = await prisma.disponibilite.findMany({
+    orderBy: [{ jourSemaine: "asc" }, { heureDebut: "asc" }],
+  });
+  const cleJour = jourParis(reference);
+  return toutes
+    .filter((d) => ouvertureActive(d, cleJour))
+    .map((d) => ({ jourSemaine: d.jourSemaine, heureDebut: d.heureDebut, heureFin: d.heureFin }));
+}
+
 export async function horaires(reference = new Date()): Promise<Horaires> {
   const toutes = await prisma.disponibilite.findMany({
     orderBy: [{ jourSemaine: "asc" }, { heureDebut: "asc" }],

@@ -51,10 +51,25 @@ const CHAMPS = {
   parraineParId: true,
 } as const;
 
+export type OptionsFiche = {
+  /**
+   * Autoriser le rapprochement par téléphone décrit ci-dessus. Vrai par défaut.
+   *
+   * L'inscription en ligne le refuse, et la raison tient à qui relit ensuite :
+   * une demande de rendez-vous passe sous les yeux de Zélia, qui reconnaît sa
+   * cliente ou s'étonne. Une inscription ne passe sous les yeux de personne. Un
+   * numéro deviné donnerait alors accès à l'historique d'une habituée
+   * enregistrée de vive voix. Une deuxième fiche vaut mieux : elle se voit dans
+   * « Doublons », où Zélia tranche.
+   */
+  rapprocherParTelephone?: boolean;
+};
+
 export async function ficheCliente(
   db: Db,
   coordonnees: Coordonnees,
-  accordMarketing: boolean
+  accordMarketing: boolean,
+  options: OptionsFiche = {}
 ): Promise<FicheRetenue> {
   const champs = {
     prenom: coordonnees.prenom,
@@ -83,7 +98,7 @@ export async function ficheCliente(
     });
   }
 
-  const cle = cleTelephone(coordonnees.telephone);
+  const cle = options.rapprocherParTelephone === false ? null : cleTelephone(coordonnees.telephone);
   if (cle) {
     const memeNumero = await db.cliente.findMany({
       where: { telephoneNormalise: cle },

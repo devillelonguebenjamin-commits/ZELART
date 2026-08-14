@@ -18,6 +18,10 @@ const telephone = z
 export const coordonneesSchema = z.object({ prenom, nom, telephone });
 export const emailSchema = email;
 
+// Ouverture d'un compte sans rendez-vous : les mêmes coordonnées que pour une
+// réservation, sans rien de ce qui concerne la pose.
+export const inscriptionSchema = z.object({ prenom, nom, email, telephone });
+
 export const reservationSchema = z.object({
   prestationIds: z
     .array(z.string().min(1))

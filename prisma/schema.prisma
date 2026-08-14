@@ -43,6 +43,21 @@ model Cliente {
   // période d'absence : la date est comparée à la dernière venue.
   reconqueteEnvoyeeLe DateTime?
 
+  // Acompte non demandé, quel que soit l'historique visible dans le site.
+  //
+  // L'acompte protège d'une inconnue qui ne vient pas. Il n'a aucun sens pour
+  // une cliente que Zélia reçoit depuis un an : le site ne voyait d'elle qu'une
+  // fiche sans rendez-vous, la déclarait « nouvelle », et lui réclamait quinze
+  // euros pour un fauteuil qu'elle occupe tous les mois.
+  //
+  // D'où un drapeau plutôt qu'une déduction. Il vaut pour toutes les fiches qui
+  // existaient à la mise en place, pour celles que Zélia saisit elle-même — si
+  // elle vous inscrit, c'est qu'elle vous connaît — et pour celles auxquelles
+  // elle l'accorde à la main. Une inscription en ligne, elle, ne le donne pas :
+  // sans cela, créer un compte suffirait à contourner l'acompte, et il ne
+  // servirait plus à rien.
+  acompteDispense Boolean @default(false)
+
   // Espace cliente (facultatif) : connexion par lien envoyé par e-mail,
   // sans mot de passe à créer ni à retenir.
   codeParrainage String  @unique
@@ -396,6 +411,46 @@ model Parametre {
   cle       String   @id
   valeur    String
   modifieLe DateTime @updatedAt
+}
+
+// Marques avec lesquelles Zélia travaille, et le lien d'affiliation qui va
+// avec. Rien de tout cela ne peut vivre dans le code : un lien nominatif se
+// révoque, un code promo change, un contrat se termine, et une deuxième marque
+// arrivera un jour. Zélia les gère elle-même.
+//
+// Le compteur de clics n'est pas de la statistique pour la statistique : c'est
+// le seul chiffre que le partenaire ne fournit pas et ne peut pas contredire.
+// Sans lui, « combien de personnes ai-je envoyées chez eux » reste une question
+// à laquelle seul l'autre camp a la réponse.
+model Partenaire {
+  id String @id @default(cuid())
+
+  // Fin de l'adresse courte, du type zelart.fr/inaka. C'est ce qui se dit à
+  // l'oral dans une story et s'imprime sur une carte : un lien d'affiliation
+  // brut, avec ses paramètres de suivi, ne se dicte pas.
+  slug String @unique
+
+  nom       String
+  categorie String @default("")
+
+  // Ce que Zélia en dit, à la première personne. Un avis honnête convertit ;
+  // un descriptif recopié du catalogue ne convertit pas.
+  description String?
+
+  lienAffilie String
+  codePromo   String?
+  logoUrl     String?
+
+  actif Boolean @default(true)
+  ordre Int     @default(0)
+
+  clics       Int       @default(0)
+  dernierClic DateTime?
+
+  creeLe    DateTime @default(now())
+  modifieLe DateTime @updatedAt
+
+  @@index([actif, ordre])
 }
 
 // Photos de la pose réalisée, prises par Zélia. Peuvent alimenter la galerie

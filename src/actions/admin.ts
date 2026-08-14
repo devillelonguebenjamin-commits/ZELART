@@ -9,7 +9,7 @@ import { exigerAdmin, fermerSessionAdmin, ouvrirSessionAdmin } from "@/lib/auth"
 import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { z } from "zod";
 import { dateParis, formatHeure, formatJour } from "@/lib/creneaux";
-import { envoyerDemandeAcompte, estNouvelleCliente, verifierAcompte } from "@/lib/acompte";
+import { envoyerDemandeAcompte, acompteADemander, verifierAcompte } from "@/lib/acompte";
 import { formatPrix, totalTarifs } from "@/lib/format";
 import {
   CLE_AUTRE_RESEAU,
@@ -84,7 +84,7 @@ export async function changerStatutRendezVous(
     if (
       rendezVous.creneauPropose &&
       !rendezVous.acompteDemandeLe &&
-      (await estNouvelleCliente(rendezVous.clienteId, rendezVous.id))
+      (await acompteADemander(rendezVous.clienteId, rendezVous.id))
     ) {
       await envoyerDemandeAcompte(rendezVous.id);
     }

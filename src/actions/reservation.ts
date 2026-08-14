@@ -14,7 +14,7 @@ import {
 } from "@/lib/creneaux";
 import { reservationSchema, urlImageValide } from "@/lib/validations";
 import { envoyerEmail, echapperHtml } from "@/lib/email";
-import { envoyerDemandeAcompte, estNouvelleCliente } from "@/lib/acompte";
+import { envoyerDemandeAcompte, acompteADemander } from "@/lib/acompte";
 import { clienteBloquee, MESSAGE_BLOCAGE } from "@/lib/blocage";
 import { urlSite } from "@/lib/site";
 import { ficheCliente } from "@/lib/fiche-cliente";
@@ -288,8 +288,8 @@ export async function creerReservation(
     return { erreur: "Une erreur est survenue, merci de réessayer." };
   }
 
-  // Nouvelle cliente : envoi automatique du lien d'acompte, si Zélia l'a
-  // renseigné dans ses réglages.
+  // Cliente inconnue et non dispensée : envoi automatique du lien d'acompte,
+  // si Zélia l'a renseigné dans ses réglages.
   //
   // Sauf sur un horaire proposé : réclamer un acompte pour une heure que Zélia
   // n'a pas encore acceptée reviendrait à faire payer un rendez-vous qui peut
@@ -298,7 +298,7 @@ export async function creerReservation(
     where: { id: rendezVousId },
     select: { clienteId: true },
   });
-  if (!propose && rendezVous && (await estNouvelleCliente(rendezVous.clienteId, rendezVousId))) {
+  if (!propose && rendezVous && (await acompteADemander(rendezVous.clienteId, rendezVousId))) {
     await envoyerDemandeAcompte(rendezVousId);
   }
 

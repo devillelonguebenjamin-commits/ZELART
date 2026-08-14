@@ -157,6 +157,11 @@ export default async function RootLayout({
                 <Link href="/confidentialite" className="hover:text-pink-500">
                   Protection des données
                 </Link>
+                {/* Destinée aux consœurs : sa place est ici, pas dans la
+                    navigation d'une cliente qui vient réserver. */}
+                <Link href="/pro" className="hover:text-pink-500">
+                  Entre pros
+                </Link>
               </p>
             </div>
           </div>

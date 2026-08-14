@@ -7,12 +7,28 @@ import { creerLienPaiement, lirePaiement, sumupConfigure, type EtatPaiement } fr
 import { urlSite } from "@/lib/site";
 import { envoyerSmsSansBloquer } from "@/lib/sms";
 
-// Une cliente est « nouvelle » tant qu'elle n'a pas d'autre rendez-vous actif
-// que celui qu'elle vient de prendre.
-export async function estNouvelleCliente(
+/**
+ * Faut-il demander un acompte pour ce rendez-vous.
+ *
+ * La règle de départ tenait en une ligne : pas d'autre rendez-vous actif, donc
+ * cliente nouvelle, donc acompte. Elle se trompait sur tout un pan de la
+ * clientèle. Les habituées enregistrées à la main par Zélia n'ont, dans le
+ * site, aucun rendez-vous passé : elles étaient traitées en inconnues et se
+ * voyaient réclamer quinze euros après un an de fidélité.
+ *
+ * Deux conditions, donc, et la dispense passe avant : ce que Zélia sait de sa
+ * cliente l'emporte sur ce que la base a eu le temps d'enregistrer.
+ */
+export async function acompteADemander(
   clienteId: string,
   rendezVousId: string
 ): Promise<boolean> {
+  const cliente = await prisma.cliente.findUnique({
+    where: { id: clienteId },
+    select: { acompteDispense: true },
+  });
+  if (!cliente || cliente.acompteDispense) return false;
+
   const autres = await prisma.rendezVous.count({
     where: { clienteId, id: { not: rendezVousId }, statut: { not: "ANNULE" } },
   });

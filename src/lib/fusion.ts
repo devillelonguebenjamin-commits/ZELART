@@ -114,6 +114,10 @@ export async function fusionner(gardeeId: string, absorbeeId: string): Promise<R
         desabonneLe,
         bloqueeLe: gardee.bloqueeLe ?? absorbee.bloqueeLe,
         motifBlocage: gardee.motifBlocage ?? absorbee.motifBlocage,
+        // La dispense d'acompte suit le même principe que le blocage : elle
+        // survit à la fusion. Deux fiches réunies sont une seule cliente, et si
+        // l'une d'elles était reconnue comme habituée, elle l'est toujours.
+        acompteDispense: gardee.acompteDispense || absorbee.acompteDispense,
         parraineParId,
         // L'ancienneté est celle de la première venue, pas celle du ménage.
         creeLe: gardee.creeLe < absorbee.creeLe ? gardee.creeLe : absorbee.creeLe,

@@ -197,18 +197,24 @@ le rendez-vous plutôt que de trancher à la place de Zélia.
 Tout le salon fonctionne par SMS ; le site ne parlait que par e-mail. Une cliente qui relève
 rarement sa boîte ratait sa confirmation, son rappel et sa demande d'acompte.
 
-Trois messages seulement le doublent : **confirmation**, **rappel de la veille**, **demande
-d'acompte**. Trois principes le tiennent :
+Quatre messages seulement le doublent : **confirmation**, **rappel de la veille**, **demande
+d'acompte** et **demande d'avis**. Trois principes le tiennent :
 
 - il **ne remplace jamais l'e-mail**, qui porte le détail, les liens et la trace écrite ;
 - **rien de commercial n'y passe** : ce sont des messages liés à un rendez-vous demandé, ce qui
-  évite d'avoir à recueillir un consentement distinct. Une offre par SMS n'aurait pas sa place ici ;
+  évite d'avoir à recueillir un consentement distinct. Une offre par SMS n'aurait pas sa place ici.
+  La demande d'avis est le cas limite : elle ne vend rien, elle suit une prestation reçue, et elle
+  respecte la désinscription comme l'e-mail qu'elle double ;
 - **un échec ne casse rien** : sans `BREVO_SMS_SENDER` la fonction ne fait rien, et une erreur
   d'envoi n'empêche jamais la confirmation d'exister.
 
 Un numéro fixe ou incomplet est écarté **avant** tout appel à Brevo (`numeroInternational`) plutôt
 que d'être envoyé au jugé. La page Réglages indique si le canal est actif et sous quel nom
 d'expéditeur (onze caractères au maximum, contrainte de l'opérateur).
+
+La demande d'avis est horodatée dès qu'**un** des deux canaux a fonctionné. Sans cela, un e-mail en
+échec laisserait la demande « à faire » et le SMS repartirait le lendemain, puis le surlendemain, à
+quelqu'un qui l'a déjà reçu.
 
 ## Parcours de réservation
 
@@ -307,9 +313,40 @@ serveur pour n'accepter que celles de notre propre stockage.
 
 ## Espace cliente (`/mon-espace`)
 
-Entièrement **facultatif** : aucune inscription, aucun mot de passe. La cliente saisit l'adresse
-utilisée lors de sa réservation et reçoit un lien de connexion valable 30 minutes et à usage
-unique (`JetonConnexion`). La session tient ensuite 60 jours dans un cookie signé.
+Entièrement **facultatif** : aucun mot de passe obligatoire. La cliente saisit l'adresse de son
+compte et reçoit un lien de connexion valable 30 minutes et à usage unique (`JetonConnexion`). La
+session tient ensuite 60 jours dans un cookie signé.
+
+### Ouvrir un compte sans réserver (`/mon-espace/inscription`)
+
+Jusqu'ici, la seule façon d'exister dans le site était de réserver : l'espace n'accueillait que
+celles qui avaient déjà franchi le pas. Une personne qui découvre le salon, veut noter son code de
+parrainage ou préparer sa venue n'avait aucune porte.
+
+Cette porte-là est **silencieuse** : à la différence d'une demande de rendez-vous, rien ne passe
+ensuite sous les yeux de Zélia. Trois précautions en découlent, et une abstention.
+
+- **La réponse ne dit jamais si l'adresse était déjà connue.** Elle est mot pour mot la même dans
+  les deux cas, sinon le formulaire deviendrait un moyen de vérifier qui est cliente chez Zélia,
+  une adresse à la fois.
+- **Une fiche existante n'est pas touchée.** Ni nom, ni téléphone, ni mot de passe : le lien de
+  connexion part chez sa titulaire, et elle seule le reçoit. S'inscrire avec l'adresse d'une autre
+  ne prend rien à personne.
+- **Pas de rapprochement par téléphone** (`rapprocherParTelephone: false`). La réservation se
+  l'autorise parce qu'elle est relue ; ici, un numéro deviné donnerait accès à l'historique d'une
+  habituée enregistrée de vive voix. Une deuxième fiche vaut mieux : elle apparaît dans
+  « Doublons », où Zélia tranche.
+- **Aucun mot de passe ne se choisit à l'inscription.** La règle « il faut déjà être entrée pour en
+  créer un » garantit que la possession de l'adresse a été prouvée ; un mot de passe posé ici la
+  briserait, puisqu'il suffirait de s'inscrire avec l'adresse d'une autre pour garder une clé de la
+  fiche qu'elle utilisera plus tard.
+
+L'envoi du lien de connexion est sorti dans `src/lib/lien-connexion.ts` : deux portes y mènent
+désormais, et les laisser écrire chacune leur version aurait donné deux e-mails différents, deux
+durées de validité, et un jour un verrou anti-renvoi appliqué d'un seul côté.
+
+Un compte ouvert de cette façon n'est **pas** dispensé d'acompte : sans cela, s'inscrire suffirait
+à contourner l'acompte des nouvelles clientes.
 
 Elle y retrouve ses rendez-vous à venir avec le détail des prestations, l'historique de ses poses,
 son **code de parrainage** et la liste de celles venues grâce à elle, ainsi qu'un interrupteur pour
@@ -438,9 +475,31 @@ test en affichant l'erreur exacte du service.
 
 ## Acompte des nouvelles clientes
 
-Toute cliente sans autre rendez-vous actif reçoit automatiquement, à sa réservation, un e-mail
+Une cliente sans autre rendez-vous actif reçoit automatiquement, à sa réservation, un e-mail
 contenant un lien de paiement et le rappel des conditions — sauf sur un horaire proposé, où la
 demande attend l'accord de Zélia (cf. *Horaire proposé par la cliente*).
+
+### Qui en est dispensée
+
+`acompteADemander()` pose deux questions, et la dispense passe avant le décompte : ce que Zélia
+sait de sa cliente l'emporte sur ce que la base a eu le temps d'enregistrer.
+
+L'acompte protège d'une inconnue qui ne vient pas. La règle initiale, « aucun autre rendez-vous
+enregistré, donc cliente nouvelle », se trompait sur tout un pan de la clientèle : les habituées
+saisies à la main n'ont, dans le site, aucun rendez-vous passé. Elles étaient traitées en
+inconnues et se voyaient réclamer quinze euros après un an de fidélité.
+
+Le drapeau `Cliente.acompteDispense` vaut donc pour :
+
+- **toutes les fiches existant à la migration**, qui sont par définition celles de clientes déjà
+  connues ;
+- **celles que Zélia saisit elle-même**, à la main ou en enregistrant un rendez-vous pris de vive
+  voix : si elle vous inscrit, c'est qu'elle vous connaît ;
+- **celles auxquelles elle l'accorde** depuis la fiche cliente, où l'interrupteur se trouve.
+
+Il ne vaut **pas** pour les fiches nées en ligne, réservation ou inscription : sans cela, créer un
+compte suffirait à contourner l'acompte et il ne servirait plus à rien. La dispense survit à une
+fusion de doublons, comme le blocage.
 
 **Deux liens possibles, et la différence n'est pas cosmétique :**
 
@@ -1207,10 +1266,32 @@ du site. Seules les pages publiques et stables sont listées ; les pages personn
 (confirmation, espace cliente, désinscription) sont explicitement exclues de l'indexation —
 leurs URL portent un jeton à usage unique qu'un robot consommerait pour rien.
 
-L'accueil émet un bloc JSON-LD `NailSalon` (adresse, téléphone, horaires de prise de
-rendez-vous), enrichi de la note moyenne dès que les avis Google sont connectés. Les valeurs
-passent par `jsonLdSecurise()`, qui échappe les chevrons : un avis contenant `</script>`
-casserait sinon la page.
+L'accueil émet un bloc JSON-LD `NailSalon`, construit par `src/lib/donnees-structurees.ts` :
+adresse, téléphone, horaires, comptes qui désignent la même personne ailleurs (`sameAs`), et un
+`Service` par prestation avec son tarif. Les horaires sont lus dans la table des ouvertures,
+comme la phrase affichée sur le site : les deux ne peuvent donc pas diverger, et une fiche qui
+annoncerait le lundi alors que le lundi est fermé enverrait des clientes devant une porte close.
+Un tarif « à partir de » passe par un `minPrice` plutôt que par un prix ferme, faute de quoi
+Google annoncerait un prix qui n'a jamais été promis.
+
+Deux absences sont volontaires et documentées dans le module : **pas de coordonnées
+géographiques**, qu'il aurait fallu inventer (`hasMap` renvoie à la fiche Google, qui les connaît),
+et **pas de zone desservie élargie** aux communes voisines, qui serait une déclaration
+invérifiable.
+
+La note moyenne y figure dès que les avis Google sont connectés, mais sans illusion : depuis 2019,
+Google ne reprend pas dans ses résultats les avis qu'une entreprise publie sur son propre site à
+son propre sujet. Le balisage ne nuit pas, il ne sert simplement pas au classement ; la note qui
+compte reste celle de la fiche Google. Sur la page, en revanche, les avis rassurent et font
+réserver.
+
+Les valeurs passent par `jsonLdSecurise()`, qui échappe les chevrons : un avis contenant
+`</script>` casserait sinon la page.
+
+Les photos de la galerie sont décrites par `src/lib/galerie.ts`, à partir des prestations du
+rendez-vous d'où sort la photo. Elles portaient toutes le même texte alternatif, ce qui ne servait
+ni les lectrices d'écran ni Google Images. Une donnée déjà saisie décrit mieux qu'une case qu'on
+oublie de remplir.
 
 La page `/questions` émet un second bloc, `FAQPage`, construit à partir des mêmes questions que
 celles affichées : Google peut alors les faire apparaître directement dans ses résultats, et il n'y
@@ -1219,6 +1300,56 @@ a pas deux versions à maintenir.
 Les métadonnées de partage (`openGraph`, `twitter`) sont posées sur le `layout`, avec
 `metadataBase` calé sur l'adresse réelle du site pour que les chemins relatifs se résolvent. L'image
 est générée par `src/app/opengraph-image.tsx`.
+
+## Partenariats et affiliation (`/pro`, `/admin/partenaires`)
+
+Zélia est partenaire de marques du métier et dispose de liens d'affiliation nominatifs. Trois
+décisions structurent la mise en œuvre.
+
+**Le lien ne vit pas dans le code.** Il est nominatif, il se révoque, un contrat se termine et une
+deuxième marque arrivera. Le modèle `Partenaire` le garde, et Zélia le colle elle-même depuis
+`/admin/partenaires`.
+
+**Chaque marque reçoit une adresse courte**, du type `zelart.fr/inaka`, servie par
+`src/app/[partenaire]/route.ts`. Un lien d'affiliation brut ne se dicte pas dans une story et ne
+s'imprime pas sur une carte ; surtout, il ne se compte pas. La redirection incrémente un compteur,
+seul chiffre que le partenaire ne fournit pas et ne peut pas contredire. Le jour où la marque
+change d'adresse, une ligne à corriger suffit et tout ce qui a été imprimé continue de fonctionner.
+
+La redirection vit à la racine du site pour rester courte. Next.js sert toujours les vraies pages
+en priorité, donc `/prestations` ou `/questions` ne passent jamais par là ; ne restent que les
+adresses inconnues, qui reçoivent la page 404 habituelle. `SLUGS_RESERVES` refuse à la saisie un
+slug qui heurterait une page existante, pour éviter un lien mort que personne ne comprendrait. La
+réponse porte `X-Robots-Tag: noindex, nofollow`, et les liens de la page `/pro` portent
+`rel="sponsored nofollow"` : un lien rémunéré ne transmet pas de popularité, c'est la règle de
+Google et l'ignorer exposerait ce site, pas celui du partenaire.
+
+**Le lien du partenaire est transmis tel quel**, sans paramètre ajouté. La tentation serait d'y
+coller des UTM, mais un lien d'affiliation est souvent lui-même un redirecteur : un paramètre de
+trop peut casser l'attribution, c'est-à-dire faire perdre la commission. Le comptage se fait de ce
+côté-ci, là où rien ne risque d'être abîmé.
+
+La page `/pro` s'adresse aux consœurs, pas aux clientes : une cliente venue prendre rendez-vous
+n'achètera jamais une lampe ni une formation, et lui montrer du matériel professionnel brouillerait
+son parcours sans rien rapporter. Elle n'est donc pas dans la navigation principale, seulement en
+pied de page, et elle porte un bloc « vous êtes une marque » qui est le mécanisme par lequel
+d'autres partenariats se proposent.
+
+La mention **« Collaboration commerciale »** figure près des liens, lisible sans cliquer : c'est ce
+qu'impose la loi du 9 juin 2023 sur l'influence commerciale. En pied de page et en petits
+caractères, elle ne vaudrait rien.
+
+## Liens courts
+
+Deux adresses du domaine ne servent qu'à rediriger :
+
+- `zelart.fr/<partenaire>` vers le lien d'affiliation, en comptant le clic ;
+- `zelart.fr/avis` vers le formulaire d'avis Google.
+
+Pour `/avis`, le motif est le SMS : l'adresse de Google fait plus de cent caractères, mange deux
+segments à elle seule et se lit comme un lien suspect. Sur une carte glissée dans un sac, elle ne
+se recopie pas. `notFound()` tant qu'aucun établissement Google n'est relié : mieux vaut une 404
+franche qu'une redirection vers nulle part.
 
 ## Ajout au calendrier
 
