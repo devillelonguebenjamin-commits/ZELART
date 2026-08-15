@@ -16,8 +16,20 @@ import { envoyerSmsSansBloquer } from "@/lib/sms";
  * site, aucun rendez-vous passé : elles étaient traitées en inconnues et se
  * voyaient réclamer quinze euros après un an de fidélité.
  *
- * Deux conditions, donc, et la dispense passe avant : ce que Zélia sait de sa
- * cliente l'emporte sur ce que la base a eu le temps d'enregistrer.
+ * Trois conditions, donc, dans cet ordre de certitude décroissante.
+ *
+ * 1. **La dispense**, ce que Zélia sait de sa cliente, qui l'emporte sur ce que
+ *    la base a eu le temps d'enregistrer.
+ * 2. **Le même numéro sur une autre fiche déjà connue.** Ce cas-là a coûté un
+ *    acompte à une habituée : elle a réservé en ligne avec une adresse que
+ *    Zélia n'avait pas, une seconde fiche est née, vierge de tout historique,
+ *    et le site l'a prise pour une inconnue. Le numéro, lui, était le bon. Une
+ *    fiche jumelle dispensée ou ayant déjà un rendez-vous vaut donc dispense.
+ * 3. **L'historique de la fiche elle-même**, le décompte d'origine.
+ *
+ * Le risque assumé du point 2 : deux sœurs partageant une ligne se transmettent
+ * la dispense. Épargner un acompte à une inconnue coûte moins cher que le
+ * réclamer à une fidèle, et Zélia peut toujours le redemander à la main.
  */
 export async function acompteADemander(
   clienteId: string,
@@ -25,9 +37,20 @@ export async function acompteADemander(
 ): Promise<boolean> {
   const cliente = await prisma.cliente.findUnique({
     where: { id: clienteId },
-    select: { acompteDispense: true },
+    select: { acompteDispense: true, telephoneNormalise: true },
   });
   if (!cliente || cliente.acompteDispense) return false;
+
+  if (cliente.telephoneNormalise) {
+    const jumelleConnue = await prisma.cliente.count({
+      where: {
+        id: { not: clienteId },
+        telephoneNormalise: cliente.telephoneNormalise,
+        OR: [{ acompteDispense: true }, { rendezVous: { some: { statut: { not: "ANNULE" } } } }],
+      },
+    });
+    if (jumelleConnue > 0) return false;
+  }
 
   const autres = await prisma.rendezVous.count({
     where: { clienteId, id: { not: rendezVousId }, statut: { not: "ANNULE" } },
