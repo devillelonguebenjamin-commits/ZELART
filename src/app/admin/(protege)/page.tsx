@@ -15,6 +15,7 @@ import { LIBELLE_AVANTAGE, REMISE_FILLEULE_POURCENT } from "@/lib/parrainage";
 import ValidationVenue from "@/components/ValidationVenue";
 import type { TypeAvantage } from "@/generated/prisma/client";
 import { reglagesAcompte } from "@/lib/parametres";
+import { acompteADemander } from "@/lib/acompte";
 import type { Prisma } from "@/generated/prisma/client";
 import { bornesMois, grilleMois, moisDemande, type EvenementJour } from "@/lib/calendrier";
 import { jourParis, ouvertureActive } from "@/lib/creneaux";
@@ -97,12 +98,28 @@ const BADGES: Record<string, { label: string; classes: string }> = {
   NO_SHOW: { label: "Absente", classes: "bg-red-100 text-red-700" },
 };
 
-function BoutonStatut({ id, statut, label }: { id: string; statut: string; label: string }) {
+function BoutonStatut({
+  id,
+  statut,
+  label,
+  sansAcompte = false,
+  discret = false,
+}: {
+  id: string;
+  statut: string;
+  label: string;
+  sansAcompte?: boolean;
+  discret?: boolean;
+}) {
   return (
-    <form action={changerStatutRendezVous.bind(null, id, statut)}>
+    <form action={changerStatutRendezVous.bind(null, id, statut, sansAcompte)}>
       <button
         type="submit"
-        className="rounded-full border border-pink-200 px-3 py-1 text-xs font-medium text-pink-600 transition hover:bg-pink-50"
+        className={
+          discret
+            ? "rounded-full border border-stone-300 px-3 py-1 text-xs font-medium text-foreground/70 transition hover:bg-stone-50"
+            : "rounded-full border border-pink-200 px-3 py-1 text-xs font-medium text-pink-600 transition hover:bg-pink-50"
+        }
       >
         {label}
       </button>
@@ -119,6 +136,7 @@ function CarteRdv({
   avantages,
   creneauxLibres,
   variantes,
+  acompteAlaConfirmation = false,
 }: {
   rdv: RdvComplet;
   nouvelle: boolean;
@@ -127,6 +145,8 @@ function CarteRdv({
   creneauxLibres: Creneau[];
   /** Variantes disponibles, par « acte|technique ». */
   variantes: Map<string, Variante[]>;
+  /** Accepter cet horaire déclenchera une demande d'acompte. */
+  acompteAlaConfirmation?: boolean;
 }) {
   const badge = BADGES[rdv.statut] ?? BADGES.EN_ATTENTE;
   const totalRdv = totalTarifs(rdv.lignes.map((l) => l.prestation));
@@ -313,6 +333,14 @@ function CarteRdv({
         </p>
       )}
 
+      {acompteAlaConfirmation && (
+        <p className="mt-3 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
+          ⚠ Accepter cet horaire enverra une <strong>demande d&rsquo;acompte</strong> à{" "}
+          {rdv.cliente.prenom}. Si vous la connaissez déjà, acceptez sans acompte, ou dispensez-la
+          depuis sa fiche.
+        </p>
+      )}
+
       <div className="mt-3 flex flex-wrap gap-2">
         {rdv.statut === "EN_ATTENTE" &&
           (rdv.creneauPropose ? (
@@ -320,6 +348,19 @@ function CarteRdv({
             // l'annulation ordinaire se contente de libérer le créneau.
             <>
               <BoutonStatut id={rdv.id} statut="CONFIRME" label="✓ Accepter l’horaire" />
+              {/* L'acompte d'un horaire proposé part à l'acceptation, pas à la
+                  demande : sans cet avertissement, Zélia déclenchait un lien de
+                  paiement plusieurs jours après la réservation sans le voir
+                  venir. Le second bouton lui laisse le choix. */}
+              {acompteAlaConfirmation && (
+                <BoutonStatut
+                  id={rdv.id}
+                  statut="CONFIRME"
+                  label="Accepter sans demander d’acompte"
+                  sansAcompte
+                  discret
+                />
+              )}
               <AnnulationAvecMessage
                 rendezVousId={rdv.id}
                 confirme={false}
@@ -435,6 +476,18 @@ export default async function Agenda({
       getCreneauxDisponibles(),
     ]);
 
+  // Les horaires proposés qui déclencheront une demande d'acompte à
+  // l'acceptation. Calculé ici, sur les seules cartes concernées, plutôt que
+  // deviné dans la carte : c'est la même fonction qui décidera vraiment à
+  // l'acceptation, donc l'avertissement ne peut pas mentir.
+  const proposesATrancher = rdvs.filter(
+    (r) => r.statut === "EN_ATTENTE" && r.creneauPropose && !r.acompteDemandeLe
+  );
+  const acompteAlaConfirmation = new Set<string>();
+  for (const rdv of proposesATrancher) {
+    if (await acompteADemander(rdv.clienteId, rdv.id)) acompteAlaConfirmation.add(rdv.id);
+  }
+
   // Les variantes d'une même prestation : même technique, même nature d'acte,
   // c'est-à-dire les quatre niveaux de nail art d'une même pose. Groupées ici
   // plutôt qu'interrogées carte par carte, ce qui ferait une requête par ligne
@@ -541,6 +594,7 @@ export default async function Agenda({
                 avantages={avantagesParCliente.get(rdv.clienteId) ?? []}
                 creneauxLibres={creneauxLibres}
                 variantes={variantes}
+                acompteAlaConfirmation={acompteAlaConfirmation.has(rdv.id)}
               />)
           )}
         </div>
@@ -629,6 +683,7 @@ export default async function Agenda({
                 avantages={avantagesParCliente.get(rdv.clienteId) ?? []}
                 creneauxLibres={creneauxLibres}
                 variantes={variantes}
+                acompteAlaConfirmation={acompteAlaConfirmation.has(rdv.id)}
               />)
           )}
         </div>
@@ -650,6 +705,7 @@ export default async function Agenda({
                 avantages={avantagesParCliente.get(rdv.clienteId) ?? []}
                 creneauxLibres={creneauxLibres}
                 variantes={variantes}
+                acompteAlaConfirmation={acompteAlaConfirmation.has(rdv.id)}
               />)
           )}
         </div>

@@ -64,7 +64,16 @@ const STATUTS: StatutRendezVous[] = ["EN_ATTENTE", "CONFIRME", "ANNULE", "TERMIN
 
 export async function changerStatutRendezVous(
   id: string,
-  statut: string
+  statut: string,
+  /**
+   * Accepter sans déclencher la demande d'acompte.
+   *
+   * Ajouté après un incident : une habituée a reçu un lien de paiement
+   * plusieurs jours après avoir proposé son horaire, parce que l'acompte part à
+   * l'acceptation et non à la demande. Zélia n'avait aucun moyen de le voir
+   * venir, ni de l'empêcher. Elle a maintenant les deux.
+   */
+  sansAcompte = false
 ): Promise<void> {
   await exigerAdmin();
   if (!STATUTS.includes(statut as StatutRendezVous)) return;
@@ -82,6 +91,7 @@ export async function changerStatutRendezVous(
     // L'acompte d'un horaire proposé n'a pas été demandé à la réservation : le
     // rendez-vous n'existait qu'à l'état de souhait. Il l'est maintenant.
     if (
+      !sansAcompte &&
       rendezVous.creneauPropose &&
       !rendezVous.acompteDemandeLe &&
       (await acompteADemander(rendezVous.clienteId, rendezVous.id))
