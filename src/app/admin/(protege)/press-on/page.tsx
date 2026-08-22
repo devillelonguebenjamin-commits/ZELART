@@ -85,6 +85,13 @@ export default async function AdminPressOn() {
                           Frais d&rsquo;envoi à chiffrer
                         </span>
                       )}
+                      {/* Se voit dès la liste : une commande sans mesure ne se
+                          fabrique pas, autant le savoir avant d'ouvrir. */}
+                      {!commande.mesures && (
+                        <span className="rounded-full bg-amber-100 px-3 py-1 font-semibold text-amber-800">
+                          Mesures manquantes
+                        </span>
+                      )}
                     </div>
                   </Link>
                 </li>

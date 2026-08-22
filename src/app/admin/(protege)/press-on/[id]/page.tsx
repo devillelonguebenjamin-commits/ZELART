@@ -112,13 +112,34 @@ export default async function CommandePressOnDetail({
               </dd>
             </div>
           )}
-          {commande.mesures && (
-            <div className="flex justify-between gap-4">
-              <dt className="text-foreground/60">Mesures</dt>
-              <dd className="max-w-xs text-right whitespace-pre-line">{commande.mesures}</dd>
-            </div>
-          )}
+          <div className="flex justify-between gap-4">
+            <dt className="text-foreground/60">Mesures</dt>
+            <dd className="max-w-xs text-right whitespace-pre-line">
+              {commande.mesures ?? (
+                <span className="font-medium text-amber-800">manquantes</span>
+              )}
+            </dd>
+          </div>
         </dl>
+
+        {/* Le formulaire les exige désormais, mais les commandes antérieures ont
+            pu passer sans. On avertit sans bloquer : Zélia peut avoir les
+            mesures ailleurs, dans un SMS ou sur une fiche papier, et le site
+            n'a pas à lui interdire ce qu'elle sait. */}
+        {!commande.mesures && (
+          <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            ⚠ <strong>Aucune mesure sur cette commande.</strong> Un set se taille à la main : sans
+            mesure, il n&rsquo;y a rien à fabriquer. Demandez-les à {commande.cliente.prenom} avant
+            de réclamer le règlement, depuis la conversation de{" "}
+            <Link
+              href={`/admin/clientes/${commande.clienteId}`}
+              className="font-medium underline underline-offset-2"
+            >
+              sa fiche
+            </Link>
+            . Elle sera prévenue par e-mail et pourra vous répondre au même endroit.
+          </p>
+        )}
 
         {commande.inspiration && (
           <div className="mt-4 rounded-xl bg-pink-50 px-4 py-3 text-sm">
@@ -243,6 +264,13 @@ export default async function CommandePressOnDetail({
             Enregistrer le lien
           </button>
         </form>
+
+        {!commande.mesures && (
+          <p className="mt-4 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
+            ⚠ Les mesures manquent : un règlement encaissé maintenant devrait être remboursé si
+            {" "}{commande.cliente.prenom} ne les donne jamais.
+          </p>
+        )}
 
         <div className="mt-4">
           <BoutonDemandePaiement
