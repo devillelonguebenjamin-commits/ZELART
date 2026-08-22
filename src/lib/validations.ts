@@ -62,11 +62,18 @@ export const commandePressOnSchema = z
     adresse: z.string().trim().max(300, "Adresse trop longue.").optional(),
     forme: z.string().trim().max(60).optional(),
     longueur: z.string().trim().max(60).optional(),
+    // Obligatoire depuis qu'une commande est arrivée sans la moindre mesure :
+    // un set se taille à la main, et sans mesure il n'y a rien à fabriquer.
+    //
+    // Le champ reste du texte libre plutôt qu'une liste de millimètres, parce
+    // qu'il accueille trois réponses également valables : les mesures elles-
+    // mêmes, « photos jointes », ou « je passe à l'institut ». Ce qui n'est plus
+    // possible, c'est de ne pas répondre.
     mesures: z
       .string()
       .trim()
-      .max(300, "Vos mesures ne doivent pas dépasser 300 caractères.")
-      .optional(),
+      .min(1, "Indiquez vos mesures, ou dites-moi comment vous souhaitez procéder.")
+      .max(300, "Vos mesures ne doivent pas dépasser 300 caractères."),
     inspiration: z
       .string()
       .trim()
