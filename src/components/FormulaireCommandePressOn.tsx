@@ -177,18 +177,43 @@ export default function FormulaireCommandePressOn({
         </div>
         <GuideTailles onReporter={(texte) => majChamp("mesures", texte)} />
 
+        {/* Obligatoire, mais pas forcément chiffré : trois réponses valent, et
+            les deux boutons remplissent celles qui ne s'écrivent pas. Ce qui
+            n'est plus possible, c'est de laisser la question sans réponse, ce
+            qui donnait une commande impossible à fabriquer. */}
         <label className="mt-4 block text-sm">
-          <span className="font-medium">Mesures de vos ongles (facultatif)</span>
+          <span className="font-medium">Mesures de vos ongles *</span>
+          <span className="mt-0.5 block text-xs text-foreground/60">
+            Les millimètres si vous les avez. Sinon, dites-moi simplement comment vous souhaitez
+            procéder, avec l&rsquo;un des deux boutons.
+          </span>
           <textarea
             name="mesures"
             rows={2}
+            required
             maxLength={300}
-            placeholder="Ex. : pouce 15 mm, index 12 mm… ou « photo jointe » / « je ne les connais pas »"
+            placeholder="Ex. : pouce 15 mm, index 12 mm…"
             value={champs.mesures}
             onChange={(e) => majChamp("mesures", e.target.value)}
             className={CLASSE_CHAMP}
           />
         </label>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => majChamp("mesures", "Photos de mes ongles jointes à la commande")}
+            className="rounded-full border border-pink-200 px-4 py-1.5 text-xs font-medium text-pink-600 transition hover:bg-pink-50"
+          >
+            Je joins des photos avec un repère
+          </button>
+          <button
+            type="button"
+            onClick={() => majChamp("mesures", "Je passe à l'institut pour être mesurée")}
+            className="rounded-full border border-pink-200 px-4 py-1.5 text-xs font-medium text-pink-600 transition hover:bg-pink-50"
+          >
+            Je passe à l&rsquo;institut pour être mesurée
+          </button>
+        </div>
       </section>
 
       <section>

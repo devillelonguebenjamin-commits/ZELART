@@ -272,8 +272,8 @@ export default function GuideTailles({ onReporter }: { onReporter: (texte: strin
           <strong>06&nbsp;45&nbsp;29&nbsp;20&nbsp;01</strong> pour convenir d&rsquo;un moment.
         </p>
         <p className="mt-1 text-foreground/60">
-          Laissez alors le champ des mesures vide et signalez-le dans votre message : la commande
-          est mise de côté en attendant votre passage.
+          Dites-le alors dans le champ des mesures, avec le bouton prévu juste en dessous : la
+          commande est mise de côté en attendant votre passage.
         </p>
       </div>
     </div>
