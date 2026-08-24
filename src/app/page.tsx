@@ -13,6 +13,7 @@ import { jsonLdSecurise } from "@/lib/json-ld";
 import { ficheEtablissement } from "@/lib/donnees-structurees";
 import { descriptionRealisation, LEGENDE_PAR_DEFAUT } from "@/lib/galerie";
 import { horaires } from "@/lib/horaires";
+import { figureAuTarif } from "@/lib/regles";
 
 export const dynamic = "force-dynamic";
 
@@ -59,13 +60,18 @@ export default async function Accueil() {
       description: descriptionRealisation(r.rendezVous.lignes.map((l) => l.prestation)),
     })),
   ].slice(0, 16);
-  const categories = grouperParCategorie(prestations);
+  // La grille de tarifs chiffre le nail art par niveau ; la ligne sans niveau,
+  // celle que la cliente réserve, y ferait doublon (cf. figureAuTarif).
+  const tarifs = prestations.filter(figureAuTarif);
+  const categories = grouperParCategorie(tarifs);
 
   // Repris par Google pour un encart enrichi dans les résultats de recherche :
   // adresse, téléphone, horaires, prestations et tarifs. Le détail, et ce qui
-  // en est volontairement absent, se lisent dans le module.
+  // en est volontairement absent, se lisent dans le module. Ce sont les tarifs
+  // filtrés qui partent : l'encart doit dire ce que la page affiche, pas deux
+  // fois le même nail art.
   const donneesStructurees = await ficheEtablissement({
-    prestations,
+    prestations: tarifs,
     reseaux,
     avis,
     images: visuels.map((v) => v.url),

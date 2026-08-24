@@ -61,6 +61,29 @@ export function comporteNailArt(prestation: { nom: string }): boolean {
   return /nail art/i.test(prestation.nom);
 }
 
+/** Le niveau porté par le nom, s'il y en a un. */
+export function niveauNailArt(prestation: { nom: string }): number | null {
+  const trouve = prestation.nom.match(/nail art niveau (\d)/i);
+  return trouve ? Number(trouve[1]) : null;
+}
+
+/**
+ * Cette prestation a-t-elle sa place dans une grille de tarifs publique.
+ *
+ * Depuis que la cliente ne choisit plus son niveau, le catalogue porte deux
+ * écritures du même nail art : les trois lignes chiffrées par niveau, et une
+ * ligne sans niveau, « à partir de », qui est celle qu'elle réserve. Chacune a
+ * sa raison d'être, mais côte à côte dans une même colonne de prix elles se
+ * répètent — « VSP + nail art à partir de 40 € » juste au-dessus de « VSP +
+ * nail art niveau 1, 40 € » n'apprend rien et laisse croire à deux offres.
+ *
+ * La grille garde donc les niveaux, qui seuls disent ce que coûte quoi ; la
+ * ligne sans niveau reste réservable, là où elle sert vraiment.
+ */
+export function figureAuTarif(prestation: { nom: string }): boolean {
+  return !comporteNailArt(prestation) || niveauNailArt(prestation) !== null;
+}
+
 // Une pose existante ne se recouvre pas : elle est soit remplie, soit retirée.
 // Dès lors que la sélection ne comporte ni remplissage ni dépose, la dépose
 // correspondante est ajoutée d'office.
