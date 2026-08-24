@@ -1,4 +1,5 @@
 import type { TypeActe, TypePose } from "@/generated/prisma/client";
+import { comporteNailArt } from "@/lib/regles";
 
 // Ce que la page « Les prestations expliquées » raconte est **déduit du
 // catalogue et des règles**, jamais recopié à côté : un tarif modifié, une
@@ -37,9 +38,16 @@ export type Technique = {
 
 const NIVEAU = /nail art niveau (\d)/i;
 
-/** Prestations « nues » : ni dépose, ni remplissage, ni nail art. */
+/**
+ * Prestations « nues » : ni dépose, ni remplissage, ni nail art.
+ *
+ * Le nail art se reconnaît à `comporteNailArt` et non au seul niveau : depuis
+ * que la cliente réserve « avec nail art » sans choisir, le catalogue porte
+ * aussi des lignes sans niveau, qui ne sont pas davantage des prestations nues.
+ * Les prendre pour repère fausserait le supplément affiché.
+ */
 function estBase(p: PrestationExpliquee): boolean {
-  return p.typeActe === "POSE" && !NIVEAU.test(p.nom);
+  return p.typeActe === "POSE" && !comporteNailArt(p);
 }
 
 export function techniques(
