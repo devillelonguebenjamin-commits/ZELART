@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { exigerAdmin, fermerSessionAdmin, ouvrirSessionAdmin } from "@/lib/auth";
 import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { z } from "zod";
-import { dateParis, formatHeure, formatJour } from "@/lib/creneaux";
+import { creneauProposeDepuisSaisie, dateParis, formatHeure, formatJour } from "@/lib/creneaux";
 import { envoyerDemandeAcompte, acompteADemander, verifierAcompte } from "@/lib/acompte";
 import { formatPrix, totalTarifs } from "@/lib/format";
 import {
@@ -220,11 +220,11 @@ function joursDepuisChamp(valeur: FormDataEntryValue | null): [number, number, n
   return [Number(m[1]), Number(m[2]), Number(m[3])];
 }
 
-export async function ajouterConge(formData: FormData): Promise<void> {
-  await exigerAdmin();
+/** Période en journées entières, fin comprise. */
+function bornesConge(formData: FormData): { debut: Date; fin: Date } | null {
   const debutJ = joursDepuisChamp(formData.get("dateDebut"));
   const finJ = joursDepuisChamp(formData.get("dateFin")) ?? debutJ;
-  if (!debutJ || !finJ) return;
+  if (!debutJ || !finJ) return null;
 
   const debut = dateParis(debutJ[0], debutJ[1], debutJ[2], 0, 0);
   // Fin inclusive : on bloque jusqu'au lendemain 00h00 (heure de Paris)
@@ -236,12 +236,67 @@ export async function ajouterConge(formData: FormData): Promise<void> {
     0,
     0
   );
-  if (fin <= debut) return;
+  if (fin <= debut) return null;
+  return { debut, fin };
+}
+
+/** Créneau à l'heure près, tel que le bloque le tableau de bord. */
+function bornesCreneau(formData: FormData): { debut: Date; fin: Date } | null {
+  const debut = creneauProposeDepuisSaisie(String(formData.get("debut") ?? ""));
+  if (!debut) return null;
+  const saisie = Number(formData.get("dureeMin"));
+  const duree = Number.isFinite(saisie) && saisie > 0 ? Math.min(saisie, 12 * 60) : 60;
+  return { debut, fin: new Date(debut.getTime() + duree * 60_000) };
+}
+
+export async function ajouterConge(formData: FormData): Promise<void> {
+  await exigerAdmin();
+  const bornes = bornesConge(formData);
+  if (!bornes) return;
 
   await prisma.indisponibilite.create({
-    data: { debut, fin, motif: String(formData.get("motif") ?? "").slice(0, 200) || null },
+    data: { ...bornes, motif: String(formData.get("motif") ?? "").slice(0, 200) || null },
   });
   revalidatePath("/admin/conges");
+  revalidatePath("/admin");
+}
+
+/**
+ * Corriger une période déjà posée, plutôt que la supprimer et la reposer.
+ *
+ * Le besoin est banal — des congés qu'on rallonge d'un jour, un motif à
+ * préciser — et n'avait pour seule réponse que « Supprimer », puis tout
+ * ressaisir. Une manœuvre dont on peut sortir avec une journée ouverte par
+ * erreur si l'on s'interrompt entre les deux.
+ *
+ * Deux formes cohabitent dans la même table : les congés, posés en journées
+ * entières depuis cet écran, et les créneaux personnels posés à l'heure près
+ * depuis le tableau de bord. Le formulaire soumis dit laquelle il renvoie ;
+ * confondre les deux ferait d'un blocage de 14 h à 15 h une journée fermée.
+ */
+export async function modifierConge(id: string, formData: FormData): Promise<void> {
+  await exigerAdmin();
+
+  const bornes =
+    formData.get("forme") === "heure" ? bornesCreneau(formData) : bornesConge(formData);
+  if (!bornes) return;
+
+  // Un rendez-vous déjà pris sur la période étendue doit être signalé plutôt
+  // qu'écrasé en silence : le blocage ne l'annulerait pas, et Zélia se
+  // retrouverait avec les deux. On refuse, elle tranche.
+  const conflit = await prisma.rendezVous.findFirst({
+    where: { statut: { not: "ANNULE" }, debut: { lt: bornes.fin }, fin: { gt: bornes.debut } },
+  });
+  if (conflit) {
+    redirect(`/admin/conges?conflit=${id}`);
+  }
+
+  await prisma.indisponibilite.update({
+    where: { id },
+    data: { ...bornes, motif: String(formData.get("motif") ?? "").slice(0, 200) || null },
+  });
+  revalidatePath("/admin/conges");
+  revalidatePath("/admin");
 }
 
 export async function supprimerConge(id: string): Promise<void> {
