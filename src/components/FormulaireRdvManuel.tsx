@@ -33,10 +33,22 @@ export default function FormulaireRdvManuel({
   const [recherche, setRecherche] = useState("");
   const [clienteId, setClienteId] = useState("");
   const [choisies, setChoisies] = useState<string[]>([]);
+  const [quand, setQuand] = useState(dateParDefaut);
+  // Prix réellement facturés, saisis seulement quand ils s'écartent du tarif.
+  const [prix, setPrix] = useState<Record<string, string>>({});
+  const [dejaVenue, setDejaVenue] = useState(true);
   const [etat, action, enCours] = useActionState<EtatRdvManuel, FormData>(
     creerRendezVousManuel,
     {}
   );
+
+  // Une date passée change la nature de la saisie : ce n'est plus un
+  // rendez-vous à venir, c'est une visite qui a eu lieu. Le formulaire le
+  // reconnaît lui-même plutôt que de le demander.
+  const passee = useMemo(() => {
+    const saisie = new Date(quand);
+    return Number.isFinite(saisie.getTime()) && saisie.getTime() < Date.now();
+  }, [quand]);
 
   const trouvees = useMemo(() => {
     const q = recherche.trim().toLowerCase();
@@ -49,6 +61,15 @@ export default function FormulaireRdvManuel({
   const retenues = prestations.filter((p) => choisies.includes(p.id));
   const total = totalTarifs(retenues);
   const choisie = clientes.find((c) => c.id === clienteId);
+
+  // Total réellement facturé : le tarif du catalogue sauf là où Zélia a écrit
+  // autre chose. Un « à partir de » cesse d'être un plancher dès qu'elle a
+  // renseigné le montant convenu.
+  const totalFacture = retenues.reduce((somme, p) => {
+    const saisi = Number((prix[p.id] ?? "").replace(",", "."));
+    return somme + (Number.isFinite(saisi) && prix[p.id]?.trim() ? Math.round(saisi * 100) : p.prixCents);
+  }, 0);
+  const tousChiffres = retenues.every((p) => !p.aPartirDe || prix[p.id]?.trim());
 
   function basculer(id: string) {
     setChoisies((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
@@ -199,9 +220,15 @@ export default function FormulaireRdvManuel({
             type="datetime-local"
             name="debut"
             required
-            defaultValue={dateParDefaut}
+            value={quand}
+            onChange={(e) => setQuand(e.target.value)}
             className={CHAMP}
           />
+          {passee && (
+            <span className="mt-1 block text-xs text-foreground/60">
+              Date passée : vous notez une visite déjà faite.
+            </span>
+          )}
         </label>
         <label className="block text-sm">
           <span className="font-medium">
@@ -253,15 +280,89 @@ export default function FormulaireRdvManuel({
           ))}
         </div>
         {retenues.length > 0 && (
-          <p className="mt-2 text-sm">
-            Total :{" "}
-            <strong className="text-pink-600">
-              {formatPrix(total.prixCents, total.aPartirDe)}
-            </strong>{" "}
-            · {formatDuree(totalDuree(retenues))}
-          </p>
+          <div className="mt-3 rounded-xl border border-pink-100 bg-pink-50/50 p-3">
+            <p className="text-xs font-medium text-foreground/70">
+              Prix réellement facturé{" "}
+              <span className="font-normal text-foreground/55">
+                (laissez vide pour appliquer le tarif)
+              </span>
+            </p>
+            <div className="mt-2 space-y-1.5">
+              {retenues.map((p) => (
+                <div key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                  <span className="min-w-40 flex-1">{p.nom}</span>
+                  <span className="text-xs text-foreground/55">
+                    tarif {formatPrix(p.prixCents, p.aPartirDe)}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      name={`prix_${p.id}`}
+                      value={prix[p.id] ?? ""}
+                      onChange={(e) => setPrix((v) => ({ ...v, [p.id]: e.target.value }))}
+                      placeholder={(p.prixCents / 100).toFixed(2).replace(".", ",")}
+                      aria-label={`Prix facturé pour ${p.nom}, en euros`}
+                      className="w-24 rounded-lg border border-pink-200 bg-white px-2 py-1 text-right text-sm tabular-nums outline-none focus:border-pink-500"
+                    />
+                    <span className="text-xs text-foreground/60">€</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 border-t border-pink-100 pt-2 text-sm">
+              Total :{" "}
+              <strong className="text-pink-600">
+                {formatPrix(totalFacture, total.aPartirDe && !tousChiffres)}
+              </strong>{" "}
+              · {formatDuree(totalDuree(retenues))}
+            </p>
+            {total.aPartirDe && !tousChiffres && (
+              <p className="mt-1 text-xs text-amber-800">
+                Une prestation est tarifée « à partir de » : sans le montant convenu, elle comptera
+                pour son minimum dans vos chiffres.
+              </p>
+            )}
+          </div>
         )}
       </fieldset>
+
+      {passee && (
+        <fieldset className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
+          <legend className="px-1 text-sm font-medium text-emerald-900">Visite déjà faite</legend>
+          <label className="flex items-start gap-2 text-sm text-emerald-900">
+            <input
+              type="checkbox"
+              name="dejaVenue"
+              value="oui"
+              checked={dejaVenue}
+              onChange={(e) => setDejaVenue(e.target.checked)}
+              className="mt-1 size-4 accent-emerald-600"
+            />
+            <span>
+              La cliente est bien venue. Le rendez-vous est enregistré <strong>terminé</strong> et
+              compte dans vos chiffres, sans qu&rsquo;aucun e-mail ne parte.
+            </span>
+          </label>
+          {dejaVenue && (
+            <label className="mt-3 block text-sm">
+              <span className="font-medium text-emerald-900">
+                Ce qui a été fait <span className="font-normal text-emerald-900/60">(facultatif)</span>
+              </span>
+              <textarea
+                name="commentaireVisite"
+                rows={2}
+                maxLength={1000}
+                placeholder="Couleur, forme, longueur, ce qu’elle a aimé, ce qu’il faudra prévoir…"
+                className="mt-1 w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
+              />
+              <span className="mt-1 block text-xs text-emerald-900/70">
+                Ce détail se retrouve sur sa fiche, à côté de l&rsquo;historique de ses poses.
+              </span>
+            </label>
+          )}
+        </fieldset>
+      )}
 
       <label className="mt-4 block text-sm">
         <span className="font-medium">
