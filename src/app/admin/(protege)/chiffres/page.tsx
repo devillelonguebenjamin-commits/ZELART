@@ -177,8 +177,11 @@ export default async function AdminChiffres() {
             <p className="mt-2 text-sm text-foreground/60">
               Sur <strong>{bord.durees.mesurees}</strong> visite
               {bord.durees.mesurees > 1 ? "s" : ""} mesurée{bord.durees.mesurees > 1 ? "s" : ""} sur{" "}
-              {bord.durees.total}. {bord.durees.debordent} ont dépassé l&rsquo;heure prévue, avec un
-              écart médian de{" "}
+              {bord.durees.total}.{" "}
+              {bord.durees.debordent === 1
+                ? "Une a dépassé l’heure prévue"
+                : `${bord.durees.debordent} ont dépassé l’heure prévue`}
+              , avec un écart médian de{" "}
               <strong className={bord.durees.ecartMedianMin > 0 ? "text-amber-700" : "text-emerald-700"}>
                 {bord.durees.ecartMedianMin > 0 ? "+" : ""}
                 {bord.durees.ecartMedianMin} min
@@ -221,8 +224,9 @@ export default async function AdminChiffres() {
               </div>
             )}
             <p className="mt-2 text-xs text-foreground/60">
-              Le détail ne porte que sur les visites à <strong>une seule prestation</strong> : sur
-              un rendez-vous à trois lignes, un débordement ne dit pas laquelle a débordé. Corrigez
+              Le détail ne porte que sur les visites à <strong>une seule prestation</strong>
+              {" : "}sur un rendez-vous à trois lignes, un débordement ne dit pas laquelle a
+              débordé. Corrigez
               une durée depuis l&rsquo;écran Prestations dès qu&rsquo;un écart se confirme sur
               plusieurs mesures.
             </p>
@@ -306,8 +310,10 @@ export default async function AdminChiffres() {
               <p className="mt-3 text-xs text-foreground/60">
                 Calculé sur {formatPrix(bord.marge.couvertureCents)} de prestations dont le coût est
                 renseigné, soit{" "}
-                {Math.round((bord.marge.couvertureCents / Math.max(bord.fiabilite.totalCents, 1)) * 100)} %
-                du total. Le reste n&rsquo;est pas compté ici.
+                {Math.round(
+                  (bord.marge.couvertureCents / Math.max(bord.fiabilite.totalCents, 1)) * 100
+                )}{" "}
+                % du total. Le reste n&rsquo;est pas compté ici.
               </p>
             </>
           )}
