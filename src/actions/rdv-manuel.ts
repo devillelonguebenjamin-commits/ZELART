@@ -212,12 +212,18 @@ export async function creerRendezVousManuel(
             noteCliente: note || null,
             commentaireVisite: commentaireVisite || null,
             lignes: {
-              create: prestations.map((prestation, ordre) => ({
-                prestationId: prestation.id,
-                automatique: false,
-                prixCents: centimesDepuisChamp(formData.get(`prix_${prestation.id}`)) ?? prestation.prixCents,
-                ordre,
-              })),
+              create: prestations.map((prestation, ordre) => {
+                const facture = centimesDepuisChamp(formData.get(`prix_${prestation.id}`));
+                return {
+                  prestationId: prestation.id,
+                  automatique: false,
+                  prixCents: facture ?? prestation.prixCents,
+                  // Marqué seulement quand Zélia a écrit le montant : c'est ce
+                  // qui distingue un fait d'un tarif recopié.
+                  prixConfirme: facture !== null,
+                  ordre,
+                };
+              }),
             },
           },
         });

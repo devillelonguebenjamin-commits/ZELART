@@ -1,0 +1,12 @@
+-- Un prix saisi par Zélia n'est pas un tarif de catalogue.
+--
+-- Le tableau de bord annonçait ses totaux comme un plancher dès qu'une
+-- prestation « à partir de » y figurait, et c'était vrai : le prix figé à la
+-- réservation est celui du catalogue, pas celui du nail art réellement fait.
+--
+-- Depuis que Zélia peut saisir le montant convenu, les deux cohabitent dans la
+-- même colonne et ne se distinguent plus. Comparer au tarif ne suffirait pas :
+-- le catalogue évolue, et une égalité peut être une coïncidence dans un sens
+-- comme dans l'autre. D'où une marque explicite, la seule chose qui ne mente
+-- pas sur l'origine du montant.
+ALTER TABLE "LignePrestation" ADD COLUMN "prixConfirme" BOOLEAN NOT NULL DEFAULT false;

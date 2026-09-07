@@ -23,10 +23,15 @@ export default function FormulaireRdvManuel({
   clientes,
   prestations,
   dateParDefaut,
+  maintenantMs,
 }: {
   clientes: ClienteConnue[];
   prestations: PrestationChoix[];
   dateParDefaut: string;
+  /** Instant du rendu serveur. Lire l'horloge pendant le rendu donnerait au
+   *  serveur et au navigateur deux réponses différentes, donc une hydratation
+   *  divergente — et sur la seule question qui compte ici : passé ou à venir. */
+  maintenantMs: number;
 }) {
   const [ouvert, setOuvert] = useState(false);
   const [nouvelle, setNouvelle] = useState(false);
@@ -47,8 +52,8 @@ export default function FormulaireRdvManuel({
   // reconnaît lui-même plutôt que de le demander.
   const passee = useMemo(() => {
     const saisie = new Date(quand);
-    return Number.isFinite(saisie.getTime()) && saisie.getTime() < Date.now();
-  }, [quand]);
+    return Number.isFinite(saisie.getTime()) && saisie.getTime() < maintenantMs;
+  }, [quand, maintenantMs]);
 
   const trouvees = useMemo(() => {
     const q = recherche.trim().toLowerCase();

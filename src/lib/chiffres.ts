@@ -58,6 +58,7 @@ export async function tableauDeBord(): Promise<TableauDeBord> {
         lignes: {
           select: {
             prixCents: true,
+            prixConfirme: true,
             prestation: { select: { nom: true, categorie: true, prixCents: true, aPartirDe: true } },
           },
         },
@@ -110,7 +111,11 @@ export async function tableauDeBord(): Promise<TableauDeBord> {
       // Le prix figé à la demande fait foi ; les demandes antérieures à ce
       // suivi retombent sur le tarif actuel.
       const prix = l.prixCents ?? l.prestation.prixCents;
-      if (l.prestation.aPartirDe) prixIndicatifs = true;
+      // Un « à partir de » ne rend le total indicatif que tant que le montant
+      // réellement facturé n'a pas été saisi. Depuis que Zélia peut l'écrire,
+      // l'avertissement doit disparaître quand il n'a plus lieu d'être — sinon
+      // il apprend à ne plus être lu.
+      if (l.prestation.aPartirDe && !l.prixConfirme) prixIndicatifs = true;
       ligne.posesCents += prix;
 
       const cumul = prestations.get(l.prestation.nom);

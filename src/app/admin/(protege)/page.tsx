@@ -562,6 +562,7 @@ export default async function Agenda({
             clientes={clientes}
             prestations={catalogue}
             dateParDefaut={dateParDefaut}
+            maintenantMs={maintenant.getTime()}
           />
           <FormulaireCreneauPerso dateParDefaut={dateParDefaut} />
         </div>
