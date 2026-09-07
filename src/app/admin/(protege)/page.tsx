@@ -18,7 +18,7 @@ import { reglagesAcompte } from "@/lib/parametres";
 import { acompteADemander } from "@/lib/acompte";
 import type { Prisma } from "@/generated/prisma/client";
 import { bornesMois, grilleMois, moisDemande, type EvenementJour } from "@/lib/calendrier";
-import { jourParis, ouvertureActive } from "@/lib/creneaux";
+import { jourParis, ouvertureActive, partiesParis } from "@/lib/creneaux";
 import CalendrierMois from "@/components/CalendrierMois";
 import FormulaireRdvManuel from "@/components/FormulaireRdvManuel";
 import FormulaireCreneauPerso from "@/components/FormulaireCreneauPerso";
@@ -76,6 +76,13 @@ type RdvComplet = Prisma.RendezVousGetPayload<{
     lignes: { include: { prestation: true } };
   };
 }>;
+
+// « 16:45 » : ce qu'attend un champ de type time, là où formatHeure rend
+// « 16h45 », qui est fait pour être lu et non pour être saisi.
+function heureChamp(date: Date): string {
+  const { heure, minute } = partiesParis(date);
+  return `${String(heure).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
 
 const LIBELLE_ETAT: Record<string, string> = {
   NATUREL: "ongles nus",
@@ -388,6 +395,15 @@ function CarteRdv({
             dejaValide={rdv.statut === "TERMINE"}
             commentaire={rdv.commentaireVisite}
             passe={rdv.fin <= new Date()}
+            lignes={rdv.lignes.map((l) => ({
+              id: l.id,
+              nom: l.prestation.nom,
+              prixCents: l.prixCents ?? l.prestation.prixCents,
+              prixConfirme: l.prixConfirme,
+              aPartirDe: l.prestation.aPartirDe,
+            }))}
+            finPrevue={heureChamp(rdv.fin)}
+            finReelle={rdv.finReelle ? heureChamp(rdv.finReelle) : null}
           />
         )}
         {rdv.statut === "CONFIRME" && (

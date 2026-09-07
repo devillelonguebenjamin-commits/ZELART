@@ -36,6 +36,7 @@ export default async function Prestations() {
                   <tr className="border-b border-pink-100 text-left text-foreground/60">
                     <th className="px-4 py-2.5 font-medium">Prestation</th>
                     <th className="px-4 py-2.5 font-medium">Prix (€)</th>
+                    <th className="px-4 py-2.5 font-medium">Coût matière (€)</th>
                     <th className="px-4 py-2.5 font-medium">« à partir de »</th>
                     <th className="px-4 py-2.5 font-medium">Durée (min)</th>
                     <th className="px-4 py-2.5 font-medium">Visible</th>
@@ -53,6 +54,21 @@ export default async function Prestations() {
                           name="prixEuros"
                           defaultValue={(p.prixCents / 100).toString().replace(".", ",")}
                           inputMode="decimal"
+                          className="w-20 rounded-lg border border-pink-200 px-2 py-1 text-right outline-none focus:border-pink-500"
+                        />
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <input
+                          form={`form-${p.id}`}
+                          name="coutMatiereEuros"
+                          defaultValue={
+                            p.coutMatiereCents === null
+                              ? ""
+                              : (p.coutMatiereCents / 100).toString().replace(".", ",")
+                          }
+                          inputMode="decimal"
+                          placeholder="—"
+                          aria-label={`Coût matière de ${p.nom}, en euros`}
                           className="w-20 rounded-lg border border-pink-200 px-2 py-1 text-right outline-none focus:border-pink-500"
                         />
                       </td>
