@@ -285,6 +285,13 @@ model LignePrestation {
   // pour les demandes antérieures à ce suivi, qui retombent sur le tarif actuel.
   prixCents Int?
 
+  // Vrai quand ce montant est celui que Zélia a réellement facturé, et non le
+  // tarif recopié du catalogue. La distinction n'est pas décorative : sur une
+  // prestation « à partir de », le tarif est un plancher, le montant convenu
+  // est un fait. Sans cette marque, les chiffres ne peuvent pas dire lequel
+  // des deux ils additionnent.
+  prixConfirme Boolean @default(false)
+
   @@unique([rendezVousId, prestationId])
   @@index([rendezVousId])
 }

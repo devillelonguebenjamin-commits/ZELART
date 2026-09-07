@@ -704,6 +704,49 @@ Compter de quelques minutes à quelques heures de propagation — et les deux se
 choses différentes et Vercel clignote rouge/vert sans que la zone soit en cause. Le bouton
 *Refresh* force la vérification. Pendant ce temps le site reste servi par `zelart.vercel.app`.
 
+### DMARC : `_dmarc.zelart.fr`
+
+SPF et DKIM prouvent qu'un message est authentique. Ils ne disent pas **quoi faire de celui qui ne
+l'est pas** : sans DMARC, chaque messagerie décide seule, et un message signé `contact@zelart.fr`
+par n'importe qui reste livrable. DMARC comble ce trou, et ramène en prime des rapports sur qui
+écrit au nom du domaine.
+
+Enjeu concret ici : ce site n'envoie que des messages qui doivent arriver — confirmation de
+rendez-vous, lien de connexion, lien de paiement d'acompte. Un rendez-vous confirmé qui finit en
+indésirables est un fauteuil vide.
+
+**Un seul enregistrement**, dans la zone DNS d'OVH :
+
+```
+_dmarc    TXT    v=DMARC1; p=none; rua=mailto:dmarc@zelart.fr
+```
+
+Le champ *Sous-domaine* prend **`_dmarc` seul** : OVH ajoute `.zelart.fr` lui-même, et le nom
+complet y produirait `_dmarc.zelart.fr.zelart.fr`. Même piège que le `@` de l'apex.
+
+**L'ordre des trois étapes n'est pas négociable :**
+
+1. **DKIM Brevo au vert d'abord.** DMARC ne passe que si SPF **ou** DKIM est *aligné* — c'est-à-dire
+   porte le domaine du `From:`, pas seulement un domaine valide. Brevo expédie sous son propre
+   domaine d'enveloppe, donc SPF n'est en général **pas** aligné : DKIM porte tout. Poser une
+   politique stricte avant que Brevo soit authentifié ferait disparaître les e-mails du site.
+2. **`p=none` pendant trois à quatre semaines.** Rien n'est bloqué, on observe. C'est là qu'on
+   découvre les expéditeurs oubliés — le webmail OVH si Zélia écrit à la main depuis
+   `contact@zelart.fr`, un outil de newsletter, une ancienne intégration.
+3. **Durcir seulement quand les rapports sont propres** : `p=quarantine`, puis `p=reject`.
+
+**Le piège du `rua`.** Une adresse de rapport hors du domaine (`…@gmail.com`) exige que *ce*
+domaine publie `zelart.fr._report._dmarc.gmail.com` — impossible chez Google. Les rapporteurs
+sérieux vérifient et n'envoient rien : on croit DMARC inactif alors que seule l'adresse est en
+cause. L'adresse doit donc être **en `@zelart.fr`** (avec une redirection vers la boîte réelle),
+ou celle d'un service de lecture de rapports, qui publie l'autorisation pour vous.
+
+Les rapports bruts sont des pièces jointes XML, plusieurs par jour, illisibles pour un humain. Un
+lecteur de rapports (Postmark DMARC Digests, dmarcian, URIports ont des offres gratuites) les
+transforme en résumé hebdomadaire ; sans lui, l'étape 2 ne sera pas faite.
+
+Vérification après propagation : `mxtoolbox.com/dmarc.aspx`, ou tout inspecteur DMARC.
+
 ## Commandes de press-on (`/press-on`)
 
 Formes proposées : Amande, Arrondi, Ballerine, Carré, Stiletto. Longueurs : Courte, Moyenne,

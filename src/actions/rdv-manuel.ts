@@ -46,6 +46,21 @@ function emailDeComplaisance(): string {
   return `sans-email.${randomBytes(6).toString("hex")}@${DOMAINE_SANS_EMAIL}`;
 }
 
+/**
+ * Montant saisi à la main, en centimes. `null` quand rien n'est écrit — le
+ * tarif du catalogue fait alors foi, comme avant.
+ *
+ * On accepte la virgule autant que le point : « 47,50 » est ce qu'une
+ * francophone tape, et refuser sa façon d'écrire un prix serait absurde.
+ */
+function centimesDepuisChamp(valeur: FormDataEntryValue | null): number | null {
+  const texte = String(valeur ?? "").trim().replace(",", ".");
+  if (!texte) return null;
+  const euros = Number(texte);
+  if (!Number.isFinite(euros) || euros < 0 || euros > 10_000) return null;
+  return Math.round(euros * 100);
+}
+
 export async function creerRendezVousManuel(
   _etatPrecedent: EtatRdvManuel,
   formData: FormData
@@ -98,6 +113,20 @@ export async function creerRendezVousManuel(
   }
 
   const note = String(formData.get("note") ?? "").trim().slice(0, 500);
+
+  // Une visite passée se note telle qu'elle a eu lieu : ce qui a été fait, et
+  // ce qui a été payé. C'est ce qui permet de reprendre l'historique des
+  // anciennes clientes, celles qui n'ont jamais réservé en ligne.
+  //
+  // Le prix facturé prime sur le catalogue quand il est saisi. Sans lui, une
+  // pose « à partir de 50 € » comptait pour 50 € dans les chiffres quel que
+  // soit le nail art réellement fait : le tableau de bord annonçait un plancher
+  // et le disait, mais rien ne permettait de le corriger.
+  const estPassee = fin < new Date();
+  const dejaVenue = estPassee && formData.get("dejaVenue") === "oui";
+  const commentaireVisite = String(formData.get("commentaireVisite") ?? "")
+    .trim()
+    .slice(0, 1000);
 
   let cliente: { id: string; prenom: string; nom: string };
   try {
@@ -178,16 +207,23 @@ export async function creerRendezVousManuel(
             clienteId: retenue.id,
             debut,
             fin,
-            statut: "CONFIRME",
+            statut: dejaVenue ? "TERMINE" : "CONFIRME",
             consentementSante: true,
             noteCliente: note || null,
+            commentaireVisite: commentaireVisite || null,
             lignes: {
-              create: prestations.map((prestation, ordre) => ({
-                prestationId: prestation.id,
-                automatique: false,
-                prixCents: prestation.prixCents,
-                ordre,
-              })),
+              create: prestations.map((prestation, ordre) => {
+                const facture = centimesDepuisChamp(formData.get(`prix_${prestation.id}`));
+                return {
+                  prestationId: prestation.id,
+                  automatique: false,
+                  prixCents: facture ?? prestation.prixCents,
+                  // Marqué seulement quand Zélia a écrit le montant : c'est ce
+                  // qui distingue un fait d'un tarif recopié.
+                  prixConfirme: facture !== null,
+                  ordre,
+                };
+              }),
             },
           },
         });
@@ -220,10 +256,27 @@ export async function creerRendezVousManuel(
   }
 
   revalidatePath("/admin");
+  revalidatePath("/admin/chiffres");
   revalidatePath(`/admin/clientes/${cliente.id}`);
+
+  if (!dejaVenue) {
+    return {
+      ok: true,
+      message: `Rendez-vous noté pour ${cliente.prenom} ${cliente.nom}, le ${formatJour(debut)} à ${formatHeure(debut)}.`,
+    };
+  }
+
+  // Aucun e-mail de parrainage n'est déclenché ici, à la différence du bouton
+  // « elle est bien venue » : féliciter une marraine pour une pose d'il y a six
+  // mois, au moment où Zélia ressaisit son carnet, serait incompréhensible. Le
+  // palier, lui, se recalcule seul puisqu'il se déduit des venues réelles —
+  // d'où ce rappel plutôt qu'un silence.
   return {
     ok: true,
-    message: `Rendez-vous noté pour ${cliente.prenom} ${cliente.nom}, le ${formatJour(debut)} à ${formatHeure(debut)}.`,
+    message:
+      `Visite du ${formatJour(debut)} enregistrée pour ${cliente.prenom} ${cliente.nom}. ` +
+      `Elle compte dès maintenant dans vos chiffres. Si cette cliente a une marraine, ` +
+      `son palier a pu changer sans qu'aucun e-mail ne parte : vérifiez l'onglet Parrainage.`,
   };
 }
 
