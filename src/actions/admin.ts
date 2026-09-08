@@ -78,9 +78,23 @@ export async function changerStatutRendezVous(
   await exigerAdmin();
   if (!STATUTS.includes(statut as StatutRendezVous)) return;
 
+  // Le moment où la demande cesse d'attendre, quel que soit le sens de la
+  // réponse. Posé une seule fois : un rendez-vous confirmé puis annulé a été
+  // répondu à la confirmation, et réécrire la date en ferait une réponse
+  // tardive qu'on n'a pas faite.
+  const enAttente = await prisma.rendezVous.findUnique({
+    where: { id },
+    select: { statut: true, repondueLe: true },
+  });
+
   const rendezVous = await prisma.rendezVous.update({
     where: { id },
-    data: { statut: statut as StatutRendezVous },
+    data: {
+      statut: statut as StatutRendezVous,
+      ...(enAttente?.statut === "EN_ATTENTE" && !enAttente.repondueLe && statut !== "EN_ATTENTE"
+        ? { repondueLe: new Date() }
+        : {}),
+    },
     include: {
       cliente: true,
       lignes: { include: { prestation: true }, orderBy: { ordre: "asc" } },
@@ -154,7 +168,18 @@ export async function refuserCreneauPropose(id: string): Promise<void> {
   });
   if (!rendezVous || !rendezVous.creneauPropose) return;
 
-  await prisma.rendezVous.update({ where: { id }, data: { statut: "ANNULE" } });
+  await prisma.rendezVous.update({
+    where: { id },
+    data: {
+      statut: "ANNULE",
+      // Refuser un horaire est une réponse, et parmi les plus attendues : la
+      // cliente a demandé une heure précise et ne peut rien faire avant de
+      // savoir.
+      ...(rendezVous.statut === "EN_ATTENTE" && !rendezVous.repondueLe
+        ? { repondueLe: new Date() }
+        : {}),
+    },
+  });
 
   await envoyerEmail(
     rendezVous.cliente.email,
@@ -194,6 +219,13 @@ export async function modifierPrestation(formData: FormData): Promise<void> {
   if (!id || !Number.isFinite(prixEuros) || prixEuros < 0 || !Number.isInteger(dureeMin) || dureeMin <= 0) {
     return;
   }
+
+  const coutSaisi = String(formData.get("coutMatiereEuros") ?? "").trim().replace(",", ".");
+  const coutEuros = Number(coutSaisi);
+  const coutMatiere =
+    coutSaisi === "" || !Number.isFinite(coutEuros) || coutEuros < 0 || coutEuros > 10_000
+      ? null
+      : Math.round(coutEuros * 100);
   await prisma.prestation.update({
     where: { id },
     data: {
@@ -205,6 +237,10 @@ export async function modifierPrestation(formData: FormData): Promise<void> {
       // de réservation. C'est le cas des trois niveaux de nail art : ils servent
       // à ajuster une ligne, la cliente ne les choisit plus.
       choixCliente: formData.get("choixCliente") === "on",
+      // Vide veut dire « pas renseigné », et se distingue de zéro : une marge
+      // calculée sur un coût inconnu vaudrait le chiffre d'affaires, ce qui
+      // serait faux et aurait l'air juste.
+      coutMatiereCents: coutMatiere,
     },
   });
   revalidatePath("/admin/prestations");

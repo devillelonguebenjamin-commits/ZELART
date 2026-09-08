@@ -67,7 +67,16 @@ export async function annulerAvecMessage(
   }
 
   const etaitConfirme = rdv.statut === "CONFIRME";
-  await prisma.rendezVous.update({ where: { id: rendezVousId }, data: { statut: "ANNULE" } });
+  await prisma.rendezVous.update({
+    where: { id: rendezVousId },
+    data: {
+      statut: "ANNULE",
+      // Refuser une demande est une réponse : elle compte dans le délai au
+      // même titre qu'une acceptation. Ce que le délai mesure, c'est
+      // l'attente de la cliente, pas le sens de ce qu'on lui répond.
+      ...(rdv.statut === "EN_ATTENTE" && !rdv.repondueLe ? { repondueLe: new Date() } : {}),
+    },
+  });
 
   // Le créneau libéré peut intéresser la liste d'attente — mais seulement s'il
   // était réellement retenu. Une demande jamais confirmée n'occupait rien.

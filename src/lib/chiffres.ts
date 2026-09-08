@@ -20,6 +20,17 @@ export type LignePrestationChiffre = {
   totalCents: number;
 };
 
+/** Écart entre la durée prévue et la durée réellement passée. */
+export type EcartDuree = {
+  nom: string;
+  /** Nombre de visites mesurées pour cette prestation. */
+  mesures: number;
+  prevuMin: number;
+  /** Moyenne du temps réellement passé, en minutes. */
+  reelMin: number;
+  ecartMin: number;
+};
+
 export type TableauDeBord = {
   mois: LigneMois[];
   moisCourant: LigneMois;
@@ -31,11 +42,51 @@ export type TableauDeBord = {
   remplissage: { occupes: number; ouverts: number; part: number };
   clientes: { total: number; fidelisees: number; part: number; nouvellesCeMois: number };
   annulations: { annules: number; absences: number };
+
+  /** Durées mesurées, quand l'heure de sortie a été notée. */
+  durees: {
+    mesurees: number;
+    /** Visites terminées sur la période, mesurées ou non. */
+    total: number;
+    ecartMedianMin: number;
+    debordent: number;
+    /** Par prestation, sur les seules visites à une prestation. */
+    parPrestation: EcartDuree[];
+  };
+
+  /** Délai entre la demande et la réponse. */
+  reponses: {
+    mesurees: number;
+    medianeHeures: number;
+    sousDeuxHeures: number;
+    /** Demandes qui attendent encore, et depuis combien d'heures pour la plus vieille. */
+    enAttente: number;
+    plusVieilleHeures: number;
+  };
+
+  /** Marge, quand le coût matière est renseigné. */
+  marge: {
+    /** Part du chiffre d'affaires dont le coût matière est connu. */
+    couvertureCents: number;
+    coutCents: number;
+    margeCents: number;
+    part: number;
+  };
+
+  /** Part du chiffre d'affaires dont le montant a été confirmé à l'encaissement. */
+  fiabilite: { confirmeCents: number; totalCents: number; part: number };
   provenances: {
     repondues: number;
     lignes: { id: string; nombre: number; part: number }[];
   };
 };
+
+/** Médiane d'une série **déjà triée**. Zéro sur une série vide. */
+function mediane(triee: number[]): number {
+  if (triee.length === 0) return 0;
+  const milieu = Math.floor(triee.length / 2);
+  return triee.length % 2 === 1 ? triee[milieu] : (triee[milieu - 1] + triee[milieu]) / 2;
+}
 
 function ligneVide(cle: string): LigneMois {
   return { cle, poses: 0, posesCents: 0, pressOn: 0, pressOnCents: 0, totalCents: 0 };
@@ -46,20 +97,39 @@ export async function tableauDeBord(): Promise<TableauDeBord> {
   const debutHistorique = debutDeMoisParis(maintenant, MOIS_AFFICHES - 1);
   const debutMoisCourant = debutDeMoisParis(maintenant);
 
-  const [rendezVous, commandes, posesParCliente, premiereVenue, annules, absences] =
-    await Promise.all([
+  const [
+    rendezVous,
+    commandes,
+    posesParCliente,
+    premiereVenue,
+    annules,
+    absences,
+    delaisReponse,
+    attente,
+  ] = await Promise.all([
     // Seules les poses honorées comptent : une demande en attente n'est pas
     // du chiffre d'affaires.
     prisma.rendezVous.findMany({
       where: { statut: "TERMINE", debut: { gte: debutHistorique } },
       select: {
         debut: true,
+        fin: true,
+        finReelle: true,
         clienteId: true,
         lignes: {
           select: {
             prixCents: true,
             prixConfirme: true,
-            prestation: { select: { nom: true, categorie: true, prixCents: true, aPartirDe: true } },
+            prestation: {
+              select: {
+                nom: true,
+                categorie: true,
+                prixCents: true,
+                aPartirDe: true,
+                dureeMin: true,
+                coutMatiereCents: true,
+              },
+            },
           },
         },
       },
@@ -90,6 +160,18 @@ export async function tableauDeBord(): Promise<TableauDeBord> {
     }),
     prisma.rendezVous.count({ where: { statut: "ANNULE", debut: { gte: debutHistorique } } }),
     prisma.rendezVous.count({ where: { statut: "NO_SHOW", debut: { gte: debutHistorique } } }),
+    // Délais de réponse : seules les demandes reçues depuis la mise en place de
+    // l'horodatage en portent un, d'où le filtre sur sa présence plutôt que sur
+    // une période.
+    prisma.rendezVous.findMany({
+      where: { repondueLe: { not: null }, creeLe: { gte: debutHistorique } },
+      select: { creeLe: true, repondueLe: true },
+    }),
+    prisma.rendezVous.findMany({
+      where: { statut: "EN_ATTENTE" },
+      select: { creeLe: true },
+      orderBy: { creeLe: "asc" },
+    }),
   ]);
 
   // Squelette de tous les mois, pour que les mois creux apparaissent aussi.
@@ -184,6 +266,91 @@ export async function tableauDeBord(): Promise<TableauDeBord> {
       .sort((a, b) => b.nombre - a.nombre),
   };
 
+  // ── Durées : ce qui était prévu, ce qui s'est passé ────────────────
+  //
+  // L'écart n'est attribuable à une prestation précise que sur les visites qui
+  // n'en comportent qu'une. Sur un rendez-vous à trois lignes, un débordement
+  // d'une demi-heure ne dit pas laquelle a débordé ; le compter partout ferait
+  // trois fausses mesures au lieu d'une vraie.
+  const mesurees = rendezVous.filter((r) => r.finReelle !== null);
+  const ecarts = mesurees
+    .map((r) => Math.round((r.finReelle!.getTime() - r.fin.getTime()) / 60_000))
+    .sort((a, b) => a - b);
+
+  const parPrestationDuree = new Map<string, { prevu: number; reel: number[] }>();
+  for (const r of mesurees) {
+    if (r.lignes.length !== 1) continue;
+    const nom = r.lignes[0].prestation.nom;
+    const reel = Math.round((r.finReelle!.getTime() - r.debut.getTime()) / 60_000);
+    const entree = parPrestationDuree.get(nom);
+    if (entree) entree.reel.push(reel);
+    else parPrestationDuree.set(nom, { prevu: r.lignes[0].prestation.dureeMin, reel: [reel] });
+  }
+
+  const durees = {
+    mesurees: mesurees.length,
+    total: rendezVous.length,
+    ecartMedianMin: mediane(ecarts),
+    debordent: ecarts.filter((e) => e > 0).length,
+    parPrestation: [...parPrestationDuree.entries()]
+      .map(([nom, { prevu, reel }]) => {
+        const moyenne = Math.round(reel.reduce((s, v) => s + v, 0) / reel.length);
+        return { nom, mesures: reel.length, prevuMin: prevu, reelMin: moyenne, ecartMin: moyenne - prevu };
+      })
+      .sort((a, b) => Math.abs(b.ecartMin) - Math.abs(a.ecartMin)),
+  };
+
+  // ── Délai de réponse ───────────────────────────────────────────────
+  const heures = delaisReponse
+    .map((r) => (r.repondueLe!.getTime() - r.creeLe.getTime()) / 3_600_000)
+    .sort((a, b) => a - b);
+  const plusVieille = attente[0];
+
+  const reponses = {
+    mesurees: heures.length,
+    medianeHeures: Math.round(mediane(heures) * 10) / 10,
+    sousDeuxHeures: heures.filter((h) => h <= 2).length,
+    enAttente: attente.length,
+    plusVieilleHeures: plusVieille
+      ? Math.round((maintenant.getTime() - plusVieille.creeLe.getTime()) / 3_600_000)
+      : 0,
+  };
+
+  // ── Marge et fiabilité ─────────────────────────────────────────────
+  //
+  // La marge ne porte que sur les lignes dont le coût est renseigné, et la
+  // couverture le dit : une marge calculée sur la moitié du catalogue n'est pas
+  // la marge du salon.
+  let couvertureCents = 0;
+  let coutCents = 0;
+  let confirmeCents = 0;
+  let totalLignesCents = 0;
+
+  for (const r of rendezVous) {
+    for (const l of r.lignes) {
+      const prix = l.prixCents ?? l.prestation.prixCents;
+      totalLignesCents += prix;
+      if (l.prixConfirme) confirmeCents += prix;
+      if (l.prestation.coutMatiereCents !== null) {
+        couvertureCents += prix;
+        coutCents += l.prestation.coutMatiereCents;
+      }
+    }
+  }
+
+  const marge = {
+    couvertureCents,
+    coutCents,
+    margeCents: couvertureCents - coutCents,
+    part: couvertureCents > 0 ? Math.round(((couvertureCents - coutCents) / couvertureCents) * 100) : 0,
+  };
+
+  const fiabilite = {
+    confirmeCents,
+    totalCents: totalLignesCents,
+    part: totalLignesCents > 0 ? Math.round((confirmeCents / totalLignesCents) * 100) : 0,
+  };
+
   return {
     mois,
     moisCourant: mois.at(-1) ?? ligneVide(moisParis(maintenant)),
@@ -207,6 +374,10 @@ export async function tableauDeBord(): Promise<TableauDeBord> {
       nouvellesCeMois,
     },
     annulations: { annules, absences },
+    durees,
+    reponses,
+    marge,
+    fiabilite,
     provenances,
   };
 }

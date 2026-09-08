@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { formatPrix } from "@/lib/format";
 import { formatMois } from "@/lib/creneaux";
 import { MOIS_AFFICHES, tableauDeBord } from "@/lib/chiffres";
@@ -157,6 +158,178 @@ export default async function AdminChiffres() {
           </p>
           <p className="mt-3 text-xs text-foreground/60">
             L&rsquo;acompte des nouvelles clientes limite les rendez-vous non honorés.
+          </p>
+        </div>
+      </section>
+
+      {/* Durées : le prévu contre le réel */}
+      <section>
+        <h2 className="font-display text-xl font-bold">Vos durées tiennent-elles ?</h2>
+        {bord.durees.mesurees === 0 ? (
+          <p className="mt-3 rounded-2xl bg-pink-50 px-5 py-4 text-sm text-foreground/70">
+            Aucune heure de sortie notée pour l&rsquo;instant. Elle se saisit au moment de valider
+            une venue, avec « à l&rsquo;heure » ou « +15 min » — deux secondes. Ce sont les durées
+            du catalogue qui décident des créneaux proposés aux clientes : mesurées, elles cessent
+            d&rsquo;être des estimations.
+          </p>
+        ) : (
+          <>
+            <p className="mt-2 text-sm text-foreground/60">
+              Sur <strong>{bord.durees.mesurees}</strong> visite
+              {bord.durees.mesurees > 1 ? "s" : ""} mesurée{bord.durees.mesurees > 1 ? "s" : ""} sur{" "}
+              {bord.durees.total}.{" "}
+              {bord.durees.debordent === 1
+                ? "Une a dépassé l’heure prévue"
+                : `${bord.durees.debordent} ont dépassé l’heure prévue`}
+              , avec un écart médian de{" "}
+              <strong className={bord.durees.ecartMedianMin > 0 ? "text-amber-700" : "text-emerald-700"}>
+                {bord.durees.ecartMedianMin > 0 ? "+" : ""}
+                {bord.durees.ecartMedianMin} min
+              </strong>
+              .
+            </p>
+            {bord.durees.parPrestation.length > 0 && (
+              <div className="mt-4 overflow-x-auto rounded-2xl border border-pink-100 bg-white">
+                <table className="w-full min-w-[520px] text-sm">
+                  <thead>
+                    <tr className="border-b border-pink-100 text-left text-foreground/60">
+                      <th className="px-4 py-2.5 font-medium">Prestation</th>
+                      <th className="px-4 py-2.5 font-medium">Prévu</th>
+                      <th className="px-4 py-2.5 font-medium">Réel</th>
+                      <th className="px-4 py-2.5 font-medium">Écart</th>
+                      <th className="px-4 py-2.5 font-medium">Mesures</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bord.durees.parPrestation.map((d) => (
+                      <tr key={d.nom} className="border-b border-pink-50 last:border-0">
+                        <td className="px-4 py-2.5">{d.nom}</td>
+                        <td className="px-4 py-2.5 tabular-nums text-foreground/60">
+                          {d.prevuMin} min
+                        </td>
+                        <td className="px-4 py-2.5 tabular-nums">{d.reelMin} min</td>
+                        <td
+                          className={`px-4 py-2.5 font-medium tabular-nums ${
+                            d.ecartMin > 0 ? "text-amber-700" : "text-emerald-700"
+                          }`}
+                        >
+                          {d.ecartMin > 0 ? "+" : ""}
+                          {d.ecartMin} min
+                        </td>
+                        <td className="px-4 py-2.5 tabular-nums text-foreground/50">{d.mesures}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <p className="mt-2 text-xs text-foreground/60">
+              Le détail ne porte que sur les visites à <strong>une seule prestation</strong>
+              {" : "}sur un rendez-vous à trois lignes, un débordement ne dit pas laquelle a
+              débordé. Corrigez
+              une durée depuis l&rsquo;écran Prestations dès qu&rsquo;un écart se confirme sur
+              plusieurs mesures.
+            </p>
+          </>
+        )}
+      </section>
+
+      {/* Délai de réponse et demandes en attente */}
+      <section className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl border border-pink-100 bg-white p-5">
+          <h2 className="font-semibold">Vous répondez en combien de temps ?</h2>
+          {bord.reponses.mesurees === 0 ? (
+            <p className="mt-2 text-sm text-foreground/70">
+              Le délai est mesuré depuis peu : il apparaîtra dès les prochaines demandes reçues par
+              le site.
+            </p>
+          ) : (
+            <>
+              <p className="font-display mt-2 text-2xl font-bold">
+                {bord.reponses.medianeHeures} h
+              </p>
+              <p className="mt-1 text-sm text-foreground/70">
+                en médiane, sur {bord.reponses.mesurees} demande
+                {bord.reponses.mesurees > 1 ? "s" : ""}. {bord.reponses.sousDeuxHeures} traitée
+                {bord.reponses.sousDeuxHeures > 1 ? "s" : ""} en moins de deux heures.
+              </p>
+            </>
+          )}
+          <p className="mt-3 text-xs text-foreground/60">
+            Une demande qui attend est une cliente qui peut réserver ailleurs entre-temps.
+          </p>
+        </div>
+
+        <div
+          className={`rounded-2xl border p-5 ${
+            bord.reponses.plusVieilleHeures >= 24
+              ? "border-amber-300 bg-amber-50"
+              : "border-pink-100 bg-white"
+          }`}
+        >
+          <h2 className="font-semibold">Demandes en attente</h2>
+          <p className="font-display mt-2 text-2xl font-bold">{bord.reponses.enAttente}</p>
+          {bord.reponses.enAttente > 0 ? (
+            <p className="mt-1 text-sm text-foreground/70">
+              La plus ancienne attend depuis{" "}
+              <strong>
+                {bord.reponses.plusVieilleHeures} heure
+                {bord.reponses.plusVieilleHeures > 1 ? "s" : ""}
+              </strong>
+              .{" "}
+              <Link href="/admin" className="font-medium text-pink-600 hover:underline">
+                Les traiter
+              </Link>
+            </p>
+          ) : (
+            <p className="mt-1 text-sm text-foreground/70">Rien n&rsquo;attend de réponse. 🤍</p>
+          )}
+        </div>
+      </section>
+
+      {/* Marge et fiabilité */}
+      <section className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl border border-pink-100 bg-white p-5">
+          <h2 className="font-semibold">Ce qu&rsquo;il vous reste</h2>
+          {bord.marge.couvertureCents === 0 ? (
+            <p className="mt-2 text-sm text-foreground/70">
+              Aucun coût matière renseigné. Indiquez-en un par prestation depuis l&rsquo;écran
+              Prestations : votre chiffre d&rsquo;affaires deviendra une marge, et le nail art
+              élaboré cessera d&rsquo;être compté comme le semi-permanent, qui ne consomme presque
+              rien.
+            </p>
+          ) : (
+            <>
+              <p className="font-display mt-2 text-2xl font-bold">
+                {formatPrix(bord.marge.margeCents)}
+              </p>
+              <p className="mt-1 text-sm text-foreground/70">
+                soit <strong>{bord.marge.part} %</strong>, après{" "}
+                {formatPrix(bord.marge.coutCents)} de matière.
+              </p>
+              <p className="mt-3 text-xs text-foreground/60">
+                Calculé sur {formatPrix(bord.marge.couvertureCents)} de prestations dont le coût est
+                renseigné, soit{" "}
+                {Math.round(
+                  (bord.marge.couvertureCents / Math.max(bord.fiabilite.totalCents, 1)) * 100
+                )}{" "}
+                % du total. Le reste n&rsquo;est pas compté ici.
+              </p>
+            </>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-pink-100 bg-white p-5">
+          <h2 className="font-semibold">Fiabilité de ces chiffres</h2>
+          <p className="font-display mt-2 text-2xl font-bold">{bord.fiabilite.part} %</p>
+          <p className="mt-1 text-sm text-foreground/70">
+            du chiffre d&rsquo;affaires vient de montants <strong>confirmés à
+            l&rsquo;encaissement</strong>. Le reste est repris du catalogue.
+          </p>
+          <p className="mt-3 text-xs text-foreground/60">
+            C&rsquo;est ce pourcentage qui dit combien croire à tout le reste de cette page.
+            Confirmez le montant au moment de valider une venue : c&rsquo;est le seul instant où il
+            est connu.
           </p>
         </div>
       </section>

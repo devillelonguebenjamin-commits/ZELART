@@ -245,6 +245,13 @@ model Prestation {
   dureeMin    Int // durée indicative en minutes
   prixCents   Int // 3500 = 35,00 €
   aPartirDe   Boolean @default(false) // prix "à partir de" (nail art niveau 3…)
+
+  // Coût matière indicatif, ce qui transforme un chiffre d'affaires en marge.
+  // Nul par défaut, et c'est volontaire : un coût jamais renseigné est une
+  // information absente, un coût figé à zéro serait une marge fausse qui a
+  // l'air juste.
+  coutMatiereCents Int?
+
   active      Boolean @default(true)
   ordre       Int     @default(0)
 
@@ -367,6 +374,17 @@ model RendezVous {
   // lorsque les règles l'imposent (pose extérieure, ou Gel X à retirer).
   etatOngles     EtatOngles?
   typePoseActuel TypePose?
+
+  // Heure à laquelle la cliente est réellement partie, saisie à la validation
+  // de la venue. Les durées du catalogue pilotent les créneaux proposés ; rien
+  // ne les confrontait à la réalité. Nulle tant que rien n'est saisi : une
+  // mesure absente ne se confond pas avec une prestation pile à l'heure.
+  finReelle DateTime?
+
+  // Moment où la demande a cessé d'attendre, quel que soit le sens de la
+  // réponse. Seul l'état final était conservé : on savait qu'un rendez-vous
+  // est confirmé, jamais s'il l'a été en dix minutes ou en deux jours.
+  repondueLe DateTime?
 
   // Case obligatoire : santé, allergies et droit de refus de la prestation
   consentementSante Boolean @default(false)
