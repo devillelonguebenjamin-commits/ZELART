@@ -124,6 +124,10 @@ export async function marquerRecompenseUtilisee(
     data: { utiliseLe: utilisee ? new Date() : null },
   });
   revalidatePath(`/admin/clientes/${recompense.clienteId}`);
+  // Le même geste se fait depuis l'écran Roue, où les lots à remettre sont
+  // réunis : sans cette ligne, la liste garderait le cadeau qu'on vient de
+  // donner, et la pastille avec.
+  revalidatePath("/admin/roue");
 }
 
 // Droit à l'effacement : supprime la cliente et tout son historique.

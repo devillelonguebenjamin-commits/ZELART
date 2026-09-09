@@ -408,6 +408,9 @@ async function envoyerRecapEnAttente(): Promise<{ envoye: boolean }> {
     attente.parrainage > 0
       ? `<li><strong>${attente.parrainage} avantage${attente.parrainage > 1 ? "s" : ""} de parrainage</strong> à honorer : <a href="${urlSite()}/admin/parrainage">ouvrir le parrainage</a></li>`
       : "",
+    attente.roue > 0
+      ? `<li><strong>${attente.roue} lot${attente.roue > 1 ? "s" : ""} gagné${attente.roue > 1 ? "s" : ""} à la roue</strong> à remettre : <a href="${urlSite()}/admin/roue">ouvrir la roue</a></li>`
+      : "",
     attente.listeAttente > 0
       ? `<li>${attente.listeAttente} personne${attente.listeAttente > 1 ? "s" : ""} en liste d'attente, prévenue${attente.listeAttente > 1 ? "s" : ""} à la prochaine annulation</li>`
       : "",
