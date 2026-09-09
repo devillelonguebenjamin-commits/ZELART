@@ -7,6 +7,8 @@ import { lienDemandeAvis } from "@/lib/avis";
 import { attribuerAvantages } from "@/lib/parrainage";
 import { compterEnAttente } from "@/lib/en-attente";
 import { verifierAcomptesEnAttente } from "@/lib/acompte";
+import { acompteExpire } from "@/lib/acompte-bornes";
+import { annoncerCreneauRendu } from "@/lib/liberation-creneau";
 import { urlSite } from "@/lib/site";
 import { envoyerSmsSansBloquer } from "@/lib/sms";
 import type { TypePose } from "@/generated/prisma/client";
@@ -22,6 +24,8 @@ export type BilanRappels = {
   reconquete: { envoyees: number; echecs: number };
   avantagesParrainage: number;
   recapEnAttente: boolean;
+  /** Créneaux rendus faute d'acompte réglé dans les délais. */
+  creneauxLiberes: number;
 };
 
 const JOUR_MS = 24 * 60 * 60 * 1000;
@@ -289,6 +293,44 @@ async function envoyerDemandesAvis(): Promise<{ envoyees: number; echecs: number
   return { envoyees, echecs };
 }
 
+// --- Libération des créneaux dont l'acompte n'a pas été réglé ---------------
+
+/**
+ * Rend le créneau d'un rendez-vous dont l'acompte est réclamé depuis plus de
+ * deux jours sans être réglé.
+ *
+ * Ce que la relance de vingt-quatre heures annonce depuis toujours — « sans
+ * règlement, le créneau pourra être proposé à une autre cliente » — n'était
+ * appliqué par rien : une inconnue pouvait retenir le samedi le plus demandé et
+ * ne jamais payer. L'acompte ne protégeait donc de rien, puisque ne pas le
+ * régler ne coûtait rien.
+ *
+ * Trois précautions, chacune pour un cas rencontré ailleurs dans ce fichier :
+ * un rendez-vous déjà passé n'est pas touché, son créneau n'intéressant plus
+ * personne ; l'annulation est enregistrée **avant** l'e-mail, pour qu'un envoi
+ * en échec ne laisse pas le créneau retenu indéfiniment ; et la liste d'attente
+ * est prévenue, puisque le créneau vient réellement de se libérer.
+ */
+async function libererCreneauxSansAcompte(): Promise<{ liberes: number; echecs: number }> {
+  const candidats = await prisma.rendezVous.findMany({
+    where: acompteExpire(),
+    select: { id: true, debut: true, cliente: { select: { prenom: true, email: true } } },
+  });
+
+  let liberes = 0;
+  let echecs = 0;
+
+  for (const rdv of candidats) {
+    // L'annulation est enregistrée **avant** l'e-mail : un envoi en échec ne
+    // doit pas laisser le créneau retenu un jour de plus.
+    await prisma.rendezVous.update({ where: { id: rdv.id }, data: { statut: "ANNULE" } });
+    liberes++;
+    if (!(await annoncerCreneauRendu(rdv, enveloppe, true))) echecs++;
+  }
+
+  return { liberes, echecs };
+}
+
 // --- Relance si l'acompte demandé n'est toujours pas réglé ------------------
 
 async function envoyerRelancesAcompte(): Promise<{ envoyees: number; echecs: number }> {
@@ -527,6 +569,14 @@ export async function executerRappels(): Promise<BilanRappels> {
   });
   const acompte = await etape("acompte", envoyerRelancesAcompte, AUCUNE_ENVOYEE);
 
+  // Après les relances, jamais avant : une cliente qui vient de recevoir sa
+  // relance ce matin ne doit pas trouver son créneau libéré dans la foulée.
+  // L'ordre des deux étapes est donc porteur de sens, pas de commodité.
+  const liberation = await etape("libération des créneaux", libererCreneauxSansAcompte, {
+    liberes: 0,
+    echecs: 0,
+  });
+
   // Comme la relance d'acompte, le récapitulatif ne dépend pas du réglage des
   // envois automatiques : celui-ci gouverne ce que reçoivent les clientes, pas
   // ce que Zélia se doit à elle-même de traiter. Le couper reviendrait à ne plus
@@ -544,6 +594,7 @@ export async function executerRappels(): Promise<BilanRappels> {
       reconquete: { envoyees: 0, echecs: 0 },
       avantagesParrainage: 0,
       recapEnAttente: recap.envoye,
+      creneauxLiberes: liberation.liberes,
     };
   }
 
@@ -562,5 +613,6 @@ export async function executerRappels(): Promise<BilanRappels> {
     reconquete,
     avantagesParrainage,
     recapEnAttente: recap.envoye,
+    creneauxLiberes: liberation.liberes,
   };
 }

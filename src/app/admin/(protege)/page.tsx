@@ -144,6 +144,7 @@ function CarteRdv({
   creneauxLibres,
   variantes,
   acompteAlaConfirmation = false,
+  heuresDattente = null,
 }: {
   rdv: RdvComplet;
   nouvelle: boolean;
@@ -154,6 +155,8 @@ function CarteRdv({
   variantes: Map<string, Variante[]>;
   /** Accepter cet horaire déclenchera une demande d'acompte. */
   acompteAlaConfirmation?: boolean;
+  /** Renseigné quand la demande dort depuis plus de trois jours. */
+  heuresDattente?: number | null;
 }) {
   const badge = BADGES[rdv.statut] ?? BADGES.EN_ATTENTE;
   const totalRdv = totalTarifs(rdv.lignes.map((l) => l.prestation));
@@ -164,6 +167,12 @@ function CarteRdv({
           {formatJour(rdv.debut)} · {formatHeure(rdv.debut)}
         </p>
         <span className="flex flex-wrap items-center gap-2">
+          {heuresDattente !== null && (
+            <span className="rounded-full bg-amber-200 px-3 py-1 text-xs font-semibold text-amber-900">
+              Attend depuis {Math.floor(heuresDattente / 24)} jour
+              {Math.floor(heuresDattente / 24) > 1 ? "s" : ""}
+            </span>
+          )}
           {nouvelle && (
             <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-800">
               Nouvelle cliente
@@ -566,7 +575,19 @@ export default async function Agenda({
   // et un rendez-vous futur annulé par erreur le devenait déjà, son bouton
   // « Réactiver » étant alors hors d'atteinte. Chaque rendez-vous apparaît
   // ainsi exactement une fois, son badge disant où il en est.
-  const enAttente = rdvs.filter((r) => r.statut === "EN_ATTENTE" && r.fin >= maintenant);
+  // Une demande sans réponse retient son créneau sans limite : rien ne l'expire,
+  // et c'est un choix — refuser à la place de Zélia une cliente qu'elle comptait
+  // peut-être accepter serait pire. Ce qui manquait, c'est de la voir. Les plus
+  // anciennes passent donc en tête, avec le nombre d'heures écoulées.
+  const DORT_DEPUIS_MS = 72 * 60 * 60 * 1000;
+  const heuresDepuis = (rdv: RdvComplet) =>
+    Math.floor((maintenant.getTime() - rdv.creeLe.getTime()) / 3_600_000);
+  const enAttente = rdvs
+    .filter((r) => r.statut === "EN_ATTENTE" && r.fin >= maintenant)
+    .sort((a, b) => a.creeLe.getTime() - b.creeLe.getTime());
+  const dorment = enAttente.filter(
+    (r) => maintenant.getTime() - r.creeLe.getTime() >= DORT_DEPUIS_MS
+  );
   const aVenir = rdvs.filter((r) => r.statut !== "EN_ATTENTE" && r.fin >= maintenant);
   const passes = rdvs.filter((r) => r.fin < maintenant).reverse();
 
@@ -595,8 +616,19 @@ export default async function Agenda({
           )}
         </h1>
         <p className="mt-1 text-sm text-foreground/60">
-          Pensez à envoyer le lien SumUp de l&rsquo;acompte aux nouvelles clientes avant de confirmer.
+          Les plus anciennes d&rsquo;abord. Une demande retient son créneau tant qu&rsquo;elle
+          n&rsquo;a pas de réponse.
         </p>
+        {dorment.length > 0 && (
+          <p className="mt-3 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-3 text-sm text-amber-900">
+            <strong>
+              {dorment.length} demande{dorment.length > 1 ? "s" : ""} attend
+              {dorment.length > 1 ? "ent" : ""} depuis plus de trois jours.
+            </strong>{" "}
+            Chacune garde son créneau fermé aux autres clientes. Répondez-y, même pour refuser :
+            le créneau se libère aussitôt.
+          </p>
+        )}
         <div className="mt-4 grid gap-3">
           {enAttente.length === 0 ? (
             <p className="rounded-2xl bg-pink-50 px-5 py-4 text-sm text-foreground/70">
@@ -606,6 +638,11 @@ export default async function Agenda({
             enAttente.map((rdv) => <CarteRdv
                 key={rdv.id}
                 rdv={rdv}
+                heuresDattente={
+                  maintenant.getTime() - rdv.creeLe.getTime() >= DORT_DEPUIS_MS
+                    ? heuresDepuis(rdv)
+                    : null
+                }
                 nouvelle={estNouvelle(rdv)}
                 lienAcompteConfigure={Boolean(acompte.lien)}
                 avantages={avantagesParCliente.get(rdv.clienteId) ?? []}
