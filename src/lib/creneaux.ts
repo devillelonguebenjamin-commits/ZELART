@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 
 import { HORIZON_PROPOSITION_JOURS, PREAVIS_MS } from "@/lib/creneaux-bornes";
+import { occupeLeCreneau } from "@/lib/acompte-bornes";
 
 const PARIS_TZ = "Europe/Paris";
 
@@ -167,8 +168,15 @@ export async function getCreneauxDisponibles(): Promise<Creneau[]> {
       where: { debut: { lt: finHorizon }, fin: { gt: maintenant } },
       select: { debut: true, fin: true },
     }),
+    // Un rendez-vous dont l'acompte est réclamé depuis plus de deux jours sans
+    // être réglé ne retient plus son créneau : il redevient proposable, et la
+    // tâche quotidienne l'annulera formellement (cf. occupeLeCreneau).
     prisma.rendezVous.findMany({
-      where: { statut: { not: "ANNULE" }, debut: { lt: finHorizon }, fin: { gt: maintenant } },
+      where: {
+        ...occupeLeCreneau(maintenant),
+        debut: { lt: finHorizon },
+        fin: { gt: maintenant },
+      },
       select: { debut: true, fin: true },
     }),
   ]);

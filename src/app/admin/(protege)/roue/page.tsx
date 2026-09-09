@@ -1,21 +1,29 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { reglagesRoue } from "@/lib/parametres";
 import { partEffective, totalChances } from "@/lib/roue";
+import { formatJour } from "@/lib/creneaux";
+import { cadeauxADonner, clientesEligibles, historiqueRoue } from "@/lib/roue-suivi";
 import { enregistrerPosesParTour, modifierLot, supprimerLot } from "@/actions/lots";
+import { marquerRecompenseUtilisee } from "@/actions/clientes";
 import FormulaireNouveauLot from "@/components/FormulaireNouveauLot";
 import RoueFidelite from "@/components/RoueFidelite";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminRoue() {
-  const [lots, { lots: lotsActifs, posesParTour }, gains] = await Promise.all([
-    prisma.lotFidelite.findMany({
-      orderBy: { ordre: "asc" },
-      include: { _count: { select: { recompenses: true } } },
-    }),
-    reglagesRoue(),
-    prisma.recompense.groupBy({ by: ["lotId"], _count: { _all: true } }),
-  ]);
+  const [lots, { lots: lotsActifs, posesParTour }, gains, aDonner, eligibles, historique] =
+    await Promise.all([
+      prisma.lotFidelite.findMany({
+        orderBy: { ordre: "asc" },
+        include: { _count: { select: { recompenses: true } } },
+      }),
+      reglagesRoue(),
+      prisma.recompense.groupBy({ by: ["lotId"], _count: { _all: true } }),
+      cadeauxADonner(),
+      clientesEligibles(),
+      historiqueRoue(),
+    ]);
 
   const total = totalChances(lotsActifs);
   const gainsParLot = new Map(gains.map((g) => [g.lotId, g._count._all]));
@@ -32,6 +40,159 @@ export default async function AdminRoue() {
         </div>
         <FormulaireNouveauLot />
       </div>
+
+      {/* Ce qui attend un geste : les cadeaux gagnés et pas encore remis. */}
+      <section>
+        <h2 className="font-display text-xl font-bold">
+          Cadeaux à remettre{" "}
+          {aDonner.length > 0 && (
+            <span className="ml-1 align-middle rounded-full bg-pink-500 px-3 py-1 text-sm font-semibold text-white">
+              {aDonner.length}
+            </span>
+          )}
+        </h2>
+        {aDonner.length === 0 ? (
+          <p className="mt-3 rounded-2xl bg-pink-50 px-5 py-4 text-sm text-foreground/70">
+            Aucun cadeau en attente. Tout ce qui a été gagné a été honoré 🤍
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {aDonner.map((gain) => (
+              <li
+                key={gain.id}
+                className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-pink-200 bg-white px-5 py-3 text-sm"
+              >
+                <Link
+                  href={`/admin/clientes/${gain.cliente.id}`}
+                  className="font-medium text-pink-600 hover:underline"
+                >
+                  {gain.cliente.prenom} {gain.cliente.nom}
+                </Link>
+                <span className="min-w-40 flex-1">{gain.libelle}</span>
+                {gain.aRetirerAuSalon ? (
+                  <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+                    à retirer au salon
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-800">
+                    à appliquer sur sa prochaine pose
+                  </span>
+                )}
+                <span className="text-xs text-foreground/55">
+                  gagné le {formatJour(gain.gagneLe)} · <code>{gain.code}</code>
+                </span>
+                <form action={marquerRecompenseUtilisee.bind(null, gain.id, true)}>
+                  <button
+                    type="submit"
+                    className="rounded-full bg-pink-500 px-4 py-1.5 text-xs font-medium text-white transition hover:bg-pink-600"
+                  >
+                    Remis
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Une occasion, pas une tâche : Zélia ne peut pas tourner à leur place. */}
+      <section>
+        <h2 className="font-display text-xl font-bold">Elles peuvent tourner</h2>
+        {eligibles.length === 0 ? (
+          <p className="mt-3 rounded-2xl bg-pink-50 px-5 py-4 text-sm text-foreground/70">
+            Personne n&rsquo;a de tour en attente pour l&rsquo;instant.
+          </p>
+        ) : (
+          <>
+            <p className="mt-1 text-sm text-foreground/60">
+              Leur jauge est pleine et elles n&rsquo;ont pas encore joué. Rien à faire de votre
+              côté : le tour se lance depuis leur espace. Un mot au fauteuil suffit souvent, elles
+              ne pensent pas toujours à regarder.
+            </p>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {eligibles.map((cliente) => (
+                <li key={cliente.id}>
+                  <Link
+                    href={`/admin/clientes/${cliente.id}`}
+                    className="flex items-center gap-2 rounded-full border border-pink-200 bg-white px-4 py-1.5 text-sm transition hover:bg-pink-50"
+                  >
+                    <span className="font-medium">
+                      {cliente.prenom} {cliente.nom}
+                    </span>
+                    <span className="text-xs text-foreground/55">
+                      {cliente.posesRealisees} pose{cliente.posesRealisees > 1 ? "s" : ""}
+                    </span>
+                    {cliente.tours > 1 && (
+                      <span className="rounded-full bg-pink-100 px-2 py-0.5 text-[11px] font-bold text-pink-700">
+                        {cliente.tours} tours
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </section>
+
+      {/* Historique */}
+      <section>
+        <h2 className="font-display text-xl font-bold">Historique des tours</h2>
+        {historique.total === 0 ? (
+          <p className="mt-3 rounded-2xl bg-pink-50 px-5 py-4 text-sm text-foreground/70">
+            Aucun tour joué pour l&rsquo;instant.
+          </p>
+        ) : (
+          <>
+            <p className="mt-1 text-sm text-foreground/60">
+              {historique.total} tour{historique.total > 1 ? "s" : ""} joué
+              {historique.total > 1 ? "s" : ""} depuis la mise en place
+              {historique.total > historique.lignes.length &&
+                ` · les ${historique.lignes.length} plus récents ci-dessous`}
+              .
+            </p>
+            <div className="mt-3 overflow-x-auto rounded-2xl border border-pink-100 bg-white">
+              <table className="w-full min-w-[560px] text-sm">
+                <thead>
+                  <tr className="border-b border-pink-100 text-left text-foreground/60">
+                    <th className="px-4 py-2.5 font-medium">Cliente</th>
+                    <th className="px-4 py-2.5 font-medium">Lot</th>
+                    <th className="px-4 py-2.5 font-medium">Gagné le</th>
+                    <th className="px-4 py-2.5 font-medium">État</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historique.lignes.map((ligne) => (
+                    <tr key={ligne.id} className="border-b border-pink-50 last:border-0">
+                      <td className="px-4 py-2.5">
+                        <Link
+                          href={`/admin/clientes/${ligne.cliente.id}`}
+                          className="text-pink-600 hover:underline"
+                        >
+                          {ligne.cliente.prenom} {ligne.cliente.nom}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-2.5">{ligne.libelle}</td>
+                      <td className="px-4 py-2.5 whitespace-nowrap capitalize text-foreground/70">
+                        {formatJour(ligne.gagneLe)}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        {ligne.utiliseLe ? (
+                          <span className="text-emerald-700">
+                            remis le {formatJour(ligne.utiliseLe)}
+                          </span>
+                        ) : (
+                          <span className="font-medium text-amber-800">à remettre</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </section>
 
       {/* Cadence */}
       <section className="rounded-2xl border border-pink-100 bg-white p-5">

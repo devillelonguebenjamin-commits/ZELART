@@ -15,6 +15,12 @@ import {
 import { reservationSchema, urlImageValide } from "@/lib/validations";
 import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { envoyerDemandeAcompte, acompteADemander } from "@/lib/acompte";
+import { acompteExpire, occupeLeCreneau } from "@/lib/acompte-bornes";
+import {
+  annoncerCreneauRendu,
+  annulerExpiresChevauchant,
+  type CreneauRendu,
+} from "@/lib/liberation-creneau";
 import { clienteBloquee, MESSAGE_BLOCAGE } from "@/lib/blocage";
 import { urlSite } from "@/lib/site";
 import { ficheCliente } from "@/lib/fiche-cliente";
@@ -212,14 +218,20 @@ export async function creerReservation(
     .slice(0, 3);
 
   let rendezVousId: string;
+  // Renseignées dans la transaction, prévenues après : on écrit d'abord, on
+  // écrit aux clientes ensuite.
+  let rendus: CreneauRendu[] = [];
   try {
     rendezVousId = await prisma.$transaction(
       async (tx) => {
         // Une seule cliente par fenêtre d'ouverture : tout rendez-vous actif
         // qui chevauche la fenêtre rend le créneau indisponible.
+        // Le même filtre que les créneaux proposés, et il faut que ce soit le
+        // même : un créneau montré libre puis refusé à la validation serait
+        // pire que ne pas l'avoir montré.
         const conflitRdv = await tx.rendezVous.findFirst({
           where: {
-            statut: { not: "ANNULE" },
+            ...occupeLeCreneau(),
             debut: { lt: fenetre.fin },
             fin: { gt: fenetre.debut },
           },
@@ -230,6 +242,12 @@ export async function creerReservation(
           select: { id: true },
         });
         if (conflitRdv || conflitIndispo) throw new Error("CRENEAU_PRIS");
+
+        // Le créneau est libre, mais un rendez-vous dont l'acompte a expiré
+        // peut encore l'occuper sur le papier jusqu'au passage de sept heures.
+        // On le solde ici, dans la même transaction : un créneau ne doit jamais
+        // être tenu par deux rendez-vous à la fois, même une heure.
+        rendus = await annulerExpiresChevauchant(tx, acompteExpire(), fenetre);
 
         const accord = formData.get("consentementMarketing") === "on";
         const cliente = await ficheCliente(
@@ -314,6 +332,13 @@ export async function creerReservation(
     }
     console.error("Échec de la réservation", e);
     return { erreur: "Une erreur est survenue, merci de réessayer." };
+  }
+
+  // La liste d'attente n'est pas prévenue : le créneau vient d'être repris par
+  // la cliente qui lit cette page. Faire courir tout le monde pour une place
+  // déjà occupée serait pire que le silence.
+  for (const rendu of rendus) {
+    await annoncerCreneauRendu(rendu, (contenu) => contenu, false);
   }
 
   // Cliente inconnue et non dispensée : envoi automatique du lien d'acompte,

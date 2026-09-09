@@ -1,4 +1,9 @@
 import { prisma } from "@/lib/prisma";
+export {
+  DELAI_EXPIRATION_ACOMPTE_MS,
+  occupeLeCreneau,
+  acompteExpire,
+} from "@/lib/acompte-bornes";
 import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { formatPrix, totalTarifs } from "@/lib/format";
