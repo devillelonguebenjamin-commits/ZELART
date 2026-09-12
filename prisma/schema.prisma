@@ -427,6 +427,11 @@ model RendezVous {
   // prévenue ? » reste une question qui se pose.
   annulationNotifieeLe DateTime?
 
+  // Posé quand c'est le site qui annule, jamais une personne : la libération
+  // d'un créneau dont l'acompte n'a pas été réglé. Permet de retrouver et de
+  // rétablir ce qu'un automatisme a fait, sans le confondre avec un choix.
+  annuleAutomatiquementLe DateTime?
+
   // Pourcentage figé au moment de la demande, comme l'est le prix de chaque
   // ligne : le barème peut changer, ce qui a été promis à cette cliente-là ne
   // doit pas bouger sous ses yeux.

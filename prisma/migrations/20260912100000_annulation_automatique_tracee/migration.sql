@@ -1,0 +1,14 @@
+-- Une annulation faite par le site, et non par une personne, doit pouvoir se
+-- reconnaître après coup.
+--
+-- La libération automatique des créneaux (acompte non réglé sous 48 h) a
+-- annulé des rendez-vous qu'elle n'aurait pas dû toucher : ceux dont l'acompte
+-- avait été réglé par le lien réutilisable, en espèces, ou tout simplement
+-- ceux que Zélia avait choisi de maintenir sans insister. Rien ne les
+-- distinguait ensuite d'une annulation voulue, et rien ne permettait de les
+-- retrouver pour les rétablir.
+--
+-- Pas de remplissage rétroactif : sans horodatage de modification sur les
+-- rendez-vous, on ne peut pas dater une annulation passée, et marquer
+-- « automatique » ce qui a pu être un choix serait une seconde erreur.
+ALTER TABLE "RendezVous" ADD COLUMN "annuleAutomatiquementLe" TIMESTAMP(3);

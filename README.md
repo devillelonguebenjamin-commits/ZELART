@@ -549,6 +549,27 @@ régler l'ancien lien resté dans sa boîte, et ce règlement-là échapperait a
 ou par virement, et les acomptes partis avec le lien réutilisable — ceux-là n'ont pas de
 référence, rien ne peut les rattacher après coup.
 
+### Libération automatique du créneau : la règle exacte
+
+Passé **48 h** sans règlement, la tâche quotidienne peut annuler le rendez-vous et rendre le
+créneau — mais **seulement** quand elle peut le vérifier. La règle tient en trois conditions,
+toutes nécessaires :
+
+1. le rendez-vous est **confirmé** (une demande non tranchée appartient à Zélia) ;
+2. l'acompte porte une **référence SumUp** (créé par l'API), et SumUp, interrogé **à l'instant**,
+   répond autre chose que « payé ». Pas de réponse vaut « on ne sait pas », jamais « impayé » ;
+3. le rendez-vous est **à venir**.
+
+Un acompte parti avec le **lien réutilisable** n'a pas de référence : le site ne l'annulera
+**jamais** de lui-même. Il le signale sur l'agenda passé deux jours, et Zélia coche « Acompte
+reçu » ou annule.
+
+Cette règle a été durcie après un incident : une première version annulait dès 48 h sur le seul
+état en base, sans distinguer les acomptes vérifiables des autres, et a annulé des clientes en
+règle. Les annulations faites par le site portent depuis `annuleAutomatiquementLe`, et l'agenda
+liste les « Annulations à vérifier » avec un bouton **Rétablir** qui revérifie le créneau et
+prévient la cliente que l'annulation était une erreur — sans redemander d'acompte.
+
 L'agenda signale les nouvelles clientes et l'état de l'acompte (`acompteDemandeLe`,
 `acompteRegleLe`, `acompteVerifieLe`).
 

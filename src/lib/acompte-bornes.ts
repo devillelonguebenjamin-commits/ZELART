@@ -13,50 +13,65 @@ import type { StatutRendezVous } from "@/generated/prisma/client";
 /**
  * Combien de temps un créneau reste retenu sans que l'acompte soit réglé.
  *
- * L'acompte protège d'une inconnue qui ne vient pas ; il ne servait à rien tant
- * qu'une demande impayée gardait le créneau indéfiniment. Une inconnue pouvait
- * réserver le samedi le plus demandé, ne jamais payer, et personne d'autre ne
- * pouvait le prendre.
- *
  * Deux nuits : la relance part à vingt-quatre heures, et il reste une journée
- * pour y donner suite. C'est aussi ce que cette relance promet déjà — « sans
- * règlement, le créneau pourra être proposé à une autre cliente » —, une phrase
- * que rien n'appliquait.
+ * pour y donner suite.
  */
 export const DELAI_EXPIRATION_ACOMPTE_MS = 48 * 60 * 60 * 1000;
 
 /**
- * Filtre Prisma des rendez-vous qui **occupent encore** leur créneau.
+ * Filtre Prisma des rendez-vous qui occupent leur créneau : tout ce qui n'est
+ * pas annulé.
  *
- * Écrit en OR plutôt qu'en NOT, et ce n'est pas un goût de style : un `NOT`
- * portant sur deux colonnes nullables se évalue à NULL — donc à faux — dès que
- * l'une d'elles est vide, et aurait discrètement libéré les créneaux de tous
- * les rendez-vous sans acompte demandé, c'est-à-dire de toutes les habituées.
- * Les trois branches ci-dessous se lisent, elles, sans piège :
+ * Une première version en excluait les acomptes échus, pour rendre le créneau
+ * dès la quarante-huitième heure sans attendre le passage de la tâche. Elle a
+ * été retirée après avoir annulé des rendez-vous réglés : un créneau ne se
+ * libère plus **que** par une annulation effective, décidée après avoir
+ * demandé à SumUp où en est le paiement. Entre-temps, il reste retenu — un
+ * samedi tenu un jour de trop coûte moins cher qu'une cliente qui a payé et
+ * qu'on renvoie.
  */
-export function occupeLeCreneau(maintenant: Date = new Date()) {
-  const limite = new Date(maintenant.getTime() - DELAI_EXPIRATION_ACOMPTE_MS);
+export function occupeLeCreneau() {
+  return { statut: { not: "ANNULE" as const } };
+}
+
+/**
+ * Les rendez-vous **candidats** à la libération : le délai est passé et rien
+ * n'a été constaté. Candidats seulement — la décision se prend après une
+ * vérification en direct auprès de SumUp, jamais sur ce filtre seul.
+ *
+ * Trois gardes, chacune née d'une annulation injustifiée :
+ *
+ *   - `acompteReference` non nul : seul un paiement créé par l'API porte une
+ *     référence et peut être interrogé. Un acompte parti avec le lien
+ *     réutilisable n'a rien qui permette de savoir s'il a été réglé — il se
+ *     coche à la main, et ne s'annule jamais automatiquement ;
+ *   - statut CONFIRMÉ uniquement : une demande que Zélia n'a pas encore
+ *     tranchée lui appartient, acompte demandé ou non ;
+ *   - début à venir : un rendez-vous passé n'intéresse plus personne, et
+ *     l'annuler après coup réécrirait l'histoire.
+ */
+export function acompteExpire(maintenant: Date = new Date()) {
   return {
-    statut: { not: "ANNULE" as const },
-    OR: [
-      // Aucun acompte n'a été demandé : rien à attendre.
-      { acompteDemandeLe: null },
-      // Il a été réglé.
-      { acompteRegleLe: { not: null } },
-      // Il est demandé depuis peu : la cliente a encore le temps.
-      { acompteDemandeLe: { gt: limite } },
-    ],
+    statut: "CONFIRME" as const,
+    acompteReference: { not: null },
+    acompteDemandeLe: { lt: new Date(maintenant.getTime() - DELAI_EXPIRATION_ACOMPTE_MS) },
+    acompteRegleLe: null,
+    debut: { gt: maintenant },
   };
 }
 
-/** L'inverse : le délai est passé, le créneau doit être rendu. */
-export function acompteExpire(maintenant: Date = new Date()) {
+/**
+ * Acomptes en souffrance que le site **ne peut pas** trancher seul : demandés
+ * depuis plus de deux jours, non constatés, et sans référence pour interroger
+ * SumUp. C'est à Zélia de les cocher « reçu » ou d'annuler ; l'écran les lui
+ * montre, rien d'autre.
+ */
+export function acompteASuivreALaMain(maintenant: Date = new Date()) {
   return {
-    statut: { notIn: ["ANNULE", "TERMINE", "NO_SHOW"] satisfies StatutRendezVous[] },
+    statut: { in: ["CONFIRME", "EN_ATTENTE"] satisfies StatutRendezVous[] },
+    acompteReference: null,
     acompteDemandeLe: { lt: new Date(maintenant.getTime() - DELAI_EXPIRATION_ACOMPTE_MS) },
     acompteRegleLe: null,
-    // Un rendez-vous déjà passé ne se libère pas : son créneau n'intéresse
-    // plus personne, et l'annuler après coup réécrirait l'histoire.
     debut: { gt: maintenant },
   };
 }
