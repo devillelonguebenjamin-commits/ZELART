@@ -31,11 +31,7 @@ export type EtatRetablissement = { ok?: boolean; message?: string };
  *     réservation. Elle a reçu un e-mail d'annulation ; celui-ci le contredit
  *     explicitement.
  */
-export async function retablirRendezVous(
-  rendezVousId: string,
-  _etatPrecedent: EtatRetablissement,
-  _formData: FormData
-): Promise<EtatRetablissement> {
+export async function retablirRendezVous(rendezVousId: string): Promise<EtatRetablissement> {
   await exigerAdmin();
 
   const rdv = await prisma.rendezVous.findUnique({
@@ -87,8 +83,14 @@ export async function retablirRendezVous(
 
   // Un rendez-vous passé se rétablit pour l'historique et les chiffres ; il
   // n'y a plus personne à prévenir.
+  //
+  // Le résultat de l'envoi est conservé : dire « elle est prévenue » alors que
+  // le message n'est pas parti serait exactement le genre d'affirmation qui a
+  // causé l'incident. Si l'e-mail échoue, le SMS peut encore passer, et Zélia
+  // le sait.
+  let prevenue = false;
   if (!passe) {
-    await envoyerEmail(
+    const courriel = await envoyerEmail(
       rdv.cliente.email,
       `Votre rendez-vous du ${formatJour(rdv.debut)} est bien maintenu`,
       `<p>Bonjour ${echapperHtml(rdv.cliente.prenom)},</p>
@@ -103,10 +105,11 @@ export async function retablirRendezVous(
        <p>À très vite,<br>Zélia ✨</p>
        ${await reseauxPourEmail()}`
     );
-    await envoyerSmsSansBloquer(
+    const sms = await envoyerSmsSansBloquer(
       rdv.cliente.telephone,
       `Zelart Nails : votre rendez-vous du ${formatJour(rdv.debut)} a ${formatHeure(rdv.debut)} est bien maintenu, l'annulation etait une erreur de notre part. Desolee ! Zelia`
     );
+    prevenue = courriel.ok || sms;
   }
 
   revalidatePath("/admin");
@@ -115,6 +118,8 @@ export async function retablirRendezVous(
     ok: true,
     message: passe
       ? `Rendez-vous du ${quand} rétabli dans l'historique.`
-      : `Rendez-vous du ${quand} rétabli. ${rdv.cliente.prenom} est prévenue que l'annulation était une erreur.`,
+      : prevenue
+        ? `Rendez-vous du ${quand} rétabli. ${rdv.cliente.prenom} est prévenue que l'annulation était une erreur.`
+        : `Rendez-vous du ${quand} rétabli, mais ${rdv.cliente.prenom} n'a pas pu être prévenue (envoi en échec) : contactez-la vous-même.`,
   };
 }

@@ -17,8 +17,10 @@ export default function BoutonRetablir({
   rendezVousId: string;
   libelle?: string;
 }) {
+  // useActionState passe l'état précédent et le formulaire ; l'action n'a
+  // besoin ni de l'un ni de l'autre, on ne les lui transmet pas.
   const [etat, action, enCours] = useActionState<EtatRetablissement, FormData>(
-    retablirRendezVous.bind(null, rendezVousId),
+    () => retablirRendezVous(rendezVousId),
     {}
   );
 
