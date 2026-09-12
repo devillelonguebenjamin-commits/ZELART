@@ -1,4 +1,3 @@
-import { prisma } from "@/lib/prisma";
 import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { notifierListeAttente } from "@/lib/liste-attente";
@@ -8,19 +7,10 @@ import { DELAI_EXPIRATION_ACOMPTE_MS } from "@/lib/acompte-bornes";
 /**
  * Annonce à une cliente que son créneau a été rendu faute d'acompte.
  *
- * Vit ici plutôt que dans la tâche quotidienne parce que deux chemins y
- * mènent, et qu'ils doivent dire la même chose :
- *
- *   - le passage de sept heures, qui libère les créneaux échus de la nuit ;
- *   - une autre cliente qui réserve ce créneau entre-temps. Le créneau
- *     redevient proposable dès la quarante-huitième heure, pas au prochain
- *     passage de la tâche : sans cela, le samedi convoité resterait retenu
- *     jusqu'au lendemain matin par une réservation que plus rien ne tient.
- *
- * Le second chemin est le plus délicat : la place est déjà prise quand la
- * cliente lit le message. D'où « choisissez une nouvelle date » plutôt que
- * « votre créneau vous attend », et la mise en garde sur l'ancien lien de
- * paiement, qui ne correspond plus à rien.
+ * Un seul chemin y mène désormais : le passage quotidien, après avoir demandé
+ * à SumUp où en est le paiement. Une première version libérait aussi le
+ * créneau au fil de l'eau, quand une autre cliente le réservait ; elle a été
+ * retirée, parce qu'elle annulait sans pouvoir vérifier.
  */
 export type CreneauRendu = {
   id: string;
@@ -42,27 +32,21 @@ export function corpsCreneauLibere(rdv: CreneauRendu): string {
          Choisir une nouvelle date
        </a>
      </p>
-     <p style="font-size:13px;color:#8a6274">Un souci pour régler ? Un SMS au 06 45 29 20 01 et on
-     trouve une solution.</p>`;
+     <p style="font-size:13px;color:#8a6274">Vous aviez réglé ? Répondez à ce message ou envoyez un
+     SMS au 06 45 29 20 01 : votre rendez-vous sera rétabli.</p>`;
 }
 
 /**
  * Prévient la cliente, et propose le créneau à la liste d'attente.
  *
- * L'annulation elle-même n'est **pas** faite ici : selon le chemin, elle a
- * lieu dans une transaction qui ne doit pas attendre un envoi d'e-mail. Ce qui
- * suit est donc ce qui se fait après coup, une fois la place réellement rendue.
- *
- * `previenirListeAttente` est faux quand une autre cliente vient de prendre le
- * créneau : annoncer à la liste d'attente une place déjà occupée ferait courir
- * tout le monde pour rien.
+ * L'annulation elle-même n'est pas faite ici : l'appelant l'enregistre avant
+ * d'écrire, pour qu'un envoi en échec ne laisse pas un créneau retenu.
  */
 export async function annoncerCreneauRendu(
   rdv: CreneauRendu,
-  enveloppe: (contenu: string) => string,
-  previenirListeAttente: boolean
+  enveloppe: (contenu: string) => string
 ): Promise<boolean> {
-  if (previenirListeAttente) await notifierListeAttente({ debut: rdv.debut });
+  await notifierListeAttente({ debut: rdv.debut });
 
   const resultat = await envoyerEmail(
     rdv.cliente.email,
@@ -70,31 +54,4 @@ export async function annoncerCreneauRendu(
     enveloppe(corpsCreneauLibere(rdv))
   );
   return resultat.ok;
-}
-
-/**
- * Annule les rendez-vous dont l'acompte a expiré et qui chevauchent la fenêtre
- * qu'une autre cliente vient de réserver.
- *
- * Appelée **dans** la transaction de réservation : c'est ce qui garantit qu'un
- * créneau n'est jamais tenu par deux rendez-vous à la fois, même une heure. On
- * rend les fiches annulées pour que l'appelant prévienne les clientes une fois
- * la transaction validée — écrire d'abord, écrire à la cliente ensuite.
- */
-export async function annulerExpiresChevauchant(
-  tx: Pick<typeof prisma, "rendezVous">,
-  filtreExpire: object,
-  fenetre: { debut: Date; fin: Date }
-): Promise<CreneauRendu[]> {
-  const expires = await tx.rendezVous.findMany({
-    where: { ...filtreExpire, debut: { lt: fenetre.fin }, fin: { gt: fenetre.debut } },
-    select: { id: true, debut: true, cliente: { select: { prenom: true, email: true } } },
-  });
-  if (expires.length === 0) return [];
-
-  await tx.rendezVous.updateMany({
-    where: { id: { in: expires.map((r) => r.id) } },
-    data: { statut: "ANNULE" },
-  });
-  return expires;
 }

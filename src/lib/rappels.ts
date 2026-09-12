@@ -6,7 +6,8 @@ import { reglagesAcompte, reglagesRappels } from "@/lib/parametres";
 import { lienDemandeAvis } from "@/lib/avis";
 import { attribuerAvantages } from "@/lib/parrainage";
 import { compterEnAttente } from "@/lib/en-attente";
-import { verifierAcomptesEnAttente } from "@/lib/acompte";
+import { verifierAcompte, verifierAcomptesEnAttente } from "@/lib/acompte";
+import { sumupConfigure } from "@/lib/sumup";
 import { acompteExpire } from "@/lib/acompte-bornes";
 import { annoncerCreneauRendu } from "@/lib/liberation-creneau";
 import { urlSite } from "@/lib/site";
@@ -312,6 +313,10 @@ async function envoyerDemandesAvis(): Promise<{ envoyees: number; echecs: number
  * est prévenue, puisque le créneau vient réellement de se libérer.
  */
 async function libererCreneauxSansAcompte(): Promise<{ liberes: number; echecs: number }> {
+  // Sans l'API, aucun acompte ne porte de référence, et rien ne peut être
+  // vérifié : la fonction n'a alors rien à faire, et le dit en ne faisant rien.
+  if (!sumupConfigure()) return { liberes: 0, echecs: 0 };
+
   const candidats = await prisma.rendezVous.findMany({
     where: acompteExpire(),
     select: { id: true, debut: true, cliente: { select: { prenom: true, email: true } } },
@@ -321,11 +326,22 @@ async function libererCreneauxSansAcompte(): Promise<{ liberes: number; echecs: 
   let echecs = 0;
 
   for (const rdv of candidats) {
-    // L'annulation est enregistrée **avant** l'e-mail : un envoi en échec ne
-    // doit pas laisser le créneau retenu un jour de plus.
-    await prisma.rendezVous.update({ where: { id: rdv.id }, data: { statut: "ANNULE" } });
+    // La décision se prend sur une réponse **fraîche** de SumUp, pas sur l'état
+    // en base, qui peut avoir un jour de retard. Et une absence de réponse ne
+    // vaut jamais « impayé » : on laisse le rendez-vous tranquille et on
+    // repassera demain. C'est l'inverse qui a annulé des clientes en règle.
+    const etat = await verifierAcompte(rdv.id);
+    if (etat === null || etat === "PAID") continue;
+
+    // L'annulation est enregistrée **avant** l'e-mail, et marquée comme
+    // automatique : ce qu'un automate a fait doit pouvoir se retrouver et se
+    // défaire sans se confondre avec un choix.
+    await prisma.rendezVous.update({
+      where: { id: rdv.id },
+      data: { statut: "ANNULE", annuleAutomatiquementLe: new Date() },
+    });
     liberes++;
-    if (!(await annoncerCreneauRendu(rdv, enveloppe, true))) echecs++;
+    if (!(await annoncerCreneauRendu(rdv, enveloppe))) echecs++;
   }
 
   return { liberes, echecs };

@@ -24,6 +24,8 @@ import FormulaireRdvManuel from "@/components/FormulaireRdvManuel";
 import FormulaireCreneauPerso from "@/components/FormulaireCreneauPerso";
 import AnnulationAvecMessage from "@/components/AnnulationAvecMessage";
 import AjusterPrestation, { type Variante } from "@/components/AjusterPrestation";
+import BoutonRetablir from "@/components/BoutonRetablir";
+import { DELAI_EXPIRATION_ACOMPTE_MS } from "@/lib/acompte-bornes";
 import { getCreneauxDisponibles, type Creneau } from "@/lib/creneaux";
 
 const JOUR_MS = 24 * 60 * 60 * 1000;
@@ -426,7 +428,7 @@ function CarteRdv({
           </>
         )}
         {(rdv.statut === "ANNULE" || rdv.statut === "NO_SHOW") && (
-          <BoutonStatut id={rdv.id} statut="CONFIRME" label="Réactiver" />
+          <BoutonRetablir rendezVousId={rdv.id} libelle="Réactiver" />
         )}
       </div>
     </div>
@@ -582,6 +584,34 @@ export default async function Agenda({
   const DORT_DEPUIS_MS = 72 * 60 * 60 * 1000;
   const heuresDepuis = (rdv: RdvComplet) =>
     Math.floor((maintenant.getTime() - rdv.creeLe.getTime()) / 3_600_000);
+  // Annulations à vérifier : ce que le site a annulé lui-même, et — pour la
+  // période où il ne le marquait pas encore — ce qui ressemble à une
+  // annulation automatique. Le second cas est une heuristique et se présente
+  // comme telle : un rendez-vous futur annulé, acompte demandé, jamais
+  // constaté. Zélia sait lesquels elle a annulés elle-même ; l'écran ne le
+  // devine pas à sa place, il lui montre la liste.
+  const aVerifier = rdvs.filter(
+    (r) =>
+      r.statut === "ANNULE" &&
+      r.fin >= maintenant &&
+      (r.annuleAutomatiquementLe !== null ||
+        (r.acompteDemandeLe !== null && r.acompteRegleLe === null))
+  );
+
+  // Acomptes que le site ne peut pas trancher seul : partis avec le lien
+  // réutilisable, donc sans référence à interroger, et en souffrance depuis
+  // plus de deux jours. À cocher « reçu » ou à annuler — à la main.
+  const limiteAcompte = new Date(maintenant.getTime() - DELAI_EXPIRATION_ACOMPTE_MS);
+  const acomptesALaMain = rdvs.filter(
+    (r) =>
+      (r.statut === "CONFIRME" || r.statut === "EN_ATTENTE") &&
+      r.fin >= maintenant &&
+      r.acompteReference === null &&
+      r.acompteDemandeLe !== null &&
+      r.acompteDemandeLe < limiteAcompte &&
+      r.acompteRegleLe === null
+  );
+
   const enAttente = rdvs
     .filter((r) => r.statut === "EN_ATTENTE" && r.fin >= maintenant)
     .sort((a, b) => a.creeLe.getTime() - b.creeLe.getTime());
@@ -605,6 +635,53 @@ export default async function Agenda({
         </div>
         <CalendrierMois grille={grille} />
       </section>
+
+      {aVerifier.length > 0 && (
+        <section className="rounded-3xl border-2 border-red-200 bg-red-50 p-5">
+          <h1 className="font-display text-2xl font-bold text-red-900">
+            Annulations à vérifier{" "}
+            <span className="ml-1 rounded-full bg-red-600 px-3 py-1 text-sm font-semibold text-white align-middle">
+              {aVerifier.length}
+            </span>
+          </h1>
+          <p className="mt-1 text-sm text-red-900/80">
+            Ces rendez-vous à venir ont été annulés alors qu&rsquo;un acompte était demandé sans
+            être constaté. Certains l&rsquo;ont été <strong>par le site, à tort</strong>. Si la
+            cliente a réglé — par le lien, en espèces — ou si vous vouliez la garder, rétablissez :
+            elle reçoit un message disant que l&rsquo;annulation était une erreur. Celles que vous
+            avez annulées vous-même, laissez-les.
+          </p>
+          <div className="mt-4 grid gap-2">
+            {aVerifier.map((rdv) => (
+              <div
+                key={rdv.id}
+                className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-red-100 bg-white px-5 py-3 text-sm"
+              >
+                <Link
+                  href={`/admin/clientes/${rdv.clienteId}`}
+                  className="font-medium text-pink-600 hover:underline"
+                >
+                  {rdv.cliente.prenom} {rdv.cliente.nom}
+                </Link>
+                <span className="capitalize">
+                  {formatJour(rdv.debut)} · {formatHeure(rdv.debut)}
+                </span>
+                <span className="min-w-40 flex-1 text-foreground/70">
+                  {rdv.lignes.map((l) => l.prestation.nom).join(" + ") || "sans prestation"}
+                </span>
+                <span className="text-xs text-foreground/55">
+                  {rdv.annuleAutomatiquementLe
+                    ? `annulé par le site le ${formatJour(rdv.annuleAutomatiquementLe)}`
+                    : rdv.acompteDemandeLe
+                      ? `acompte demandé le ${formatJour(rdv.acompteDemandeLe)}, non constaté`
+                      : ""}
+                </span>
+                <BoutonRetablir rendezVousId={rdv.id} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <h1 className="font-display text-2xl font-bold">
@@ -723,6 +800,19 @@ export default async function Agenda({
 
       <section>
         <h2 className="font-display text-2xl font-bold">Rendez-vous à venir</h2>
+        {acomptesALaMain.length > 0 && (
+          <p className="mt-3 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-3 text-sm text-amber-900">
+            <strong>
+              {acomptesALaMain.length} acompte{acomptesALaMain.length > 1 ? "s" : ""} demandé
+              {acomptesALaMain.length > 1 ? "s" : ""} depuis plus de deux jours sans règlement
+              constaté
+            </strong>{" "}
+            — {acomptesALaMain.map((r) => r.cliente.prenom).join(", ")}. Partis avec le lien
+            réutilisable, le site ne peut pas savoir s&rsquo;ils ont été réglés : il ne les
+            annulera <strong>jamais</strong> de lui-même. À vous de cocher « Acompte reçu » sur la
+            carte, ou d&rsquo;annuler.
+          </p>
+        )}
         <div className="mt-4 grid gap-3">
           {aVenir.length === 0 ? (
             <p className="rounded-2xl bg-pink-50 px-5 py-4 text-sm text-foreground/70">

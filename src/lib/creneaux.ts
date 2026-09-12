@@ -173,7 +173,7 @@ export async function getCreneauxDisponibles(): Promise<Creneau[]> {
     // tâche quotidienne l'annulera formellement (cf. occupeLeCreneau).
     prisma.rendezVous.findMany({
       where: {
-        ...occupeLeCreneau(maintenant),
+        ...occupeLeCreneau(),
         debut: { lt: finHorizon },
         fin: { gt: maintenant },
       },
