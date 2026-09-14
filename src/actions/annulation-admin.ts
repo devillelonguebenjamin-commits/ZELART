@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { exigerAdmin } from "@/lib/auth";
-import { echapperHtml, envoyerEmail } from "@/lib/email";
+import { echapperHtml, envoyerEmail, enteteLogo } from "@/lib/email";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { notifierListeAttente } from "@/lib/liste-attente";
 import { urlSite } from "@/lib/site";
@@ -116,7 +116,7 @@ export async function annulerAvecMessage(
       rdv.cliente.email,
       titre,
       `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
-        <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
+        ${enteteLogo()}
         <p>Bonjour ${echapperHtml(rdv.cliente.prenom)},</p>
         ${ouverture}
         ${mot}

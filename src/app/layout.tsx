@@ -4,6 +4,7 @@ import Link from "next/link";
 import "./globals.css";
 import { reglagesReseaux } from "@/lib/parametres";
 import LiensReseaux from "@/components/LiensReseaux";
+import Logo from "@/components/Logo";
 import { CreteVagues } from "@/components/Vagues";
 import { Analytics } from "@vercel/analytics/next";
 import { urlSite } from "@/lib/site";
@@ -57,13 +58,19 @@ export default async function RootLayout({
               latéralement, on interdit la coupure au sein d'un lien et on
               autorise le passage à la ligne entre eux. */}
           <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-3 gap-y-2 px-4 py-3 sm:justify-between sm:gap-x-4 sm:px-6 lg:flex-nowrap">
+            {/* Le nom reste en toutes lettres à côté du logo : la vignette
+                de 150 px porte bien un lettrage, mais il n'est pas lisible à
+                36 px, et un en-tête qui ne se lit pas ne nomme rien. */}
             <Link
               href="/"
-              className="font-display whitespace-nowrap text-xl font-bold text-pink-500 sm:text-2xl"
+              className="font-display flex items-center gap-2.5 whitespace-nowrap text-xl font-bold text-pink-500 sm:gap-3 sm:text-2xl"
             >
-              Zelart{" "}
-              <span className="text-sm font-normal tracking-widest text-pink-300 sm:text-base">
-                Nails
+              <Logo taille={36} className="shrink-0" />
+              <span>
+                Zelart{" "}
+                <span className="text-sm font-normal tracking-widest text-pink-300 sm:text-base">
+                  Nails
+                </span>
               </span>
             </Link>
             <nav className="flex items-center gap-3 text-sm sm:gap-6">
@@ -120,8 +127,11 @@ export default async function RootLayout({
           <CreteVagues />
           <div className="mx-auto grid max-w-5xl gap-6 px-4 pb-8 text-sm text-foreground/70 sm:grid-cols-3 sm:px-6">
             <div>
-              <p className="font-display text-lg font-bold text-pink-500">Zelart Nails</p>
-              <p className="mt-1">Zélia, prothésiste ongulaire &amp; nail artist certifiée</p>
+              <p className="font-display flex items-center gap-2.5 text-lg font-bold text-pink-500">
+                <Logo taille={44} className="shrink-0" />
+                Zelart Nails
+              </p>
+              <p className="mt-2">Zélia, prothésiste ongulaire &amp; nail artist certifiée</p>
               <p className="mt-1">SIRET 903 178 101 00015</p>
               {reseaux.length > 0 && (
                 <div className="mt-4">

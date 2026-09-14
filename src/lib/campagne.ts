@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { filtreDestinataires, seuilFidelite } from "@/lib/segments";
 import { urlSite } from "@/lib/site";
-import { echapperHtml } from "@/lib/email";
+import { echapperHtml, enteteLogo } from "@/lib/email";
 
 export type Destinataire = {
   id: string;
@@ -49,7 +49,7 @@ export function corpsHtml(contenu: string, destinataire: Destinataire | null): s
     : `${urlSite()}/desabonnement/apercu`;
 
   return `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
-  <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
+  ${enteteLogo()}
   ${paragraphes}
   <p style="margin:24px 0 0">Zélia ✨</p>
   <hr style="border:none;border-top:1px solid #f6d9e7;margin:28px 0 12px">

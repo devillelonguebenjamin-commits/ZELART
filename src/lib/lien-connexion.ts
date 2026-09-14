@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { envoyerEmail, echapperHtml } from "@/lib/email";
+import { envoyerEmail, echapperHtml, enteteLogo } from "@/lib/email";
 import { urlSite } from "@/lib/site";
 import { CLE_ECHEC_CONNEXION, enregistrerParametre } from "@/lib/parametres";
 import { nouveauJeton, VALIDITE_LIEN_MIN } from "@/lib/cliente-auth";
@@ -49,7 +49,7 @@ export async function envoyerLienConnexion(
     cliente.email,
     "Votre lien de connexion · Zelart Nails",
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
-      <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
+      ${enteteLogo()}
       <p>Bonjour ${echapperHtml(cliente.prenom)},</p>
       <p>Voici votre lien pour accéder à votre espace. Il est valable ${VALIDITE_LIEN_MIN} minutes et ne fonctionne qu'une fois.</p>
       <p style="margin:24px 0">

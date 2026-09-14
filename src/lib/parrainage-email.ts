@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { envoyerEmail, echapperHtml } from "@/lib/email";
+import { envoyerEmail, echapperHtml, enteteLogo } from "@/lib/email";
 import { urlSite } from "@/lib/site";
 import { attribuerAvantages, LIBELLE_AVANTAGE, statutParrainage } from "@/lib/parrainage";
 
@@ -75,7 +75,7 @@ export async function recompenserMarraine(
     marraine.email,
     `${statutFinal.palier.emoji} Vous passez ${statutFinal.palier.nom} !`,
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
-      <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
+      ${enteteLogo()}
       <p>Bonjour ${echapperHtml(marraine.prenom)},</p>
       <p>${echapperHtml(filleule.prenom)} est venue grâce à vous : votre squad compte maintenant
       <strong>${statutFinal.filleulesVenues} filleule${statutFinal.filleulesVenues > 1 ? "s" : ""}</strong> !</p>

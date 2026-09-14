@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { exigerAdmin } from "@/lib/auth";
-import { envoyerEmail, echapperHtml } from "@/lib/email";
+import { envoyerEmail, echapperHtml, enteteLogo } from "@/lib/email";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { reseauxPourEmail } from "@/lib/parametres";
 import { occupeLeCreneau } from "@/lib/acompte-bornes";
@@ -93,7 +93,8 @@ export async function retablirRendezVous(rendezVousId: string): Promise<EtatReta
     const courriel = await envoyerEmail(
       rdv.cliente.email,
       `Votre rendez-vous du ${formatJour(rdv.debut)} est bien maintenu`,
-      `<p>Bonjour ${echapperHtml(rdv.cliente.prenom)},</p>
+      `${enteteLogo()}
+       <p>Bonjour ${echapperHtml(rdv.cliente.prenom)},</p>
        <p>Vous avez reçu un message annonçant l'annulation de votre rendez-vous. <strong>C'était une
        erreur de notre part</strong>, et je vous prie de m'en excuser.</p>
        <p>Votre rendez-vous est <strong>bien maintenu</strong> :</p>

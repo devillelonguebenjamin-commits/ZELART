@@ -6,7 +6,7 @@ import { del } from "@vercel/blob";
 import { optionsBlob } from "@/lib/blob";
 import { prisma } from "@/lib/prisma";
 import { exigerAdmin, fermerSessionAdmin, ouvrirSessionAdmin } from "@/lib/auth";
-import { envoyerEmail, echapperHtml } from "@/lib/email";
+import { envoyerEmail, echapperHtml, enteteLogo } from "@/lib/email";
 import { z } from "zod";
 import { creneauProposeDepuisSaisie, dateParis, formatHeure, formatJour } from "@/lib/creneaux";
 import { envoyerDemandeAcompte, acompteADemander, verifierAcompte } from "@/lib/acompte";
@@ -117,7 +117,8 @@ export async function changerStatutRendezVous(
     await envoyerEmail(
       rendezVous.cliente.email,
       "Votre rendez-vous chez Zelart Nails est confirmé 🤍",
-      `<p>Bonjour ${echapperHtml(rendezVous.cliente.prenom)},</p>
+      `${enteteLogo()}
+       <p>Bonjour ${echapperHtml(rendezVous.cliente.prenom)},</p>
        <p>Votre rendez-vous est confirmé :</p>
        <p>${rendezVous.lignes
          .map(
@@ -184,7 +185,8 @@ export async function refuserCreneauPropose(id: string): Promise<void> {
   await envoyerEmail(
     rendezVous.cliente.email,
     "Votre proposition d'horaire chez Zelart Nails",
-    `<p>Bonjour ${echapperHtml(rendezVous.cliente.prenom)},</p>
+    `${enteteLogo()}
+       <p>Bonjour ${echapperHtml(rendezVous.cliente.prenom)},</p>
      <p>Merci d'avoir proposé le <strong>${formatJour(rendezVous.debut)} à ${formatHeure(rendezVous.debut)}</strong>.
      Malheureusement je ne suis pas disponible à ce moment-là.</p>
      <p>Vous pouvez choisir un autre créneau, ou vous inscrire en liste d'attente pour être
@@ -537,7 +539,8 @@ export async function envoyerEmailTest(
   const resultat = await envoyerEmail(
     destinataire.data,
     "Test d'envoi · Zelart Nails",
-    `<p>Bonjour,</p>
+    `${enteteLogo()}
+       <p>Bonjour,</p>
      <p>Ceci est un e-mail de test envoyé depuis l'espace gérante du site Zelart Nails.</p>
      <p>Si vous le recevez, les notifications de rendez-vous fonctionnent ✨</p>`
   );

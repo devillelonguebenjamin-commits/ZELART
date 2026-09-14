@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { exigerAdmin } from "@/lib/auth";
-import { envoyerEmail, echapperHtml } from "@/lib/email";
+import { envoyerEmail, echapperHtml, enteteLogo } from "@/lib/email";
 import { formatPrix } from "@/lib/format";
 import { LIBELLE_REMISE, montantARegler } from "@/lib/press-on";
 import { lienSumUpValide, reglagesAcompte } from "@/lib/parametres";
@@ -147,7 +147,7 @@ export async function envoyerDemandePaiement(id: string): Promise<EtatEnvoiPaiem
     commande.cliente.email,
     `Votre commande de press-on : ${formatPrix(montant.cents)} à régler`,
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
-      <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
+      ${enteteLogo()}
       <p>Bonjour ${echapperHtml(commande.cliente.prenom)},</p>
       <p>Merci pour votre commande :</p>
       <p><strong>${echapperHtml(commande.modele.nom)}</strong> : ${formatPrix(commande.prixCents, commande.aPartirDe)}<br>

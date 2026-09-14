@@ -1,3 +1,4 @@
+import { urlSite } from "@/lib/site";
 // Envoi d'e-mails via Brevo (https://brevo.com) ou Resend (https://resend.com),
 // selon la clé configurée — Brevo est prioritaire si les deux sont présentes.
 // Sans aucune clé, les envois sont simplement ignorés : le site fonctionne
@@ -214,4 +215,28 @@ export async function envoyerEmail(
         : `Envoi impossible : ${message}`,
     };
   }
+}
+
+/**
+ * En-tête des messages aux clientes : le logo, puis le nom.
+ *
+ * Le nom reste écrit à côté, et pas seulement porté par l'image : une bonne
+ * part des messageries bloquent les images distantes par défaut, et un en-tête
+ * réduit à un cadre vide ne dirait plus de qui vient le message. L'attribut alt
+ * ne suffit pas — il s'affiche rarement tel quel.
+ *
+ * Le fond zébré du logo est opaque, ce qui tombe bien ici : un logo détouré
+ * aurait à composer avec les fonds blancs comme sombres des différents clients.
+ *
+ * Un tableau plutôt qu'un flex : c'est encore ce que les messageries alignent
+ * le plus sûrement, Outlook compris.
+ */
+export function enteteLogo(): string {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px">
+    <tr>
+      <td style="padding-right:12px"><img src="${urlSite()}/logo-zelart.png" width="48" height="48" alt=""
+        style="display:block;width:48px;height:48px;border-radius:999px;border:0"></td>
+      <td style="font-size:22px;font-weight:700;color:#ec4899">Zelart Nails</td>
+    </tr>
+  </table>`;
 }
