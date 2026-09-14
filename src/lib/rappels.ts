@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { envoyerEmail, echapperHtml } from "@/lib/email";
+import { envoyerEmail, echapperHtml, enteteLogo } from "@/lib/email";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { formatPrix, totalTarifs } from "@/lib/format";
 import { reglagesAcompte, reglagesRappels } from "@/lib/parametres";
@@ -43,7 +43,7 @@ const LIBELLE_TECHNIQUE: Record<TypePose, string> = {
 
 function enveloppe(contenu: string, pied?: string): string {
   return `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
-  <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
+  ${enteteLogo()}
   ${contenu}
   <p style="margin-top:24px">À très vite,<br>Zélia ✨</p>
   ${
@@ -438,7 +438,7 @@ async function envoyerRecapEnAttente(): Promise<{ envoye: boolean }> {
     process.env.NOTIFY_EMAIL,
     `À traiter aujourd'hui : ${attente.total} demande${attente.total > 1 ? "s" : ""}`,
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
-      <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
+      ${enteteLogo()}
       <p>Bonjour Zélia,</p>
       <p>Voici ce qui attend une réponse de votre part :</p>
       <ul>${lignes}</ul>

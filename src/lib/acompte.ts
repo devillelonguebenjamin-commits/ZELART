@@ -4,7 +4,7 @@ export {
   occupeLeCreneau,
   acompteExpire,
 } from "@/lib/acompte-bornes";
-import { envoyerEmail, echapperHtml } from "@/lib/email";
+import { envoyerEmail, echapperHtml, enteteLogo } from "@/lib/email";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { formatPrix, totalTarifs } from "@/lib/format";
 import { reglagesAcompte } from "@/lib/parametres";
@@ -198,7 +198,7 @@ export async function envoyerDemandeAcompte(rendezVousId: string): Promise<boole
     rendezVous.cliente.email,
     `Votre acompte pour réserver le ${formatJour(rendezVous.debut)}`,
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
-      <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
+      ${enteteLogo()}
       <p>Bonjour ${echapperHtml(rendezVous.cliente.prenom)},</p>
       <p>Merci pour votre demande de rendez-vous :</p>
       <p>${rendezVous.lignes

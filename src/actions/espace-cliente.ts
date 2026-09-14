@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { envoyerEmail, echapperHtml } from "@/lib/email";
+import { envoyerEmail, echapperHtml, enteteLogo } from "@/lib/email";
 import { urlSite } from "@/lib/site";
 import {
   hacherMotDePasse,
@@ -153,7 +153,7 @@ export async function demanderChangementEmail(
     nouvelEmail,
     "Confirmez votre nouvelle adresse · Zelart Nails",
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
-      <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
+      ${enteteLogo()}
       <p>Bonjour ${echapperHtml(cliente.prenom)},</p>
       <p>Vous souhaitez utiliser cette adresse pour votre espace Zelart. Confirmez-la en cliquant
       ci-dessous : le lien est valable ${VALIDITE_LIEN_MIN} minutes et ne sert qu'une fois.</p>

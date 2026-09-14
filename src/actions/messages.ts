@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { exigerAdmin } from "@/lib/auth";
 import { clienteConnectee } from "@/lib/cliente-auth";
-import { envoyerEmail, echapperHtml } from "@/lib/email";
+import { envoyerEmail, echapperHtml, enteteLogo } from "@/lib/email";
 import { LONGUEUR_MAX } from "@/lib/messages-bornes";
 import { peutEcrire } from "@/lib/messages";
 import { urlSite } from "@/lib/site";
@@ -112,7 +112,7 @@ export async function repondreALaCliente(
     cliente.email,
     "Zélia vous a répondu · Zelart Nails",
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
-      <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
+      ${enteteLogo()}
       <p>Bonjour ${echapperHtml(cliente.prenom)},</p>
       <p>J'ai répondu à votre message :</p>
       <blockquote style="border-left:3px solid #ec4899;margin:16px 0;padding:4px 0 4px 14px">${echapperHtml(texte)}</blockquote>

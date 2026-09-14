@@ -1,12 +1,17 @@
 import { ImageResponse } from "next/og";
+import { LOGO_BASE64 } from "./logo-partage";
 
 // L'image qui s'affiche quand le lien du site est partagé : Instagram, WhatsApp,
 // Facebook, Messenger, iMessage.
 //
-// Elle est dessinée en code plutôt que déposée en fichier, pour deux raisons :
-// aucun visuel à produire et à maintenir, et surtout aucune photo de cliente ne
-// part sur les serveurs de Meta sans que personne l'ait décidé. Les rubans roses
-// reprennent le motif du site.
+// Elle reste dessinée en code plutôt que déposée en fichier : aucun visuel à
+// maintenir, et surtout aucune photo de cliente ne part sur les serveurs de Meta
+// sans que personne l'ait décidé. Les rubans roses reprennent le motif du site.
+//
+// Le vrai logo s'y ajoute en pastille. Il n'occupe pas toute l'image, et ce
+// n'est pas un choix de composition : le fichier fait 150 px de côté, il
+// deviendrait une bouillie à la largeur d'une image de partage. À 150 px
+// d'affichage pour 150 px de source, il est net.
 
 export const alt = "Zelart Nails, prothésiste ongulaire à Saint-Nazaire";
 export const size = { width: 1200, height: 630 };
@@ -48,6 +53,13 @@ export default function Image() {
         </svg>
 
         <div style={{ display: "flex", flexDirection: "column", position: "relative" }}>
+          <img
+            src={LOGO_BASE64}
+            alt=""
+            width={150}
+            height={150}
+            style={{ borderRadius: 999, marginBottom: 30 }}
+          />
           <div
             style={{
               fontSize: 26,
@@ -58,25 +70,25 @@ export default function Image() {
           >
             Saint-Nazaire
           </div>
-          <div style={{ fontSize: 104, fontWeight: 700, color: "#9d174d", marginTop: 14 }}>
+          <div style={{ fontSize: 92, fontWeight: 700, color: "#9d174d", marginTop: 10 }}>
             Zelart Nails
           </div>
-          <div style={{ fontSize: 40, color: "#7c2d4a", marginTop: 18, maxWidth: 860 }}>
+          <div style={{ fontSize: 36, color: "#7c2d4a", marginTop: 14, maxWidth: 860 }}>
             Prothésiste ongulaire et nail artist certifiée
           </div>
-          <div style={{ fontSize: 31, color: "#a1587a", marginTop: 26 }}>
+          <div style={{ fontSize: 28, color: "#a1587a", marginTop: 18 }}>
             Gainage · Gel X · Pop-it · vernis semi-permanent · nail art
           </div>
           <div
             style={{
-              marginTop: 40,
+              marginTop: 28,
               display: "flex",
               alignSelf: "flex-start",
               background: "#ec4899",
               color: "#fff",
               fontSize: 30,
               fontWeight: 600,
-              padding: "18px 42px",
+              padding: "15px 38px",
               borderRadius: 999,
             }}
           >

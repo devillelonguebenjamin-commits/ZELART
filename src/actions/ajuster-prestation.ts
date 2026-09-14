@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { exigerAdmin } from "@/lib/auth";
-import { envoyerEmail, echapperHtml } from "@/lib/email";
+import { envoyerEmail, echapperHtml, enteteLogo } from "@/lib/email";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { formatPrix, totalDuree, totalTarifs } from "@/lib/format";
 import { urlSite } from "@/lib/site";
@@ -137,7 +137,7 @@ export async function ajusterPrestation(
     cliente.email,
     "Le détail de votre prestation a été ajusté · Zelart Nails",
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
-      <p style="font-size:22px;font-weight:700;color:#ec4899;margin:0 0 20px">Zelart Nails</p>
+      ${enteteLogo()}
       <p>Bonjour ${echapperHtml(cliente.prenom)},</p>
       <p>J'ai ajusté le détail de votre rendez-vous du
       <strong>${formatJour(ligne.rendezVous.debut)} à ${formatHeure(ligne.rendezVous.debut)}</strong>
