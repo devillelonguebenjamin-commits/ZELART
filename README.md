@@ -585,7 +585,7 @@ SumUp est interrogé avant chaque rétablissement : un acompte réglé entre-tem
 « maintenir », jamais redemander. Chaque ligne dit si la cliente a été prévenue de l'annulation
 (`annulationNotifieeLe`) ou **non**.
 
-**La relance des 24 h envoie le lien du rendez-vous**, plus le lien réutilisable. Elle envoyait
+**La relance des 24 h envoie le lien du rendez-vous**, et non plus le lien réutilisable. Elle envoyait
 le lien réutilisable, anonyme : une cliente qui payait par la relance n'était jamais reconnue
 comme ayant payé, et la libération des 48 h l'annulait quand même. Règle générale
 (`adresseAcompte`, `lib/acompte.ts`) : un acompte qui porte une référence ne se règle que par
