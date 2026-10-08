@@ -91,6 +91,10 @@ export async function changerStatutRendezVous(
     where: { id },
     data: {
       statut: statut as StatutRendezVous,
+      // « Sans acompte » sur une confirmation vaut aussi pour un acompte déjà
+      // demandé : Zélia renonce à l'attendre, et la libération automatique ne
+      // doit pas annuler derrière elle ce qu'elle vient de confirmer.
+      ...(statut === "CONFIRME" && sansAcompte ? { maintenuManuellementLe: new Date() } : {}),
       ...(enAttente?.statut === "EN_ATTENTE" && !enAttente.repondueLe && statut !== "EN_ATTENTE"
         ? { repondueLe: new Date() }
         : {}),
@@ -102,11 +106,14 @@ export async function changerStatutRendezVous(
   });
 
   if (statut === "CONFIRME") {
-    // L'acompte d'un horaire proposé n'a pas été demandé à la réservation : le
-    // rendez-vous n'existait qu'à l'état de souhait. Il l'est maintenant.
+    // Un acompte dû et jamais demandé part maintenant : celui d'un horaire
+    // proposé, qui n'existait qu'à l'état de souhait, et celui dont l'envoi a
+    // échoué à la réservation. Ce second cas confirmait le rendez-vous sans
+    // qu'aucun acompte ne soit jamais réclamé, et sans que rien ne le signale.
     if (
       !sansAcompte &&
-      rendezVous.creneauPropose &&
+      enAttente?.statut === "EN_ATTENTE" &&
+      rendezVous.debut > new Date() &&
       !rendezVous.acompteDemandeLe &&
       (await acompteADemander(rendezVous.clienteId, rendezVous.id))
     ) {

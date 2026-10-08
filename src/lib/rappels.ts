@@ -6,7 +6,7 @@ import { reglagesAcompte, reglagesRappels } from "@/lib/parametres";
 import { lienDemandeAvis } from "@/lib/avis";
 import { attribuerAvantages } from "@/lib/parrainage";
 import { compterEnAttente } from "@/lib/en-attente";
-import { verifierAcompte, verifierAcomptesEnAttente } from "@/lib/acompte";
+import { adresseRelanceAcompte, verifierAcompte, verifierAcomptesEnAttente } from "@/lib/acompte";
 import { sumupConfigure } from "@/lib/sumup";
 import { acompteExpire } from "@/lib/acompte-bornes";
 import { annoncerCreneauRendu } from "@/lib/liberation-creneau";
@@ -319,7 +319,11 @@ async function libererCreneauxSansAcompte(): Promise<{ liberes: number; echecs: 
 
   const candidats = await prisma.rendezVous.findMany({
     where: acompteExpire(),
-    select: { id: true, debut: true, cliente: { select: { prenom: true, email: true } } },
+    select: {
+      id: true,
+      debut: true,
+      cliente: { select: { prenom: true, email: true, telephone: true } },
+    },
   });
 
   let liberes = 0;
@@ -341,7 +345,19 @@ async function libererCreneauxSansAcompte(): Promise<{ liberes: number; echecs: 
       data: { statut: "ANNULE", annuleAutomatiquementLe: new Date() },
     });
     liberes++;
-    if (!(await annoncerCreneauRendu(rdv, enveloppe))) echecs++;
+
+    // Ce qui est réellement parti est enregistré, pour que l'agenda puisse dire
+    // « prévenue le… » ou « NON prévenue » plutôt que de laisser Zélia se
+    // demander si la cliente va se présenter.
+    const prevenue = await annoncerCreneauRendu(rdv, enveloppe);
+    if (prevenue.email || prevenue.sms) {
+      await prisma.rendezVous.update({
+        where: { id: rdv.id },
+        data: { annulationNotifieeLe: new Date() },
+      });
+    } else {
+      echecs++;
+    }
   }
 
   return { liberes, echecs };
@@ -350,8 +366,8 @@ async function libererCreneauxSansAcompte(): Promise<{ liberes: number; echecs: 
 // --- Relance si l'acompte demandé n'est toujours pas réglé ------------------
 
 async function envoyerRelancesAcompte(): Promise<{ envoyees: number; echecs: number }> {
-  const { lien, montantCents } = await reglagesAcompte();
-  if (!lien) return { envoyees: 0, echecs: 0 };
+  const { lien: lienReutilisable, montantCents } = await reglagesAcompte();
+  if (!lienReutilisable && !sumupConfigure()) return { envoyees: 0, echecs: 0 };
 
   const seuil = new Date(Date.now() - DELAI_RELANCE_ACOMPTE_MS);
 
@@ -361,6 +377,11 @@ async function envoyerRelancesAcompte(): Promise<{ envoyees: number; echecs: num
       acompteDemandeLe: { not: null, lte: seuil },
       acompteRegleLe: null,
       acompteRelanceEnvoyeeLe: null,
+      debut: { gt: new Date() },
+      // Rétabli « sans acompte » : on lui a écrit « rien à régler ». La
+      // relancer contredirait ce message, et c'est ce genre de contradiction
+      // qui fait qu'une cliente ne sait plus si elle doit venir.
+      maintenuManuellementLe: null,
     },
     include: { cliente: true },
   });
@@ -369,6 +390,12 @@ async function envoyerRelancesAcompte(): Promise<{ envoyees: number; echecs: num
   let echecs = 0;
 
   for (const rdv of candidats) {
+    // Le lien **de ce rendez-vous**, jamais le lien réutilisable quand une
+    // référence existe : payé par le lien anonyme, l'acompte restait invisible
+    // et la libération des 48 h annulait une cliente en règle.
+    const lien = await adresseRelanceAcompte(rdv.id);
+    if (!lien) continue;
+
     const resultat = await envoyerEmail(
       rdv.cliente.email,
       "Toujours partante pour votre rendez-vous ? · Zelart Nails",

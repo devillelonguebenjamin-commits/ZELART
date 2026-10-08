@@ -330,8 +330,12 @@ export async function creerReservation(
     where: { id: rendezVousId },
     select: { clienteId: true },
   });
+  // Un échec ici était silencieux : la demande arrivait chez Zélia sans
+  // acompte, elle la confirmait, et rien n'était jamais réclamé. Il est
+  // désormais annoncé dans sa notification, et l'agenda le montre.
+  let acompteEnEchec = false;
   if (!propose && rendezVous && (await acompteADemander(rendezVous.clienteId, rendezVousId))) {
-    await envoyerDemandeAcompte(rendezVousId);
+    acompteEnEchec = !(await envoyerDemandeAcompte(rendezVousId));
   }
 
   // Notification à Zélia (sans effet si RESEND_API_KEY / NOTIFY_EMAIL absents)
@@ -342,6 +346,7 @@ export async function creerReservation(
       `${propose ? "Créneau proposé" : "Nouvelle demande de RDV"} · ${donnees.prenom} ${donnees.nom}`,
       `<p>Nouvelle demande de rendez-vous à confirmer :</p>
        ${propose ? "<p><strong>⚠ Horaire proposé par la cliente</strong>, hors de vos créneaux habituels, à accepter ou refuser.</p>" : ""}
+       ${acompteEnEchec ? "<p><strong>⚠ Nouvelle cliente : le lien d'acompte n'a pas pu lui être envoyé.</strong> Il partira à la confirmation ; vous pouvez aussi l'envoyer depuis l'agenda.</p>" : ""}
        <p>${lignes
          .map(
            (l) =>

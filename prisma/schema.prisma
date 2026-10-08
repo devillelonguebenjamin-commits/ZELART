@@ -432,6 +432,16 @@ model RendezVous {
   // rétablir ce qu'un automatisme a fait, sans le confondre avec un choix.
   annuleAutomatiquementLe DateTime?
 
+  // Posé quand Zélia rétablit en maintenant le rendez-vous sans exiger
+  // l'acompte : la libération automatique ne le touche plus jamais. Sans lui,
+  // un rendez-vous rétabli était réannulé au passage suivant de la tâche, sa
+  // date de demande d'acompte n'ayant pas bougé.
+  maintenuManuellementLe DateTime?
+
+  // Posé quand Zélia a examiné une annulation et décidé de la laisser : le
+  // rendez-vous sort du bloc « Annulations à vérifier ».
+  annulationConfirmeeLe DateTime?
+
   // Pourcentage figé au moment de la demande, comme l'est le prix de chaque
   // ligne : le barème peut changer, ce qui a été promis à cette cliente-là ne
   // doit pas bouger sous ses yeux.

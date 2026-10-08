@@ -8,7 +8,7 @@
 // Le seul import est un import **de type** : il disparaît à la compilation et
 // n'introduit donc aucune dépendance d'exécution.
 
-import type { StatutRendezVous } from "@/generated/prisma/client";
+import type { Prisma, StatutRendezVous } from "@/generated/prisma/client";
 
 /**
  * Combien de temps un créneau reste retenu sans que l'acompte soit réglé.
@@ -48,11 +48,17 @@ export function occupeLeCreneau() {
  *   - statut CONFIRMÉ uniquement : une demande que Zélia n'a pas encore
  *     tranchée lui appartient, acompte demandé ou non ;
  *   - début à venir : un rendez-vous passé n'intéresse plus personne, et
- *     l'annuler après coup réécrirait l'histoire.
+ *     l'annuler après coup réécrirait l'histoire ;
+ *   - jamais un rendez-vous que Zélia a **maintenu** à la main. Ce garde-là
+ *     manquait : rétablir laissait la date de demande d'acompte vieille de plus
+ *     de 48 h, et le rendez-vous était réannulé au passage suivant, moins de
+ *     24 h après — deux fois de suite pour le même rendez-vous. Une décision
+ *     humaine ne se défait pas par un automate.
  */
 export function acompteExpire(maintenant: Date = new Date()) {
   return {
     statut: "CONFIRME" as const,
+    maintenuManuellementLe: null,
     acompteReference: { not: null },
     acompteDemandeLe: { lt: new Date(maintenant.getTime() - DELAI_EXPIRATION_ACOMPTE_MS) },
     acompteRegleLe: null,
@@ -74,4 +80,41 @@ export function acompteASuivreALaMain(maintenant: Date = new Date()) {
     acompteRegleLe: null,
     debut: { gt: maintenant },
   };
+}
+
+/**
+ * Les rendez-vous qui font d'une cliente une cliente **connue**, dispensée
+ * d'acompte : une venue réelle, ou un acompte déjà réglé.
+ *
+ * La règle d'origine comptait « tout rendez-vous non annulé ». Elle se
+ * trompait dans le mauvais sens : une demande encore en attente suffisait à
+ * dispenser la suivante, et une **absence** comptait comme une venue — la
+ * cliente qui avait posé un lapin était précisément celle qu'on ne protégeait
+ * plus. Une seconde demande faite avant d'avoir payé la première passait ainsi
+ * sans acompte, et pouvait être confirmée sans que rien ne le signale.
+ *
+ * Un rendez-vous confirmé dont l'heure est passée compte comme une venue :
+ * l'absence se marque explicitement (« Absente »), et Zélia ne valide pas
+ * toujours chaque visite.
+ */
+export function rendezVousQuiFontConnaitre(maintenant: Date = new Date()) {
+  return {
+    OR: [
+      { statut: "TERMINE" as const },
+      { statut: "CONFIRME" as const, fin: { lt: maintenant } },
+      { statut: { notIn: ["ANNULE", "NO_SHOW"] satisfies StatutRendezVous[] }, acompteRegleLe: { not: null } },
+    ],
+  } satisfies Prisma.RendezVousWhereInput;
+}
+
+/** Le même critère, sur un rendez-vous déjà chargé (affichage de l'agenda). */
+export function faitConnaitre(
+  rdv: { statut: StatutRendezVous; fin: Date; acompteRegleLe: Date | null },
+  maintenant: Date = new Date()
+): boolean {
+  return (
+    rdv.statut === "TERMINE" ||
+    (rdv.statut === "CONFIRME" && rdv.fin < maintenant) ||
+    (rdv.statut !== "ANNULE" && rdv.statut !== "NO_SHOW" && rdv.acompteRegleLe !== null)
+  );
 }
