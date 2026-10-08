@@ -1571,6 +1571,11 @@ Trois choix qui méritent d'être dits :
   personnel de Zélia, ce que ce fil sert précisément à éviter.
 - **La réponse part par e-mail même à une désinscrite.** Répondre à sa propre question n'est pas de
   la prospection, et se taire parce qu'elle refuse les nouveautés serait absurde.
+- **Deux e-mails par jour au plus.** Chaque message de Zélia partait aussitôt par e-mail : une
+  conversation suivie l'après-midi devenait cinq e-mails. Au-delà de deux dans la journée
+  (heure de Paris), le message reste dans l'espace de la cliente sans e-mail, et l'écran le dit
+  à Zélia. `MessageCliente.emailEnvoyeLe` sert au décompte. L'objet distingue « Zélia vous a
+  répondu » d'un premier mot, « Zélia vous a écrit ».
 - **Ce n'est pas un canal d'urgence**, et l'espace cliente le dit : pour un retard ou un
   empêchement le jour même, le SMS reste le plus sûr.
 
