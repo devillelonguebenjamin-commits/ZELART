@@ -25,7 +25,11 @@ import FormulaireCreneauPerso from "@/components/FormulaireCreneauPerso";
 import AnnulationAvecMessage from "@/components/AnnulationAvecMessage";
 import AjusterPrestation, { type Variante } from "@/components/AjusterPrestation";
 import BoutonRetablir from "@/components/BoutonRetablir";
-import { DELAI_EXPIRATION_ACOMPTE_MS } from "@/lib/acompte-bornes";
+import {
+  DELAI_EXPIRATION_ACOMPTE_MS,
+  faitConnaitre,
+  rendezVousQuiFontConnaitre,
+} from "@/lib/acompte-bornes";
 import { getCreneauxDisponibles, type Creneau } from "@/lib/creneaux";
 
 const JOUR_MS = 24 * 60 * 60 * 1000;
@@ -284,9 +288,11 @@ function CarteRdv({
           ) : (
             <>
               <span className="text-violet-900">
-                {rdv.acompteDemandeLe
-                  ? `💳 Lien d'acompte envoyé le ${formatJour(rdv.acompteDemandeLe)}, en attente de paiement`
-                  : "💳 Acompte à demander"}
+                {rdv.acompteDemandeLe ? (
+                  `💳 Lien d'acompte envoyé le ${formatJour(rdv.acompteDemandeLe)}, en attente de paiement`
+                ) : rdv.maintenuManuellementLe ? null : (
+                  <strong className="text-red-700">⚠ Aucun lien d&rsquo;acompte n&rsquo;est parti</strong>
+                )}
               </span>
               <form action={marquerAcompteRegle.bind(null, rdv.id, true)}>
                 <button
@@ -363,9 +369,24 @@ function CarteRdv({
 
       {acompteAlaConfirmation && (
         <p className="mt-3 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
-          ⚠ Accepter cet horaire enverra une <strong>demande d&rsquo;acompte</strong> à{" "}
-          {rdv.cliente.prenom}. Si vous la connaissez déjà, acceptez sans acompte, ou dispensez-la
-          depuis sa fiche.
+          ⚠ {rdv.creneauPropose ? "Accepter cet horaire" : "Confirmer"} enverra une{" "}
+          <strong>demande d&rsquo;acompte</strong> à {rdv.cliente.prenom}
+          {rdv.creneauPropose ? "" : " : aucun lien ne lui est encore parvenu"}. Si vous la
+          connaissez déjà, confirmez sans acompte, ou dispensez-la depuis sa fiche.
+        </p>
+      )}
+      {/* Confirmer ne vaut pas encaisser : sans cette ligne, un rendez-vous
+          confirmé passait pour réglé. */}
+      {rdv.statut === "EN_ATTENTE" && rdv.acompteDemandeLe && !rdv.acompteRegleLe && (
+        <p className="mt-3 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
+          ⚠ <strong>Acompte demandé le {formatJour(rdv.acompteDemandeLe)}, pas encore reçu.</strong>{" "}
+          Confirmer ne l&rsquo;encaisse pas : sans règlement, le rendez-vous sera annulé par le
+          site{" "}
+          {new Date(rdv.acompteDemandeLe.getTime() + DELAI_EXPIRATION_ACOMPTE_MS) < new Date()
+            ? "dès son prochain passage, le lendemain matin"
+            : `à partir du ${formatJour(new Date(rdv.acompteDemandeLe.getTime() + DELAI_EXPIRATION_ACOMPTE_MS))}`}
+          .
+          Pour la garder sans acompte, choisissez « Confirmer sans acompte ».
         </p>
       )}
 
@@ -380,7 +401,7 @@ function CarteRdv({
                   demande : sans cet avertissement, Zélia déclenchait un lien de
                   paiement plusieurs jours après la réservation sans le voir
                   venir. Le second bouton lui laisse le choix. */}
-              {acompteAlaConfirmation && (
+              {(acompteAlaConfirmation || (rdv.acompteDemandeLe && !rdv.acompteRegleLe)) && (
                 <BoutonStatut
                   id={rdv.id}
                   statut="CONFIRME"
@@ -398,6 +419,15 @@ function CarteRdv({
           ) : (
             <>
               <BoutonStatut id={rdv.id} statut="CONFIRME" label="✓ Confirmer" />
+              {(acompteAlaConfirmation || (rdv.acompteDemandeLe && !rdv.acompteRegleLe)) && (
+                <BoutonStatut
+                  id={rdv.id}
+                  statut="CONFIRME"
+                  label="Confirmer sans acompte"
+                  sansAcompte
+                  discret
+                />
+              )}
               <AnnulationAvecMessage
                 rendezVousId={rdv.id}
                 confirme={false}
@@ -522,7 +552,7 @@ export default async function Agenda({
   // deviné dans la carte : c'est la même fonction qui décidera vraiment à
   // l'acceptation, donc l'avertissement ne peut pas mentir.
   const proposesATrancher = rdvs.filter(
-    (r) => r.statut === "EN_ATTENTE" && r.creneauPropose && !r.acompteDemandeLe
+    (r) => r.statut === "EN_ATTENTE" && !r.acompteDemandeLe && r.debut > maintenant
   );
   const acompteAlaConfirmation = new Set<string>();
   for (const rdv of proposesATrancher) {
@@ -576,15 +606,20 @@ export default async function Agenda({
     avantagesParCliente.set(avantage.clienteId, liste);
   }
 
-  // Une cliente est nouvelle si elle n'a aucun autre rendez-vous actif.
+  // Nouvelle cliente : ni dispensée, ni connue par une venue ou un acompte
+  // réglé — la règle même qui décide de l'acompte (`rendezVousQuiFontConnaitre`).
+  // Compter « tout rendez-vous non annulé » faisait passer pour connue une
+  // cliente à sa deuxième demande, et masquait son suivi d'acompte.
   const comptes = await prisma.rendezVous.groupBy({
     by: ["clienteId"],
-    where: { statut: { not: "ANNULE" } },
+    where: rendezVousQuiFontConnaitre(maintenant),
     _count: { _all: true },
   });
   const nbParCliente = new Map(comptes.map((c) => [c.clienteId, c._count._all]));
   const estNouvelle = (rdv: RdvComplet) =>
-    rdv.statut !== "ANNULE" && (nbParCliente.get(rdv.clienteId) ?? 0) <= 1;
+    rdv.statut !== "ANNULE" &&
+    !rdv.cliente.acompteDispense &&
+    (nbParCliente.get(rdv.clienteId) ?? 0) - (faitConnaitre(rdv, maintenant) ? 1 : 0) <= 0;
 
   // La date seule décide de la section, jamais le statut — deux raisons :
   // un rendez-vous validé avant son heure de fin resterait sinon introuvable,

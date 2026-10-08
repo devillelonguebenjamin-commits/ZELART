@@ -501,6 +501,19 @@ Il ne vaut **pas** pour les fiches nées en ligne, réservation ou inscription :
 compte suffirait à contourner l'acompte et il ne servirait plus à rien. La dispense survit à une
 fusion de doublons, comme le blocage.
 
+**Ce qui rend une cliente « connue »** (`rendezVousQuiFontConnaitre`) : une venue validée, un
+rendez-vous confirmé dont l'heure est passée, ou un acompte réglé. La règle comptait auparavant
+tout rendez-vous non annulé : une seconde demande faite avant d'avoir payé la première passait
+sans acompte, et une **absence** valait dispense. Un rendez-vous a ainsi été confirmé sans
+qu'aucun acompte ne soit jamais demandé.
+
+**Confirmer n'encaisse pas.** Sur une demande en attente, l'agenda dit désormais ce que la
+confirmation implique : « Confirmer enverra une demande d'acompte » quand aucun lien n'est parti
+(l'envoi a lieu à la confirmation), ou « acompte demandé le…, pas encore reçu » avec la date à
+laquelle le site libérera le créneau. **Confirmer sans acompte** confirme et pose
+`maintenuManuellementLe`. Un envoi du lien en échec à la réservation est signalé dans la
+notification à Zélia et sur la carte (« Aucun lien d'acompte n'est parti »).
+
 **Deux liens possibles, et la différence n'est pas cosmétique :**
 
 - **un paiement créé pour ce rendez-vous** (API SumUp configurée), qui porte une référence à

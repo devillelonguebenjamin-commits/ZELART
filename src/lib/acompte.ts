@@ -4,6 +4,7 @@ export {
   occupeLeCreneau,
   acompteExpire,
 } from "@/lib/acompte-bornes";
+import { rendezVousQuiFontConnaitre } from "@/lib/acompte-bornes";
 import { envoyerEmail, echapperHtml, enteteLogo } from "@/lib/email";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { formatPrix, totalTarifs } from "@/lib/format";
@@ -30,7 +31,10 @@ import { envoyerSmsSansBloquer } from "@/lib/sms";
  *    Zélia n'avait pas, une seconde fiche est née, vierge de tout historique,
  *    et le site l'a prise pour une inconnue. Le numéro, lui, était le bon. Une
  *    fiche jumelle dispensée ou ayant déjà un rendez-vous vaut donc dispense.
- * 3. **L'historique de la fiche elle-même**, le décompte d'origine.
+ * 3. **L'historique de la fiche elle-même** : une venue réelle ou un acompte
+ *    réglé (`rendezVousQuiFontConnaitre`). Ni une demande en attente, ni une
+ *    absence : les compter dispensait d'acompte la cliente qui réservait deux
+ *    fois avant de payer, et celle qui avait déjà posé un lapin.
  *
  * Le risque assumé du point 2 : deux sœurs partageant une ligne se transmettent
  * la dispense. Épargner un acompte à une inconnue coûte moins cher que le
@@ -51,14 +55,14 @@ export async function acompteADemander(
       where: {
         id: { not: clienteId },
         telephoneNormalise: cliente.telephoneNormalise,
-        OR: [{ acompteDispense: true }, { rendezVous: { some: { statut: { not: "ANNULE" } } } }],
+        OR: [{ acompteDispense: true }, { rendezVous: { some: rendezVousQuiFontConnaitre() } }],
       },
     });
     if (jumelleConnue > 0) return false;
   }
 
   const autres = await prisma.rendezVous.count({
-    where: { clienteId, id: { not: rendezVousId }, statut: { not: "ANNULE" } },
+    where: { clienteId, id: { not: rendezVousId }, ...rendezVousQuiFontConnaitre() },
   });
   return autres === 0;
 }
