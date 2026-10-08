@@ -265,8 +265,18 @@ function CarteRdv({
           )}
         </div>
       )}
-      {nouvelle && rdv.statut !== "ANNULE" && (
+      {/* Une habituée à qui Zélia a demandé un acompte n'est pas « nouvelle » :
+          sans la seconde condition, son suivi d'acompte restait invisible. */}
+      {(nouvelle || rdv.acompteDemandeLe || rdv.acompteRegleLe) && rdv.statut !== "ANNULE" && (
         <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl bg-violet-50 px-4 py-2 text-sm">
+          {rdv.maintenuManuellementLe && !rdv.acompteRegleLe && (
+            <span
+              className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800"
+              title="Rétabli sans acompte : le site ne l'annulera pas automatiquement."
+            >
+              🛡 Maintenu sans acompte le {formatJour(rdv.maintenuManuellementLe)}
+            </span>
+          )}
           {rdv.acompteRegleLe ? (
             <span className="font-medium text-violet-900">
               💳 Acompte reçu le {formatJour(rdv.acompteRegleLe)}
@@ -346,8 +356,8 @@ function CarteRdv({
       {rdv.statut === "ANNULE" && (
         <p className="mt-2 text-xs text-foreground/60">
           {rdv.annulationNotifieeLe
-            ? `✉️ Cliente prévenue le ${formatJour(rdv.annulationNotifieeLe)}`
-            : "Annulé sans message à la cliente."}
+            ? `✉️ Cliente prévenue de l'annulation le ${formatJour(rdv.annulationNotifieeLe)}`
+            : "⚠ Annulé sans message à la cliente."}
         </p>
       )}
 
@@ -428,7 +438,11 @@ function CarteRdv({
           </>
         )}
         {(rdv.statut === "ANNULE" || rdv.statut === "NO_SHOW") && (
-          <BoutonRetablir rendezVousId={rdv.id} libelle="Réactiver" />
+          <BoutonRetablir
+            rendezVousId={rdv.id}
+            acompteDemande={rdv.acompteDemandeLe !== null && rdv.acompteRegleLe === null}
+            aVenir={rdv.debut > new Date()}
+          />
         )}
       </div>
     </div>
@@ -594,6 +608,9 @@ export default async function Agenda({
     (r) =>
       r.statut === "ANNULE" &&
       r.fin >= maintenant &&
+      // Tranché par « Laisser annulé » : Zélia l'a examiné, la cliente est
+      // prévenue, plus rien à vérifier.
+      r.annulationConfirmeeLe === null &&
       (r.annuleAutomatiquementLe !== null ||
         (r.acompteDemandeLe !== null && r.acompteRegleLe === null))
   );
@@ -646,11 +663,22 @@ export default async function Agenda({
           </h1>
           <p className="mt-1 text-sm text-red-900/80">
             Ces rendez-vous à venir ont été annulés alors qu&rsquo;un acompte était demandé sans
-            être constaté. Certains l&rsquo;ont été <strong>par le site, à tort</strong>. Si la
-            cliente a réglé — par le lien, en espèces — ou si vous vouliez la garder, rétablissez :
-            elle reçoit un message disant que l&rsquo;annulation était une erreur. Celles que vous
-            avez annulées vous-même, laissez-les.
+            être constaté. Pour chacun, une décision :
           </p>
+          <ul className="mt-2 space-y-1 text-sm text-red-900/80">
+            <li>
+              <strong>Rétablir sans acompte</strong> : elle a réglé (espèces, virement…) ou vous
+              la gardez quand même. Le site ne l&rsquo;annulera plus.
+            </li>
+            <li>
+              <strong>Rétablir · 48 h pour régler</strong> : vous voulez l&rsquo;acompte. Elle
+              reçoit un lien neuf ; sans règlement sous 48 h, le créneau est de nouveau libéré.
+            </li>
+            <li>
+              <strong>Laisser annulé</strong> : elle reçoit un e-mail et un SMS clairs —
+              rendez-vous annulé, ne pas se présenter — et la ligne disparaît d&rsquo;ici.
+            </li>
+          </ul>
           <div className="mt-4 grid gap-2">
             {aVerifier.map((rdv) => (
               <div
@@ -675,8 +703,19 @@ export default async function Agenda({
                     : rdv.acompteDemandeLe
                       ? `acompte demandé le ${formatJour(rdv.acompteDemandeLe)}, non constaté`
                       : ""}
+                  {" · "}
+                  {rdv.annulationNotifieeLe ? (
+                    `cliente prévenue le ${formatJour(rdv.annulationNotifieeLe)}`
+                  ) : (
+                    <strong className="text-red-700">⚠ cliente NON prévenue</strong>
+                  )}
                 </span>
-                <BoutonRetablir rendezVousId={rdv.id} />
+                <BoutonRetablir
+                  rendezVousId={rdv.id}
+                  acompteDemande={rdv.acompteDemandeLe !== null && rdv.acompteRegleLe === null}
+                  aVenir={rdv.debut > maintenant}
+                  avecLaisser
+                />
               </div>
             ))}
           </div>

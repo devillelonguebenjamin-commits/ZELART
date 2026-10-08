@@ -567,8 +567,32 @@ reçu » ou annule.
 Cette règle a été durcie après un incident : une première version annulait dès 48 h sur le seul
 état en base, sans distinguer les acomptes vérifiables des autres, et a annulé des clientes en
 règle. Les annulations faites par le site portent depuis `annuleAutomatiquementLe`, et l'agenda
-liste les « Annulations à vérifier » avec un bouton **Rétablir** qui revérifie le créneau et
-prévient la cliente que l'annulation était une erreur — sans redemander d'acompte.
+liste les « Annulations à vérifier ».
+
+**Rétablir, puis être réannulé : le second incident.** Le premier bouton Rétablir remettait le
+rendez-vous en « confirmé » sans toucher à la date de demande d'acompte, déjà vieille de plus
+de 48 h : le passage suivant de la tâche le réannulait, souvent en moins de 24 h. Un même
+rendez-vous a été rétabli deux fois et réannulé deux fois. Il y a désormais trois gestes, chacun
+avec un message à la cliente qui dit exactement ce qui va se passer :
+
+| Geste | Effet en base | Message à la cliente |
+|---|---|---|
+| **Rétablir sans acompte** | `maintenuManuellementLe` posé : la libération automatique ne le touchera plus jamais, et aucune relance ne part | « bien maintenu, rien à régler, ce message remplace les précédents » |
+| **Rétablir · 48 h pour régler** | lien neuf **propre au rendez-vous**, `acompteDemandeLe` remis à maintenant : le délai repart de zéro | lien + « sans règlement sous 48 h, le créneau sera de nouveau libéré » |
+| **Laisser annulé** | `annulationConfirmeeLe` posé : la ligne sort des annulations à vérifier | « votre rendez-vous est annulé, merci de ne pas vous présenter, ce message remplace les précédents » |
+
+SumUp est interrogé avant chaque rétablissement : un acompte réglé entre-temps fait toujours
+« maintenir », jamais redemander. Chaque ligne dit si la cliente a été prévenue de l'annulation
+(`annulationNotifieeLe`) ou **non**.
+
+**La relance des 24 h envoie le lien du rendez-vous**, plus le lien réutilisable. Elle envoyait
+le lien réutilisable, anonyme : une cliente qui payait par la relance n'était jamais reconnue
+comme ayant payé, et la libération des 48 h l'annulait quand même. Règle générale
+(`adresseAcompte`, `lib/acompte.ts`) : un acompte qui porte une référence ne se règle que par
+son propre lien.
+
+Les annulations (automatiques ou « Laisser annulé ») partent par e-mail **et** par SMS — le SMS
+seulement si `BREVO_SMS_SENDER` est configuré, ce qui n'est pas le cas à ce jour.
 
 L'agenda signale les nouvelles clientes et l'état de l'acompte (`acompteDemandeLe`,
 `acompteRegleLe`, `acompteVerifieLe`).

@@ -48,11 +48,17 @@ export function occupeLeCreneau() {
  *   - statut CONFIRMÉ uniquement : une demande que Zélia n'a pas encore
  *     tranchée lui appartient, acompte demandé ou non ;
  *   - début à venir : un rendez-vous passé n'intéresse plus personne, et
- *     l'annuler après coup réécrirait l'histoire.
+ *     l'annuler après coup réécrirait l'histoire ;
+ *   - jamais un rendez-vous que Zélia a **maintenu** à la main. Ce garde-là
+ *     manquait : rétablir laissait la date de demande d'acompte vieille de plus
+ *     de 48 h, et le rendez-vous était réannulé au passage suivant, moins de
+ *     24 h après — deux fois de suite pour le même rendez-vous. Une décision
+ *     humaine ne se défait pas par un automate.
  */
 export function acompteExpire(maintenant: Date = new Date()) {
   return {
     statut: "CONFIRME" as const,
+    maintenuManuellementLe: null,
     acompteReference: { not: null },
     acompteDemandeLe: { lt: new Date(maintenant.getTime() - DELAI_EXPIRATION_ACOMPTE_MS) },
     acompteRegleLe: null,

@@ -108,6 +108,48 @@ async function lienAcompte(
 }
 
 /**
+ * L'adresse à donner à la cliente pour régler l'acompte de ce rendez-vous.
+ *
+ * La règle qui compte : **un acompte qui porte une référence ne se règle que
+ * par son propre lien.** Le lien réutilisable des réglages est anonyme ; un
+ * règlement fait par lui ne se rattache à rien, la vérification continue de
+ * lire « en attente » sur la référence, et la libération des 48 h annule une
+ * cliente qui a payé. C'est ce que faisait la relance des 24 h, qui envoyait
+ * toujours le lien réutilisable.
+ *
+ * Le lien réutilisable ne sert donc qu'aux acomptes sans référence — quand
+ * l'API n'est pas configurée. `null` : rien à envoyer (déjà réglé, ou SumUp
+ * injoignable pour un acompte référencé).
+ */
+async function adresseAcompte(
+  rendezVous: { id: string; acompteReference: string | null; cliente: { prenom: string; nom: string } },
+  montantCents: number,
+  lienReutilisable: string | null
+): Promise<string | null> {
+  const paiement = await lienAcompte(rendezVous, montantCents);
+  if (paiement) return paiement.url;
+  // Une référence existe encore (lienAcompte en crée une dès que l'API répond) :
+  // le lien anonyme ferait payer sans que personne ne le voie.
+  const aJour = await prisma.rendezVous.findUnique({
+    where: { id: rendezVous.id },
+    select: { acompteReference: true },
+  });
+  if (aJour?.acompteReference) return null;
+  return lienReutilisable;
+}
+
+/** Adresse de paiement pour une relance, sans toucher au délai. */
+export async function adresseRelanceAcompte(rendezVousId: string): Promise<string | null> {
+  const { lien, montantCents } = await reglagesAcompte();
+  const rendezVous = await prisma.rendezVous.findUnique({
+    where: { id: rendezVousId },
+    include: { cliente: { select: { prenom: true, nom: true } } },
+  });
+  if (!rendezVous) return null;
+  return adresseAcompte(rendezVous, montantCents, lien);
+}
+
+/**
  * Demande à SumUp où en est l'acompte de ce rendez-vous, et l'enregistre s'il
  * est réglé.
  *
@@ -165,6 +207,38 @@ export async function verifierAcomptesEnAttente(): Promise<{ verifies: number; r
   return { verifies: attente.length, regles };
 }
 
+/**
+ * Prépare un lien d'acompte frais et **remet le délai de 48 h à zéro**.
+ *
+ * Sert au rétablissement « avec acompte » : rétablir sans remettre l'horloge à
+ * zéro laissait une demande vieille de plus de deux jours, et le rendez-vous
+ * était réannulé au passage suivant de la tâche — avant même que la cliente ait
+ * eu une chance de payer.
+ *
+ * Renvoie `null` quand aucun lien ne peut être produit (ni API SumUp, ni lien
+ * réutilisable) : l'appelant doit alors refuser plutôt que rétablir sans
+ * délai réel.
+ */
+export async function preparerLienAcompte(
+  rendezVousId: string
+): Promise<{ url: string; montantCents: number } | null> {
+  const { lien, montantCents } = await reglagesAcompte();
+  const rendezVous = await prisma.rendezVous.findUnique({
+    where: { id: rendezVousId },
+    include: { cliente: { select: { prenom: true, nom: true } } },
+  });
+  if (!rendezVous) return null;
+
+  const url = await adresseAcompte(rendezVous, montantCents, lien);
+  if (!url) return null;
+
+  await prisma.rendezVous.update({
+    where: { id: rendezVousId },
+    data: { acompteDemandeLe: new Date(), acompteRelanceEnvoyeeLe: null },
+  });
+  return { url, montantCents };
+}
+
 // Envoie le lien de paiement de l'acompte et horodate la demande.
 //
 // Deux liens possibles, et la différence n'est pas cosmétique :
@@ -188,8 +262,7 @@ export async function envoyerDemandeAcompte(rendezVousId: string): Promise<boole
   });
   if (!rendezVous) return false;
 
-  const paiement = await lienAcompte(rendezVous, montantCents);
-  const adressePaiement = paiement?.url ?? lien;
+  const adressePaiement = await adresseAcompte(rendezVous, montantCents, lien);
   if (!adressePaiement) return false;
 
   const total = totalTarifs(rendezVous.lignes.map((l) => l.prestation));
