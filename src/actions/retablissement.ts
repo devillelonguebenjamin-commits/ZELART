@@ -269,3 +269,33 @@ export async function laisserAnnule(rendezVousId: string): Promise<EtatRetabliss
       : `Annulation confirmée, mais ${rdv.cliente.prenom} n'a pas pu être prévenue (envoi en échec) : appelez-la.`,
   };
 }
+
+/**
+ * Sort une annulation de la liste « à vérifier » **sans rien envoyer**.
+ *
+ * Le cas qui l'a fait naître : une cliente annulée faute d'acompte a repris
+ * rendez-vous de son côté et réglé ce nouvel acompte. Lui confirmer
+ * l'annulation de l'ancien rendez-vous serait au mieux inutile, au pire
+ * troublant (« mon rendez-vous est annulé ? »). Zélia a tranché, la cliente
+ * n'a rien à apprendre.
+ *
+ * Seule `annulationConfirmeeLe` est posée ; `annulationNotifieeLe` reste ce
+ * qu'elle était, pour que la carte continue de dire honnêtement si la cliente
+ * a été prévenue ou non.
+ */
+export async function classerSansPrevenir(rendezVousId: string): Promise<EtatRetablissement> {
+  await exigerAdmin();
+
+  const rdv = await prisma.rendezVous.findUnique({
+    where: { id: rendezVousId },
+    select: { statut: true },
+  });
+  if (!rdv) return { ok: false, message: "Ce rendez-vous est introuvable." };
+  if (rdv.statut !== "ANNULE") return { ok: false, message: "Ce rendez-vous n'est pas annulé." };
+
+  await prisma.rendezVous.update({
+    where: { id: rendezVousId },
+    data: { annulationConfirmeeLe: new Date() },
+  });
+  return { ok: true, message: "Retiré de la liste, sans message à la cliente." };
+}
