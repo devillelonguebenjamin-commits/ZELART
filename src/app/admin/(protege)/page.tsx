@@ -25,6 +25,7 @@ import FormulaireCreneauPerso from "@/components/FormulaireCreneauPerso";
 import AnnulationAvecMessage from "@/components/AnnulationAvecMessage";
 import AjusterPrestation, { type Variante } from "@/components/AjusterPrestation";
 import BoutonRetablir from "@/components/BoutonRetablir";
+import BoutonClasser from "@/components/BoutonClasser";
 import {
   DELAI_EXPIRATION_ACOMPTE_MS,
   faitConnaitre,
@@ -713,13 +714,19 @@ export default async function Agenda({
               <strong>Laisser annulé</strong> : elle reçoit un e-mail et un SMS clairs —
               rendez-vous annulé, ne pas se présenter — et la ligne disparaît d&rsquo;ici.
             </li>
+            <li>
+              <strong>×</strong> (en haut à droite) : la ligne disparaît d&rsquo;ici,{" "}
+              <strong>sans aucun message</strong>. Pour une cliente qui a déjà repris un autre
+              rendez-vous, par exemple.
+            </li>
           </ul>
           <div className="mt-4 grid gap-2">
             {aVerifier.map((rdv) => (
               <div
                 key={rdv.id}
-                className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-red-100 bg-white px-5 py-3 text-sm"
+                className="relative flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-red-100 bg-white py-3 pl-5 pr-11 text-sm"
               >
+                <BoutonClasser rendezVousId={rdv.id} />
                 <Link
                   href={`/admin/clientes/${rdv.clienteId}`}
                   className="font-medium text-pink-600 hover:underline"

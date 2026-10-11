@@ -593,6 +593,7 @@ avec un message à la cliente qui dit exactement ce qui va se passer :
 | **Rétablir sans acompte** | `maintenuManuellementLe` posé : la libération automatique ne le touchera plus jamais, et aucune relance ne part | « bien maintenu, rien à régler, ce message remplace les précédents » |
 | **Rétablir · 48 h pour régler** | lien neuf **propre au rendez-vous**, `acompteDemandeLe` remis à maintenant : le délai repart de zéro | lien + « sans règlement sous 48 h, le créneau sera de nouveau libéré » |
 | **Laisser annulé** | `annulationConfirmeeLe` posé : la ligne sort des annulations à vérifier | « votre rendez-vous est annulé, merci de ne pas vous présenter, ce message remplace les précédents » |
+| **×** (coin de la ligne) | `annulationConfirmeeLe` posé, rien d'autre | **aucun message** — pour une cliente qui a déjà repris rendez-vous et payé ailleurs |
 
 SumUp est interrogé avant chaque rétablissement : un acompte réglé entre-temps fait toujours
 « maintenir », jamais redemander. Chaque ligne dit si la cliente a été prévenue de l'annulation
