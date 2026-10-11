@@ -4,12 +4,22 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { exigerAdmin } from "@/lib/auth";
 import { clienteConnectee } from "@/lib/cliente-auth";
-import { envoyerEmail, echapperHtml, enteteLogo } from "@/lib/email";
+import { envoyerEmail, echapperHtml, enteteLogo, sansEmail } from "@/lib/email";
+import { dateParis, partiesParis } from "@/lib/creneaux";
 import { LONGUEUR_MAX } from "@/lib/messages-bornes";
 import { peutEcrire } from "@/lib/messages";
 import { urlSite } from "@/lib/site";
 
 export type EtatMessage = { ok?: boolean; message?: string };
+
+/**
+ * Combien d'e-mails « Zélia vous a écrit » une cliente peut recevoir par jour.
+ *
+ * Au-delà, le message reste dans son espace sans e-mail : elle a déjà été
+ * prévenue deux fois dans la journée, elle viendra lire. Une conversation
+ * suivie l'après-midi ne doit pas devenir cinq e-mails.
+ */
+const NOTIFICATIONS_PAR_JOUR = 2;
 
 function lireTexte(formData: FormData): string {
   return String(formData.get("texte") ?? "").trim().slice(0, LONGUEUR_MAX);
@@ -97,7 +107,26 @@ export async function repondreALaCliente(
   });
   if (!cliente) return { ok: false, message: "Cliente introuvable." };
 
-  await prisma.messageCliente.create({
+  // Avant d'écrire le message : ce qui précède dit s'il s'agit d'une réponse
+  // ou d'un premier mot, et combien d'e-mails sont déjà partis aujourd'hui.
+  const { annee, mois, jour } = partiesParis(new Date());
+  const [dernier, dejaPrevenue] = await Promise.all([
+    prisma.messageCliente.findFirst({
+      where: { clienteId },
+      orderBy: { creeLe: "desc" },
+      select: { deZelia: true },
+    }),
+    prisma.messageCliente.count({
+      where: {
+        clienteId,
+        deZelia: true,
+        emailEnvoyeLe: { gte: dateParis(annee, mois, jour, 0, 0) },
+      },
+    }),
+  ]);
+  const reponse = dernier !== null && !dernier.deZelia;
+
+  const cree = await prisma.messageCliente.create({
     data: { clienteId, deZelia: true, texte },
   });
 
@@ -105,16 +134,29 @@ export async function repondreALaCliente(
   revalidatePath("/admin/clientes");
   revalidatePath(`/admin/clientes/${clienteId}`);
 
+  if (sansEmail(cliente.email)) {
+    return {
+      ok: true,
+      message: `Message envoyé. ${cliente.prenom} n'a pas d'adresse e-mail : elle ne le verra qu'en ouvrant son espace.`,
+    };
+  }
+  if (dejaPrevenue >= NOTIFICATIONS_PAR_JOUR) {
+    return {
+      ok: true,
+      message: `Message envoyé, sans e-mail : ${cliente.prenom} a déjà été prévenue ${NOTIFICATIONS_PAR_JOUR} fois aujourd'hui. Elle le trouvera dans son espace.`,
+    };
+  }
+
   // La cliente est prévenue, y compris si elle s'est désinscrite des offres :
   // une réponse à sa propre question n'est pas de la prospection, et se taire
   // parce qu'elle refuse les nouveautés serait absurde.
-  await envoyerEmail(
+  const courriel = await envoyerEmail(
     cliente.email,
-    "Zélia vous a répondu · Zelart Nails",
+    reponse ? "Zélia vous a répondu · Zelart Nails" : "Zélia vous a écrit · Zelart Nails",
     `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#43242f;max-width:560px">
       ${enteteLogo()}
       <p>Bonjour ${echapperHtml(cliente.prenom)},</p>
-      <p>J'ai répondu à votre message :</p>
+      <p>${reponse ? "J'ai répondu à votre message" : "Je vous ai laissé un message dans votre espace"} :</p>
       <blockquote style="border-left:3px solid #ec4899;margin:16px 0;padding:4px 0 4px 14px">${echapperHtml(texte)}</blockquote>
       <p style="margin:24px 0">
         <a href="${urlSite()}/mon-espace" style="background:#ec4899;color:#fff;text-decoration:none;padding:12px 24px;border-radius:999px;display:inline-block;font-weight:600">
@@ -125,5 +167,23 @@ export async function repondreALaCliente(
     </div>`
   );
 
-  return { ok: true, message: "Réponse envoyée." };
+  if (!courriel.ok) {
+    return {
+      ok: true,
+      message: `Message envoyé, mais l'e-mail de notification a échoué (${courriel.erreur}). ${cliente.prenom} le verra en ouvrant son espace.`,
+    };
+  }
+  await prisma.messageCliente.update({
+    where: { id: cree.id },
+    data: { emailEnvoyeLe: new Date() },
+  });
+  const restant = NOTIFICATIONS_PAR_JOUR - dejaPrevenue - 1;
+  return {
+    ok: true,
+    message: `Message envoyé, et ${cliente.prenom} prévenue par e-mail${
+      restant > 0
+        ? ` (encore ${restant} possible aujourd'hui).`
+        : `. C'était le dernier e-mail du jour : les messages suivants attendront dans son espace.`
+    }`,
+  };
 }

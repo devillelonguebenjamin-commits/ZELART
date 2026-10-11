@@ -248,7 +248,8 @@ export default async function FicheCliente({
         <h2 className="font-semibold">Conversation</h2>
         <p className="mt-1 text-xs text-foreground/60">
           Ce qu&rsquo;elle vous écrit depuis son espace, et vos réponses. Elle est prévenue par
-          e-mail à chaque fois.
+          e-mail de vos messages, deux fois par jour au plus : au-delà, ils l&rsquo;attendent
+          dans son espace.
         </p>
         <div className="mt-4">
           <Conversation

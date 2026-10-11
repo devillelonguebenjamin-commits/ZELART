@@ -143,6 +143,9 @@ model MessageCliente {
   luLe   DateTime?
   creeLe DateTime  @default(now())
 
+  /// Message de Zélia signalé à la cliente par e-mail (au plus deux par jour).
+  emailEnvoyeLe DateTime?
+
   @@index([clienteId, creeLe])
   @@index([deZelia, luLe])
 }
