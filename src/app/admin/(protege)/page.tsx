@@ -26,6 +26,7 @@ import AnnulationAvecMessage from "@/components/AnnulationAvecMessage";
 import AjusterPrestation, { type Variante } from "@/components/AjusterPrestation";
 import BoutonRetablir from "@/components/BoutonRetablir";
 import BoutonClasser from "@/components/BoutonClasser";
+import DecalageRdv, { RetirerProposition } from "@/components/DecalageRdv";
 import {
   DELAI_EXPIRATION_ACOMPTE_MS,
   faitConnaitre,
@@ -81,8 +82,11 @@ type RdvComplet = Prisma.RendezVousGetPayload<{
     cliente: { include: { parraine: { select: { prenom: true } } } };
     inspirations: true;
     lignes: { include: { prestation: true } };
+    decalages: true;
   };
 }>;
+
+type ChoixCreneau = { valeur: string; libelle: string };
 
 // « 16:45 » : ce qu'attend un champ de type time, là où formatHeure rend
 // « 16h45 », qui est fait pour être lu et non pour être saisi.
@@ -149,6 +153,7 @@ function CarteRdv({
   lienAcompteConfigure,
   avantages,
   creneauxLibres,
+  choixLibres,
   variantes,
   acompteAlaConfirmation = false,
   heuresDattente = null,
@@ -158,6 +163,7 @@ function CarteRdv({
   lienAcompteConfigure: boolean;
   avantages: AvantageEnAttente[];
   creneauxLibres: Creneau[];
+  choixLibres: ChoixCreneau[];
   /** Variantes disponibles, par « acte|technique ». */
   variantes: Map<string, Variante[]>;
   /** Accepter cet horaire déclenchera une demande d'acompte. */
@@ -368,6 +374,42 @@ function CarteRdv({
         </p>
       )}
 
+      {rdv.decaleLe && rdv.debutInitial && (
+        <p className="mt-2 text-xs text-foreground/60">
+          ↔ Déplacé le {formatJour(rdv.decaleLe)} · initialement le {formatJour(rdv.debutInitial)} à{" "}
+          {formatHeure(rdv.debutInitial)}
+        </p>
+      )}
+      {(() => {
+        const p = rdv.decalages[0];
+        if (!p) return null;
+        if (p.statut === "EN_ATTENTE") {
+          return (
+            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
+              <span>
+                ⏳ <strong>Autre horaire proposé : {formatJour(p.debut)} à {formatHeure(p.debut)}</strong>
+                {" "}· envoyé le {formatJour(p.creeLe)}
+                {p.relanceEnvoyeeLe ? `, relancée le ${formatJour(p.relanceEnvoyeeLe)}` : ""}, sans
+                réponse. Ce créneau lui est réservé.
+              </span>
+              <RetirerProposition propositionId={p.id} />
+            </div>
+          );
+        }
+        // Une réponse reste affichée une semaine : le temps que Zélia la voie.
+        const recente = (p.reponduLe ?? p.creeLe).getTime() > new Date().getTime() - 7 * JOUR_MS;
+        if (!recente) return null;
+        const texte =
+          p.statut === "ACCEPTEE"
+            ? `✓ ${rdv.cliente.prenom} a accepté le nouvel horaire le ${formatJour(p.reponduLe ?? p.creeLe)}.`
+            : p.statut === "REFUSEE"
+              ? `✗ ${rdv.cliente.prenom} a préféré garder son horaire (réponse le ${formatJour(p.reponduLe ?? p.creeLe)}).`
+              : p.statut === "EXPIREE"
+                ? `Proposition du ${formatJour(p.debut)} expirée sans réponse.`
+                : null;
+        return texte ? <p className="mt-2 text-xs text-foreground/65">{texte}</p> : null;
+      })()}
+
       {acompteAlaConfirmation && (
         <p className="mt-3 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
           ⚠ {rdv.creneauPropose ? "Accepter cet horaire" : "Confirmer"} enverra une{" "}
@@ -458,6 +500,13 @@ function CarteRdv({
             finReelle={rdv.finReelle ? heureChamp(rdv.finReelle) : null}
           />
         )}
+        {(rdv.statut === "EN_ATTENTE" || rdv.statut === "CONFIRME") && rdv.debut > new Date() && (
+          <DecalageRdv
+            rendezVousId={rdv.id}
+            debutActuel={`${jourParis(rdv.debut)}T${heureChamp(rdv.debut)}`}
+            choixLibres={choixLibres}
+          />
+        )}
         {rdv.statut === "CONFIRME" && (
           <>
             <BoutonStatut id={rdv.id} statut="NO_SHOW" label="Absente" />
@@ -502,6 +551,8 @@ export default async function Agenda({
           cliente: { include: { parraine: { select: { prenom: true } } } },
           inspirations: true,
           lignes: { include: { prestation: true }, orderBy: { ordre: "asc" } },
+          // La dernière proposition d'horaire suffit : c'est son suivi qu'on affiche.
+          decalages: { orderBy: { creeLe: "desc" }, take: 1 },
         },
         orderBy: { debut: "asc" },
       }),
@@ -578,6 +629,13 @@ export default async function Agenda({
     const jourSemaine = ((new Date(Date.UTC(a, m - 1, j, 12)).getUTCDay() + 6) % 7) + 1;
     return ouvertures.some((o) => o.jourSemaine === jourSemaine && ouvertureActive(o, cleJour));
   };
+
+  // Créneaux libres au format du champ de date, pour « Changer l'horaire ».
+  const champParis = (d: Date) => `${jourParis(d)}T${heureChamp(d)}`;
+  const choixLibres: ChoixCreneau[] = creneauxLibres.slice(0, 40).map((c) => ({
+    valeur: champParis(new Date(c.debut)),
+    libelle: `${c.jourLabel} · ${c.heureLabel}`,
+  }));
 
   // Demain 9 h : la valeur qu'on corrige le moins souvent.
   const demain = new Date(maintenant.getTime() + JOUR_MS);
@@ -805,6 +863,7 @@ export default async function Agenda({
                 lienAcompteConfigure={Boolean(acompte.lien)}
                 avantages={avantagesParCliente.get(rdv.clienteId) ?? []}
                 creneauxLibres={creneauxLibres}
+                choixLibres={choixLibres}
                 variantes={variantes}
                 acompteAlaConfirmation={acompteAlaConfirmation.has(rdv.id)}
               />)
@@ -907,6 +966,7 @@ export default async function Agenda({
                 lienAcompteConfigure={Boolean(acompte.lien)}
                 avantages={avantagesParCliente.get(rdv.clienteId) ?? []}
                 creneauxLibres={creneauxLibres}
+                choixLibres={choixLibres}
                 variantes={variantes}
                 acompteAlaConfirmation={acompteAlaConfirmation.has(rdv.id)}
               />)
@@ -929,6 +989,7 @@ export default async function Agenda({
                 lienAcompteConfigure={Boolean(acompte.lien)}
                 avantages={avantagesParCliente.get(rdv.clienteId) ?? []}
                 creneauxLibres={creneauxLibres}
+                choixLibres={choixLibres}
                 variantes={variantes}
                 acompteAlaConfirmation={acompteAlaConfirmation.has(rdv.id)}
               />)
