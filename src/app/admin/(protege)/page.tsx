@@ -19,7 +19,8 @@ import { acompteADemander } from "@/lib/acompte";
 import type { Prisma } from "@/generated/prisma/client";
 import { bornesMois, grilleMois, moisDemande, type EvenementJour } from "@/lib/calendrier";
 import { jourParis, ouvertureActive, partiesParis } from "@/lib/creneaux";
-import CalendrierMois from "@/components/CalendrierMois";
+import CalendrierMois, { MASQUES_PAR_DEFAUT } from "@/components/CalendrierMois";
+import { cookies } from "next/headers";
 import FormulaireRdvManuel from "@/components/FormulaireRdvManuel";
 import FormulaireCreneauPerso from "@/components/FormulaireCreneauPerso";
 import AnnulationAvecMessage from "@/components/AnnulationAvecMessage";
@@ -620,6 +621,18 @@ export default async function Agenda({
   // Le calendrier montre le mois demandé, les listes restent centrées sur
   // l'actualité : naviguer en juin ne doit pas vider « Demandes à confirmer ».
   const { mois: moisDemandeCle } = await searchParams;
+  // Préférences d'affichage du calendrier, retenues par cookie (cf.
+  // CalendrierInteractif) : lues ici pour que la page s'affiche d'emblée telle
+  // que Zélia l'a laissée.
+  const preferences = await cookies();
+  const masquesCookie = preferences.get("cal_masques")?.value;
+  const masquesCalendrier =
+    masquesCookie === undefined
+      ? MASQUES_PAR_DEFAUT
+      : masquesCookie === "aucun"
+        ? []
+        : masquesCookie.split(",").filter(Boolean);
+  const detailCalendrier = preferences.get("cal_detail")?.value === "1";
   const { annee, mois } = moisDemande(moisDemandeCle);
   const bornes = bornesMois(annee, mois);
 
@@ -827,7 +840,7 @@ export default async function Agenda({
           />
           <FormulaireCreneauPerso dateParDefaut={dateParDefaut} />
         </div>
-        <CalendrierMois grille={grille} />
+        <CalendrierMois grille={grille} masques={masquesCalendrier} detail={detailCalendrier} />
       </section>
 
       {aVerifier.length > 0 && (
