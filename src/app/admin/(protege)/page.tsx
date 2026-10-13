@@ -147,6 +147,50 @@ function BoutonStatut({
 
 type AvantageEnAttente = { id: string; type: TypeAvantage; code: string };
 
+/**
+ * Une rubrique de l'agenda, repliable. L'agenda s'allongeait d'une carte par
+ * rendez-vous et par demande : sur téléphone, il fallait faire défiler
+ * plusieurs écrans pour atteindre ce qui comptait. Le titre et le compteur
+ * restent visibles repliés : ce qu'il y a dedans se lit sans l'ouvrir.
+ */
+function Rubrique({
+  titre,
+  nombre,
+  pastille,
+  ouvert,
+  principal = false,
+  children,
+}: {
+  titre: string;
+  nombre: number;
+  /** Classes de la pastille du compteur. */
+  pastille: string;
+  ouvert: boolean;
+  /** Premier titre de la page (h1) plutôt qu'un h2. */
+  principal?: boolean;
+  children: React.ReactNode;
+}) {
+  const Titre = principal ? "h1" : "h2";
+  return (
+    <details open={ouvert} className="group/rubrique">
+      <summary className="flex cursor-pointer list-none items-center gap-3 rounded-xl py-1 [&::-webkit-details-marker]:hidden">
+        <Titre className="font-display text-2xl font-bold">{titre}</Titre>
+        {nombre > 0 && (
+          <span className={`rounded-full px-3 py-1 text-sm font-semibold ${pastille}`}>{nombre}</span>
+        )}
+        <span
+          aria-hidden
+          className="ml-auto rounded-full border border-pink-100 px-3 py-1 text-xs text-foreground/60"
+        >
+          <span className="group-open/rubrique:hidden">Déplier ▾</span>
+          <span className="hidden group-open/rubrique:inline">Replier ▴</span>
+        </span>
+      </summary>
+      {children}
+    </details>
+  );
+}
+
 function CarteRdv({
   rdv,
   nouvelle,
@@ -157,6 +201,7 @@ function CarteRdv({
   variantes,
   acompteAlaConfirmation = false,
   heuresDattente = null,
+  ouvert = false,
 }: {
   rdv: RdvComplet;
   nouvelle: boolean;
@@ -170,16 +215,46 @@ function CarteRdv({
   acompteAlaConfirmation?: boolean;
   /** Renseigné quand la demande dort depuis plus de trois jours. */
   heuresDattente?: number | null;
+  /** Dépliée à l'affichage : les demandes, qui attendent un geste. */
+  ouvert?: boolean;
 }) {
   const badge = BADGES[rdv.statut] ?? BADGES.EN_ATTENTE;
   const totalRdv = totalTarifs(rdv.lignes.map((l) => l.prestation));
+  // Ce qui demande attention reste visible carte repliée : sans ces repères,
+  // replier reviendrait à cacher un acompte en souffrance ou une réponse attendue.
+  const acompteEnSuspens =
+    rdv.statut !== "ANNULE" && rdv.acompteDemandeLe !== null && rdv.acompteRegleLe === null;
+  const propositionEnCours = rdv.decalages[0]?.statut === "EN_ATTENTE";
   return (
-    <div className="rounded-2xl border border-pink-100 bg-white px-5 py-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="font-semibold capitalize">
-          {formatJour(rdv.debut)} · {formatHeure(rdv.debut)}
-        </p>
+    <details open={ouvert} className="group rounded-2xl border border-pink-100 bg-white">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 px-5 py-3 [&::-webkit-details-marker]:hidden">
+        <span className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
+          <span className="font-semibold capitalize">
+            {formatJour(rdv.debut)} · {formatHeure(rdv.debut)}
+          </span>
+          <span className="font-medium text-pink-600">
+            {rdv.cliente.prenom} {rdv.cliente.nom}
+          </span>
+          <span className="text-sm text-foreground/60 group-open:hidden">
+            {rdv.lignes.map((l) => l.prestation.nom).join(" + ") || "sans prestation"}
+          </span>
+        </span>
         <span className="flex flex-wrap items-center gap-2">
+          {acompteEnSuspens && (
+            <span title="Acompte demandé, pas encore reçu" className="text-sm group-open:hidden">
+              💳
+            </span>
+          )}
+          {propositionEnCours && (
+            <span title="Autre horaire proposé, sans réponse" className="text-sm group-open:hidden">
+              ⏳
+            </span>
+          )}
+          {avantages.length > 0 && rdv.statut !== "ANNULE" && (
+            <span title="Avantage à déduire" className="text-sm group-open:hidden">
+              🎁
+            </span>
+          )}
           {heuresDattente !== null && (
             <span className="rounded-full bg-amber-200 px-3 py-1 text-xs font-semibold text-amber-900">
               Attend depuis {Math.floor(heuresDattente / 24)} jour
@@ -199,9 +274,13 @@ function CarteRdv({
           <span className={`rounded-full px-3 py-1 text-xs font-semibold ${badge.classes}`}>
             {badge.label}
           </span>
+          <span aria-hidden className="text-xs text-foreground/40 transition group-open:rotate-180">
+            ▾
+          </span>
         </span>
-      </div>
-      <ul className="mt-1 text-sm">
+      </summary>
+      <div className="px-5 pb-4">
+      <ul className="text-sm">
         {rdv.lignes.map((ligne) => {
           // Ajustable seulement s'il existe une autre variante, et seulement
           // tant que la pose n'a pas eu lieu : corriger le niveau d'un
@@ -525,7 +604,8 @@ function CarteRdv({
           />
         )}
       </div>
-    </div>
+      </div>
+    </details>
   );
 }
 
@@ -731,6 +811,9 @@ export default async function Agenda({
   );
   const aVenir = rdvs.filter((r) => r.statut !== "EN_ATTENTE" && r.fin >= maintenant);
   const passes = rdvs.filter((r) => r.fin < maintenant).reverse();
+  // Passés mais encore « confirmés » : la venue reste à valider, d'où le
+  // compteur de la rubrique et les cartes dépliées d'office.
+  const aValider = passes.filter((r) => r.statut === "CONFIRME");
 
   return (
     <div className="space-y-10">
@@ -822,15 +905,13 @@ export default async function Agenda({
         </section>
       )}
 
-      <section>
-        <h1 className="font-display text-2xl font-bold">
-          Demandes à confirmer{" "}
-          {enAttente.length > 0 && (
-            <span className="ml-1 rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-800 align-middle">
-              {enAttente.length}
-            </span>
-          )}
-        </h1>
+      <Rubrique
+        principal
+        titre="Demandes à confirmer"
+        nombre={enAttente.length}
+        pastille="bg-amber-100 text-amber-800"
+        ouvert={enAttente.length > 0}
+      >
         <p className="mt-1 text-sm text-foreground/60">
           Les plus anciennes d&rsquo;abord. Une demande retient son créneau tant qu&rsquo;elle
           n&rsquo;a pas de réponse.
@@ -866,20 +947,18 @@ export default async function Agenda({
                 choixLibres={choixLibres}
                 variantes={variantes}
                 acompteAlaConfirmation={acompteAlaConfirmation.has(rdv.id)}
+                ouvert
               />)
           )}
         </div>
-      </section>
+      </Rubrique>
 
-      <section>
-        <h2 className="font-display text-2xl font-bold">
-          Liste d&rsquo;attente{" "}
-          {listeAttente.length > 0 && (
-            <span className="ml-1 rounded-full bg-pink-100 px-3 py-1 text-sm font-semibold text-pink-800 align-middle">
-              {listeAttente.length}
-            </span>
-          )}
-        </h2>
+      <Rubrique
+        titre="Liste d’attente"
+        nombre={listeAttente.length}
+        pastille="bg-pink-100 text-pink-800"
+        ouvert={false}
+      >
         <p className="mt-1 text-sm text-foreground/60">
           Prévenues automatiquement par e-mail dès qu&rsquo;un rendez-vous est annulé, et
           seulement si le créneau libéré correspond à ce qu&rsquo;elles ont indiqué. Chacune
@@ -936,10 +1015,18 @@ export default async function Agenda({
             ))
           )}
         </div>
-      </section>
+      </Rubrique>
 
-      <section>
-        <h2 className="font-display text-2xl font-bold">Rendez-vous à venir</h2>
+      <Rubrique
+        titre="Rendez-vous à venir"
+        nombre={aVenir.length}
+        pastille="bg-emerald-100 text-emerald-800"
+        ouvert
+      >
+        <p className="mt-1 text-sm text-foreground/60">
+          Cliquez sur un rendez-vous pour le déplier. 💳 acompte en attente · ⏳ autre horaire
+          proposé · 🎁 avantage à déduire.
+        </p>
         {acomptesALaMain.length > 0 && (
           <p className="mt-3 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-3 text-sm text-amber-900">
             <strong>
@@ -972,10 +1059,20 @@ export default async function Agenda({
               />)
           )}
         </div>
-      </section>
+      </Rubrique>
 
-      <section>
-        <h2 className="font-display text-2xl font-bold">Passés récents (14 jours)</h2>
+      <Rubrique
+        titre="Passés récents (14 jours)"
+        nombre={aValider.length}
+        pastille="bg-amber-100 text-amber-800"
+        ouvert={aValider.length > 0}
+      >
+        {aValider.length > 0 && (
+          <p className="mt-1 text-sm text-foreground/60">
+            {aValider.length} venue{aValider.length > 1 ? "s" : ""} à valider (« Elle est bien
+            venue ») : dépliée{aValider.length > 1 ? "s" : ""} ci-dessous.
+          </p>
+        )}
         <div className="mt-4 grid gap-3">
           {passes.length === 0 ? (
             <p className="rounded-2xl bg-pink-50 px-5 py-4 text-sm text-foreground/70">
@@ -992,10 +1089,11 @@ export default async function Agenda({
                 choixLibres={choixLibres}
                 variantes={variantes}
                 acompteAlaConfirmation={acompteAlaConfirmation.has(rdv.id)}
+                ouvert={rdv.statut === "CONFIRME"}
               />)
           )}
         </div>
-      </section>
+      </Rubrique>
     </div>
   );
 }
