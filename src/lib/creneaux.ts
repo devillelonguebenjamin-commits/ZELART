@@ -162,7 +162,7 @@ export async function getCreneauxDisponibles(): Promise<Creneau[]> {
   const maintenant = new Date();
   const finHorizon = new Date(maintenant.getTime() + (HORIZON_JOURS + 1) * JOUR_MS);
 
-  const [dispos, indispos, rdvs] = await Promise.all([
+  const [dispos, indispos, rdvs, propositions] = await Promise.all([
     prisma.disponibilite.findMany(),
     prisma.indisponibilite.findMany({
       where: { debut: { lt: finHorizon }, fin: { gt: maintenant } },
@@ -177,6 +177,11 @@ export async function getCreneauxDisponibles(): Promise<Creneau[]> {
         debut: { lt: finHorizon },
         fin: { gt: maintenant },
       },
+      select: { debut: true, fin: true },
+    }),
+    // Un horaire proposé par Zélia à une cliente est retenu jusqu'à sa réponse.
+    prisma.propositionDecalage.findMany({
+      where: { statut: "EN_ATTENTE", debut: { gt: maintenant, lt: finHorizon } },
       select: { debut: true, fin: true },
     }),
   ]);
@@ -208,6 +213,7 @@ export async function getCreneauxDisponibles(): Promise<Creneau[]> {
       if (debut.getTime() < maintenant.getTime() + PREAVIS_MS) continue;
       if (rdvs.some((r) => chevauche(r, debut, fin))) continue;
       if (indispos.some((r) => chevauche(r, debut, fin))) continue;
+      if (propositions.some((r) => chevauche(r, debut, fin))) continue;
 
       creneaux.push({
         debut: debut.toISOString(),

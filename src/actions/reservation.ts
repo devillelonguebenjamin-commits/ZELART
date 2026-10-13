@@ -233,7 +233,16 @@ export async function creerReservation(
           where: { debut: { lt: fenetre.fin }, fin: { gt: fenetre.debut } },
           select: { id: true },
         });
-        if (conflitRdv || conflitIndispo) throw new Error("CRENEAU_PRIS");
+        // Un horaire proposé par Zélia à une autre cliente lui est réservé.
+        const conflitProposition = await tx.propositionDecalage.findFirst({
+          where: {
+            statut: "EN_ATTENTE",
+            debut: { lt: fenetre.fin, gt: new Date() },
+            fin: { gt: fenetre.debut },
+          },
+          select: { id: true },
+        });
+        if (conflitRdv || conflitIndispo || conflitProposition) throw new Error("CRENEAU_PRIS");
 
         const accord = formData.get("consentementMarketing") === "on";
         const cliente = await ficheCliente(

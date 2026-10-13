@@ -152,6 +152,13 @@ export async function creerRendezVousManuel(
           throw new Error(`BLOQUE:${indispo.motif ?? "sans intitulé"} à ${formatHeure(indispo.debut)}`);
         }
 
+        // Un horaire proposé à une cliente lui est réservé jusqu'à sa réponse.
+        const propose = await tx.propositionDecalage.findFirst({
+          where: { statut: "EN_ATTENTE", debut: { lt: fin, gt: new Date() }, fin: { gt: debut } },
+          include: { rendezVous: { select: { cliente: { select: { prenom: true } } } } },
+        });
+        if (propose) throw new Error(`PROPOSE:${propose.rendezVous.cliente.prenom}`);
+
         let retenue = clienteExistante
           ? await tx.cliente.findUnique({
               where: { id: clienteExistante },
@@ -246,6 +253,12 @@ export async function creerRendezVousManuel(
       return {
         ok: false,
         message: `Vous avez bloqué ce créneau : ${message.slice(7)}. Retirez le blocage depuis l'onglet Congés si vous voulez y prendre une cliente.`,
+      };
+    }
+    if (message.startsWith("PROPOSE:")) {
+      return {
+        ok: false,
+        message: `Ce créneau est proposé à ${message.slice(8)}, qui n'a pas encore répondu. Retirez la proposition depuis l'agenda pour le reprendre.`,
       };
     }
     if (message === "SANS_CLIENTE") {

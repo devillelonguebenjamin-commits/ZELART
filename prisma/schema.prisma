@@ -445,6 +445,11 @@ model RendezVous {
   // rendez-vous sort du bloc « Annulations à vérifier ».
   annulationConfirmeeLe DateTime?
 
+  // Dernier déplacement : quand, et l'horaire d'origine (« initialement le … »).
+  decaleLe     DateTime?
+  debutInitial DateTime?
+  decalages    PropositionDecalage[]
+
   // Pourcentage figé au moment de la demande, comme l'est le prix de chaque
   // ligne : le barème peut changer, ce qui a été promis à cette cliente-là ne
   // doit pas bouger sous ses yeux.
@@ -676,4 +681,32 @@ enum StatutRendezVous {
   ANNULE
   TERMINE
   NO_SHOW
+}
+
+enum StatutDecalage {
+  EN_ATTENTE
+  ACCEPTEE
+  REFUSEE
+  ANNULEE
+  EXPIREE
+}
+
+/// Un autre horaire proposé par Zélia, que la cliente accepte ou refuse depuis
+/// le lien reçu par e-mail. En attente, il retient son créneau.
+model PropositionDecalage {
+  id               String         @id @default(cuid())
+  rendezVous       RendezVous     @relation(fields: [rendezVousId], references: [id], onDelete: Cascade)
+  rendezVousId     String
+  ancienDebut      DateTime
+  debut            DateTime
+  fin              DateTime
+  message          String?
+  jeton            String         @unique
+  statut           StatutDecalage @default(EN_ATTENTE)
+  creeLe           DateTime       @default(now())
+  reponduLe        DateTime?
+  relanceEnvoyeeLe DateTime?
+
+  @@index([statut, debut])
+  @@index([rendezVousId])
 }

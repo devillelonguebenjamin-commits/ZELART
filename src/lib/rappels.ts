@@ -10,6 +10,7 @@ import { adresseRelanceAcompte, verifierAcompte, verifierAcomptesEnAttente } fro
 import { sumupConfigure } from "@/lib/sumup";
 import { acompteExpire } from "@/lib/acompte-bornes";
 import { annoncerCreneauRendu } from "@/lib/liberation-creneau";
+import { suivreLesPropositions } from "@/lib/decalage";
 import { urlSite } from "@/lib/site";
 import { envoyerSmsSansBloquer } from "@/lib/sms";
 import type { TypePose } from "@/generated/prisma/client";
@@ -27,6 +28,7 @@ export type BilanRappels = {
   recapEnAttente: boolean;
   /** Créneaux rendus faute d'acompte réglé dans les délais. */
   creneauxLiberes: number;
+  decalages: { relancees: number; expirees: number };
 };
 
 const JOUR_MS = 24 * 60 * 60 * 1000;
@@ -627,6 +629,13 @@ export async function executerRappels(): Promise<BilanRappels> {
   // envois automatiques : celui-ci gouverne ce que reçoivent les clientes, pas
   // ce que Zélia se doit à elle-même de traiter. Le couper reviendrait à ne plus
   // être prévenue qu'une cliente attend une réponse.
+  // Propositions d'horaire : comme l'acompte, ce suivi ne dépend pas du réglage
+  // des envois automatiques. C'est la suite d'une question posée par Zélia.
+  const decalages = await etape("propositions d'horaire", suivreLesPropositions, {
+    relancees: 0,
+    expirees: 0,
+  });
+
   const recap = await etape("récapitulatif", envoyerRecapEnAttente, { envoye: false });
 
   if (!actifs) {
@@ -641,6 +650,7 @@ export async function executerRappels(): Promise<BilanRappels> {
       avantagesParrainage: 0,
       recapEnAttente: recap.envoye,
       creneauxLiberes: liberation.liberes,
+      decalages,
     };
   }
 
@@ -660,5 +670,6 @@ export async function executerRappels(): Promise<BilanRappels> {
     avantagesParrainage,
     recapEnAttente: recap.envoye,
     creneauxLiberes: liberation.liberes,
+    decalages,
   };
 }

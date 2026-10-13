@@ -1115,6 +1115,38 @@ disparaît avant d'être lu — le piège déjà rencontré avec la validation d
 donc « Cliente prévenue le … » ou « Annulé sans message à la cliente », et la question « est-ce que
 je l'ai prévenue ? » trouve encore sa réponse six mois plus tard.
 
+## Changer l'horaire d'un rendez-vous
+
+Un changement d'horaire passait par une annulation suivie d'une nouvelle saisie : la cliente
+recevait « votre rendez-vous est annulé » alors que rien ne l'était, et l'historique perdait le
+lien entre les deux. Le bouton **Changer l'horaire** de chaque carte à venir (en attente ou
+confirmée) ouvre un panneau unique, avec deux issues :
+
+| Geste | Quand | Ce qui se passe |
+|---|---|---|
+| **Décaler et prévenir la cliente** | déjà convenu avec elle (SMS, téléphone) | le rendez-vous bouge tout de suite ; elle reçoit la confirmation écrite (ancienne heure barrée, nouvelle, lien calendrier) |
+| **Proposer cet horaire** | c'est une question | elle reçoit un lien (`/decalage/<jeton>`) pour accepter ou garder son horaire ; rien ne bouge avant sa réponse, et Zélia est prévenue par e-mail du choix |
+
+Règles communes (`src/lib/decalage.ts`) : la **durée est conservée** ; les horaires d'ouverture
+ne s'appliquent pas (comme pour un rendez-vous noté à la main) ; un autre rendez-vous, un congé,
+un créneau bloqué ou **une proposition en attente pour une autre cliente** refusent le créneau
+en nommant l'obstacle. Le rappel de la veille est réarmé, et la carte garde la trace
+« initialement le … » (`debutInitial`, `decaleLe`).
+
+**Une proposition en attente retient son créneau** : il disparaît des créneaux publics et la
+réservation comme la saisie manuelle le refusent, jusqu'à la réponse. Le créneau est revérifié au
+moment de l'accord. Une seule proposition vit par rendez-vous : la suivante remplace la
+précédente, dont le lien cesse de fonctionner.
+
+**Suivi** : la carte affiche « ⏳ Autre horaire proposé … sans réponse » avec **Retirer la
+proposition**, puis la réponse pendant une semaine. La tâche du matin relance une fois au bout de
+24 h et fait expirer les propositions devenues sans objet (horaire à moins de 2 h, rendez-vous
+d'origine passé ou annulé).
+
+La réponse se donne sur une **page** et non par deux liens dans l'e-mail : les messageries ouvrent
+les liens d'un e-mail pour les analyser, et un lien « accepter » aurait déplacé des rendez-vous
+sans que personne n'ait cliqué.
+
 ## Rendez-vous pris de vive voix
 
 Toutes les clientes ne passeront pas par le site : une habituée appelle, une autre prend rendez-vous

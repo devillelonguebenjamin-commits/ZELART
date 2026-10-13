@@ -24,6 +24,7 @@ export const SLUGS_RESERVES = new Set([
   "avis",
   "confidentialite",
   "confirmation",
+  "decalage",
   "desabonnement",
   "favicon.ico",
   "mentions-legales",
