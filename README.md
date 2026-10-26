@@ -865,6 +865,20 @@ distingue, et s'ouvre en grand.
 Retirer une photo remet le champ à `null` sans effacer le fichier : une image orpheline coûte
 quelques kilo-octets, une image effacée à tort casse l'affichage d'une commande passée.
 
+## Thèmes de saison (`/admin/themes`)
+
+Halloween, Noël, Saint-Valentin et Pâques : un décor animé en haut de la page d'accueil
+(`src/components/Saisons.tsx` et un fichier par thème), un bandeau aux couleurs du thème sur
+toutes les pages, et l'emoji du titre d'accueil. Un seul thème à la fois, enregistré dans
+`Parametre` (`themeSaison`, `themeSaisonDebut`, `themeSaisonFin`), avec des dates **incluses et
+facultatives**, comparées en jour de Paris (`themeEnCours`) : un thème se programme à l'avance
+et s'éteint tout seul.
+
+Les décors sont en SVG, décoratifs (`aria-hidden`, sans clic), et restent sur les bords ou dans
+la bande haute : rien ne passe sur le texte. `prefers-reduced-motion` les immobilise.
+`/?apercu=<thème>` montre un thème avant activation, **à la gérante connectée seulement**
+(`estAdmin`) ; pour un visiteur, le paramètre est ignoré.
+
 ## Direction artistique
 
 Le motif de la marque — de larges rubans roses qui ondulent — est dessiné en SVG dans
