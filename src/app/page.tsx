@@ -14,10 +14,24 @@ import { ficheEtablissement } from "@/lib/donnees-structurees";
 import { descriptionRealisation, LEGENDE_PAR_DEFAUT } from "@/lib/galerie";
 import { horaires } from "@/lib/horaires";
 import { figureAuTarif } from "@/lib/regles";
+import { estIdTheme, themeSaison, THEMES } from "@/lib/saison";
+import { estAdmin } from "@/lib/auth";
+import { BandeauSaison, DecorSaison, EMOJI_TITRE } from "@/components/Saisons";
 
 export const dynamic = "force-dynamic";
 
-export default async function Accueil() {
+export default async function Accueil({
+  searchParams,
+}: {
+  searchParams: Promise<{ apercu?: string }>;
+}) {
+  // « ?apercu=noel » : l'onglet Thèmes montre un thème avant de l'activer.
+  // Réservé à la gérante connectée ; pour tout autre visiteur, le paramètre
+  // est ignoré et la page reste celle de tout le monde.
+  const { apercu } = await searchParams;
+  const enApercu = estIdTheme(apercu) && (await estAdmin()) ? apercu : null;
+  const theme = enApercu ?? (await themeSaison());
+
   const [prestations, photos, realisations, pressOnMoinsCher, reseaux, avis, ouverture, creneaux] =
     await Promise.all([
       prisma.prestation.findMany({ where: { active: true }, orderBy: { ordre: "asc" } }),
@@ -84,13 +98,31 @@ export default async function Accueil() {
         dangerouslySetInnerHTML={{ __html: jsonLdSecurise(donneesStructurees) }}
       />
 
+      {enApercu && (
+        <>
+          <p className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900">
+            Aperçu du thème {THEMES.find((t) => t.id === enApercu)?.nom}, visible par vous seule.{" "}
+            <Link href="/admin/themes" className="font-semibold underline">
+              Retour aux thèmes
+            </Link>
+          </p>
+          <BandeauSaison theme={enApercu} />
+        </>
+      )}
+
       {/* Héro */}
       <section className="relative isolate overflow-hidden">
         <Vagues />
-        <div className="mx-auto max-w-5xl px-4 py-16 text-center sm:px-6 sm:py-24">
+        {theme && <DecorSaison theme={theme} />}
+        {/* Avec les citrouilles posées en bas, un peu plus de marge sous le texte. */}
+        <div
+          className={`mx-auto max-w-5xl px-4 pt-16 text-center sm:px-6 sm:pt-24 ${
+            theme ? "pb-24 sm:pb-28" : "pb-16 sm:pb-24"
+          }`}
+        >
           <p className="text-sm uppercase tracking-[0.3em] text-pink-400">Saint-Nazaire</p>
           <h1 className="font-display mt-3 text-4xl font-bold sm:text-5xl">
-            Bienvenue chez <span className="text-pink-500">Zelart</span> ✨
+            Bienvenue chez <span className="text-pink-500">Zelart</span> {theme ? EMOJI_TITRE[theme] : "✨"}
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-foreground/80">
             Je m&rsquo;appelle <strong>Zélia</strong>, prothésiste ongulaire et nail artist

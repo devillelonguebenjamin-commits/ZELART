@@ -55,3 +55,166 @@ body {
     transform: scale(1);
   }
 }
+
+/* --- Habillage d'Halloween (cf. src/components/Halloween.tsx) --- */
+
+/* Les chauves-souris traversent l'écran en ondulant, ailes battantes. Le vol
+   et le battement sont deux animations séparées : l'une déplace le conteneur,
+   l'autre écrase la silhouette, ce qui suffit à simuler les ailes. */
+@media (prefers-reduced-motion: no-preference) {
+  .halloween-vol {
+    animation-name: halloween-vol;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+  .halloween-battement {
+    animation: halloween-battement 0.45s ease-in-out infinite;
+    transform-origin: center;
+  }
+  .halloween-flotte {
+    animation: halloween-flotte 4s ease-in-out infinite;
+  }
+  .halloween-araignee {
+    animation: halloween-araignee 5s ease-in-out infinite;
+    transform-origin: top center;
+  }
+}
+
+/* Sans animation, les chauves-souris restent visibles, posées à mi-course. */
+@media (prefers-reduced-motion: reduce) {
+  .halloween-vol {
+    transform: translateX(40vw);
+  }
+}
+
+@keyframes halloween-vol {
+  0% {
+    transform: translate(-15vw, 0);
+  }
+  25% {
+    transform: translate(20vw, -18px);
+  }
+  50% {
+    transform: translate(55vw, 12px);
+  }
+  75% {
+    transform: translate(85vw, -10px);
+  }
+  100% {
+    transform: translate(115vw, 6px);
+  }
+}
+
+@keyframes halloween-battement {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.45);
+  }
+}
+
+@keyframes halloween-flotte {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(3deg);
+  }
+}
+
+@keyframes halloween-araignee {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(6deg);
+  }
+}
+
+/* --- Noël, Saint-Valentin, Pâques (cf. src/components/Saisons.tsx) --- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .noel-ampoule {
+    animation: noel-scintille 1.75s ease-in-out infinite;
+  }
+  .noel-flocon {
+    animation-name: noel-chute;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+  .valentin-coeur {
+    animation-name: valentin-envol;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+  }
+  .paques-ailes {
+    animation: paques-battement 0.6s ease-in-out infinite;
+    transform-origin: center;
+  }
+}
+
+/* Immobiles, flocons et cœurs restent visibles à mi-hauteur. */
+@media (prefers-reduced-motion: reduce) {
+  .noel-flocon {
+    transform: translateY(160px);
+  }
+  .valentin-coeur {
+    transform: translateY(-200px);
+  }
+}
+
+@keyframes noel-scintille {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes noel-chute {
+  0% {
+    transform: translate(0, -30px) rotate(0deg);
+  }
+  50% {
+    transform: translate(14px, 380px) rotate(180deg);
+  }
+  100% {
+    transform: translate(-6px, 820px) rotate(360deg);
+  }
+}
+
+@keyframes valentin-envol {
+  0% {
+    transform: translate(0, 20px);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(12px, -320px);
+  }
+  85% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(-8px, -700px);
+    opacity: 0;
+  }
+}
+
+@keyframes paques-battement {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(0.35);
+  }
+}

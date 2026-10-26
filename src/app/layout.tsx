@@ -8,6 +8,8 @@ import Logo from "@/components/Logo";
 import { CreteVagues } from "@/components/Vagues";
 import { Analytics } from "@vercel/analytics/next";
 import { urlSite } from "@/lib/site";
+import { themeSaison } from "@/lib/saison";
+import { BandeauSaison } from "@/components/Saisons";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,11 +49,12 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const reseaux = await reglagesReseaux();
+  const [reseaux, theme] = await Promise.all([reglagesReseaux(), themeSaison()]);
 
   return (
     <html lang="fr" className={`${geistSans.variable} ${playfair.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
+        {theme && <BandeauSaison theme={theme} />}
         <header className="sticky top-0 z-10 border-b border-pink-100 bg-white/85 backdrop-blur">
           {/* Cinq entrées ne tiennent pas sur la largeur d'un téléphone. Plutôt
               que de laisser « Press-on » se couper en deux ou la barre déborder

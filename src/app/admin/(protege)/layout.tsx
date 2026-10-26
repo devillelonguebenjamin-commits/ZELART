@@ -23,6 +23,7 @@ const liens: { href: string; label: string; cle?: keyof EnAttente }[] = [
   { href: "/admin/roue", label: "Roue", cle: "roue" },
   { href: "/admin/bouffonnes", label: "Bouffonnes" },
   { href: "/admin/partenaires", label: "Partenaires" },
+  { href: "/admin/themes", label: "Thèmes" },
   { href: "/admin/reglages", label: "Réglages" },
 ];
 
