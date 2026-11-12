@@ -1,3 +1,5 @@
+import { DELAI_ANNULATION_H, DELAI_PREVENANCE_ACOMPTE_H, REGLE_ACOMPTE } from "@/lib/annulation";
+
 // Les questions qui partent aujourd'hui en SMS, et qui coûtent donc du temps.
 //
 // Écrites à la première personne, comme le reste du site. Deux d'entre elles
@@ -68,12 +70,13 @@ export const FAQ: RubriqueFaq[] = [
       {
         question: "Pourquoi un acompte pour un premier rendez-vous ?",
         reponse:
-          "Parce qu'un créneau réservé et non honoré ne se rattrape pas. L'acompte de 15 € est déduit du montant final, et il ne concerne que le premier rendez-vous.",
+          "Parce qu'un créneau réservé et non honoré ne se rattrape pas. L'acompte de 15 € est déduit du montant final, et il ne concerne que le premier rendez-vous. " +
+          REGLE_ACOMPTE,
       },
       {
         question: "Comment annuler ou décaler ?",
         reponse:
-          "Depuis votre espace, jusqu'à 24 h avant. Passé ce délai, prévenez-moi par SMS pour que je puisse proposer le créneau à quelqu'un d'autre.",
+          `Depuis votre espace, jusqu'à ${DELAI_ANNULATION_H} h avant. Passé ce délai, prévenez-moi par SMS pour que je puisse proposer le créneau à quelqu'un d'autre. Si vous avez réglé un acompte, il est perdu si vous ne prévenez pas au moins ${DELAI_PREVENANCE_ACOMPTE_H} h à l'avance.`,
       },
       {
         question: "Comment régler ?",

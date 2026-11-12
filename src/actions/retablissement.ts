@@ -154,7 +154,8 @@ export async function retablirRendezVous(
              </a>
            </p>
            <p style="font-size:13px;color:#8a6274">Ce lien remplace les précédents. L'acompte est
-           déduit du montant final le jour de votre pose.</p>`;
+           déduit du montant final le jour de votre pose. Il est perdu si vous ne prévenez pas au
+           moins 24 h à l'avance.</p>`;
 
     const courriel = await envoyerEmail(
       rdv.cliente.email,

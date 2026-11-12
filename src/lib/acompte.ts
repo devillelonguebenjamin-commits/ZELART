@@ -297,8 +297,10 @@ export async function envoyerDemandeAcompte(rendezVousId: string): Promise<boole
       </p>
       <p style="font-size:13px;color:#8a6274">Le paiement est traité par SumUp. Votre rendez-vous
       est définitivement réservé dès réception. À défaut, le créneau pourra être proposé à une
-      autre cliente. L'acompte n'est pas remboursable en cas d'annulation ; un report est accepté
-      une fois.</p>
+      autre cliente.</p>
+      <p style="font-size:13px;color:#8a6274"><strong>L'acompte est perdu si vous ne prévenez pas
+      au moins 24 h à l'avance</strong> (annulation ou absence). Prévenue à temps, vous pouvez
+      reporter votre rendez-vous une fois en le conservant.</p>
       <p>À très vite,<br>Zélia ✨</p>
     </div>`
   );
