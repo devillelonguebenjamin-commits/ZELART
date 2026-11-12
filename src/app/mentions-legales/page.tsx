@@ -44,8 +44,12 @@ export default function MentionsLegales() {
           <p className="mt-2">
             Le règlement s&rsquo;effectue sur place, en espèces ou par carte bancaire (SumUp). Pour
             toute nouvelle cliente, un acompte de 15 € est demandé afin de confirmer le rendez-vous ;
-            il est déduit du montant final et n&rsquo;est pas remboursable en cas d&rsquo;annulation
-            ou de non-présentation. Un report est accepté une seule fois.
+            il est déduit du montant final.{" "}
+            <strong>
+              L&rsquo;acompte est perdu si la cliente ne prévient pas au moins 24 h à l&rsquo;avance
+            </strong>{" "}
+            (annulation ou non-présentation). Prévenue au moins 24 h avant, la cliente peut reporter
+            son rendez-vous une seule fois en conservant son acompte.
           </p>
         </section>
 

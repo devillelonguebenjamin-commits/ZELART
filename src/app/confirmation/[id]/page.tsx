@@ -98,7 +98,8 @@ export default async function Confirmation({
             <p>
               💳 S&rsquo;il s&rsquo;agit de votre premier rendez-vous, un <strong>acompte de 15 €</strong>{" "}
               vous sera demandé via un lien de paiement SumUp pour valider la réservation. Il sera
-              déduit du montant final.
+              déduit du montant final. <strong>Il est perdu si vous ne prévenez pas au moins 24 h
+              à l&rsquo;avance</strong> en cas d&rsquo;empêchement.
             </p>
             {rendezVous.remiseFilleule && (
               <p className="rounded-2xl bg-pink-50 px-5 py-4 font-medium text-pink-800">

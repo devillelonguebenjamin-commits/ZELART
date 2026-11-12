@@ -588,7 +588,8 @@ export default function ReservationWizard({
           <span>
             Je certifie avoir 18 ans ou plus et j&rsquo;ai compris qu&rsquo;un acompte de 15 €
             (déduit du montant final) me sera demandé s&rsquo;il s&rsquo;agit de mon premier
-            rendez-vous. *
+            rendez-vous, et qu&rsquo;il sera perdu si je ne préviens pas au moins 24 h à
+            l&rsquo;avance. *
           </span>
         </label>
 

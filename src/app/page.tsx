@@ -303,7 +303,7 @@ export default async function Accueil({
               [ouverture.actuel, ouverture.aVenir].filter(Boolean).join(" "),
               "Il faut avoir 18 ans ou plus. Aucune pose sur les pieds.",
               "Après votre demande, je vous envoie un message de confirmation (je ne réponds pas aux appels).",
-              "Nouvelles clientes : un acompte de 15 € est demandé via SumUp pour valider le rendez-vous ; il est déduit du montant final.",
+              "Nouvelles clientes : un acompte de 15 € est demandé via SumUp pour valider le rendez-vous ; il est déduit du montant final, et perdu si vous ne prévenez pas au moins 24 h à l'avance.",
               "Paiement sur place en espèces ou par carte bancaire (SumUp).",
               "Merci de signaler toute allergie ou problème de santé ; matériel désinfecté entre chaque cliente.",
             ].map((info) => (
