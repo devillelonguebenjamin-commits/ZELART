@@ -14,7 +14,7 @@ import { ecrireAZelia } from "@/actions/messages";
 import ConnexionMotDePasse from "@/components/ConnexionMotDePasse";
 import MotDePasseCliente from "@/components/MotDePasseCliente";
 import BoutonAnnulation from "@/components/BoutonAnnulation";
-import { annulationPossible, DELAI_ANNULATION_H, DELAI_PREVENANCE_ACOMPTE_H } from "@/lib/annulation";
+import { annulationPossible, DELAI_ANNULATION_H } from "@/lib/annulation";
 import RoueFidelite from "@/components/RoueFidelite";
 import CarteSquad from "@/components/CarteSquad";
 import { statutParrainage } from "@/lib/parrainage";
@@ -246,7 +246,7 @@ export default async function MonEspace({
                     À moins de {DELAI_ANNULATION_H} h du rendez-vous, prévenez-moi par SMS au
                     06 45 29 20 01.
                     {rdv.acompteRegleLe &&
-                      ` Votre acompte est perdu si vous ne prévenez pas au moins ${DELAI_PREVENANCE_ACOMPTE_H} h à l'avance.`}
+                      ` Prévenue à moins de ${DELAI_ANNULATION_H} h, l'acompte réglé est perdu.`}
                   </p>
                 )}
               </div>

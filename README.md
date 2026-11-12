@@ -480,11 +480,11 @@ contenant un lien de paiement et le rappel des conditions — sauf sur un horair
 demande attend l'accord de Zélia (cf. *Horaire proposé par la cliente*).
 
 **Règle affichée aux clientes** : l'acompte est perdu si la cliente ne prévient pas au moins
-24 h à l'avance (annulation ou absence) ; prévenue à temps, elle peut reporter une fois en le
-gardant. Elle figure dans les CGV, la FAQ, l'accueil, la case à cocher de la réservation, la page
-de confirmation, l'espace cliente et les e-mails d'acompte (`REGLE_ACOMPTE` et
-`DELAI_PREVENANCE_ACOMPTE_H` dans `src/lib/annulation.ts`). Le site ne retient rien tout seul :
-c'est Zélia qui applique la règle. L'annulation en ligne, elle, reste fermée à moins de 48 h.
+48 h à l'avance (annulation ou absence) ; prévenue à temps, elle peut reporter une fois en le
+gardant. C'est le même délai que la fermeture de l'annulation en ligne : un seul nombre,
+`DELAI_ANNULATION_H` dans `src/lib/annulation.ts`, lu par les CGV, la FAQ, l'accueil, la case à
+cocher de la réservation, la page de confirmation, l'espace cliente et les e-mails d'acompte
+(`REGLE_ACOMPTE`). Le site ne retient rien tout seul : c'est Zélia qui applique la règle.
 
 ### Qui en est dispensée
 

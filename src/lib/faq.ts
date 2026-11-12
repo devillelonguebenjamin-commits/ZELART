@@ -1,4 +1,4 @@
-import { DELAI_ANNULATION_H, DELAI_PREVENANCE_ACOMPTE_H, REGLE_ACOMPTE } from "@/lib/annulation";
+import { DELAI_ANNULATION_H, REGLE_ACOMPTE } from "@/lib/annulation";
 
 // Les questions qui partent aujourd'hui en SMS, et qui coûtent donc du temps.
 //
@@ -76,7 +76,7 @@ export const FAQ: RubriqueFaq[] = [
       {
         question: "Comment annuler ou décaler ?",
         reponse:
-          `Depuis votre espace, jusqu'à ${DELAI_ANNULATION_H} h avant. Passé ce délai, prévenez-moi par SMS pour que je puisse proposer le créneau à quelqu'un d'autre. Si vous avez réglé un acompte, il est perdu si vous ne prévenez pas au moins ${DELAI_PREVENANCE_ACOMPTE_H} h à l'avance.`,
+          `Depuis votre espace, jusqu'à ${DELAI_ANNULATION_H} h avant. Passé ce délai, prévenez-moi par SMS pour que je puisse proposer le créneau à quelqu'un d'autre ; un acompte réglé est alors perdu.`,
       },
       {
         question: "Comment régler ?",
