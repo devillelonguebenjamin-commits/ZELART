@@ -224,6 +224,21 @@ qui s'imprime ou s'enregistre en PDF depuis le navigateur. Trois cas :
   propose le formulaire papier prérempli à faire signer au salon, puis « La cliente a signé » l'inscrit
   au registre (`AU_SALON`). L'original signé fait foi.
 
+## Conservation des données (`src/lib/conservation.ts`)
+
+La tâche quotidienne applique les durées annoncées dans la politique de confidentialité, quel que
+soit le réglage des envois automatiques :
+
+- **fiche cliente** (et tout ce qui en dépend, photos d'inspiration comprises) : supprimée 3 ans
+  après le dernier contact (rendez-vous, commande ou message) ;
+- **déclaration santé** : 5 ans après le rendez-vous, même si la fiche a été supprimée ;
+- **liste d'attente** : 1 an après l'inscription.
+
+Les durées vivent dans `conservation-durees.ts`, lu par la page `/confidentialite` : la page ne peut
+pas annoncer un délai que le site n'applique pas. Le bouton « Effacer cette fiche » passe par la même
+fonction (`supprimerFichesClientes`), qui efface aussi les photos d'inspiration stockées à part. Les
+photos de réalisations restent : c'est le travail de Zélia.
+
 ## SMS (`src/lib/sms.ts`)
 
 Tout le salon fonctionne par SMS ; le site ne parlait que par e-mail. Une cliente qui relève

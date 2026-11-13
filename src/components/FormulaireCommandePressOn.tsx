@@ -344,8 +344,8 @@ export default function FormulaireCommandePressOn({
                 remise
               </strong>
             )}{" "}
-            et <strong>aucun retour ni remboursement</strong>
-            {" n’est possible. En cas de défaut visible à la remise, un échange ou un ajustement m’est proposé."}
+            et <strong>pas de droit de rétractation</strong>
+            {" : un set conforme n’est ni repris ni remboursé. Les garanties légales (conformité pendant deux ans, vices cachés) s’appliquent : en cas de défaut, le set est ajusté, remplacé ou remboursé. Un envoi postal voyage aux risques de Zélia jusqu’à sa réception."}
           </span>
         </label>
 

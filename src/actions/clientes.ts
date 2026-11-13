@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { exigerAdmin } from "@/lib/auth";
 import { nouveauCodeUnique } from "@/lib/cliente-auth";
 import { champsTelephone } from "@/lib/telephone";
+import { supprimerFichesClientes } from "@/lib/conservation";
 
 const clienteSchema = z.object({
   prenom: z.string().trim().min(1, "Indiquez le prénom.").max(60, "Prénom trop long."),
@@ -130,10 +131,12 @@ export async function marquerRecompenseUtilisee(
   revalidatePath("/admin/roue");
 }
 
-// Droit à l'effacement : supprime la cliente et tout son historique.
+// Droit à l'effacement : supprime la cliente et tout son historique, photos
+// d'inspiration comprises. Ses déclarations santé restent (preuve en cas de
+// litige, cf. DeclarationSante).
 export async function supprimerCliente(clienteId: string): Promise<void> {
   await exigerAdmin();
-  await prisma.cliente.delete({ where: { id: clienteId } });
+  await supprimerFichesClientes([clienteId]);
   revalidatePath("/admin/clientes");
   redirect("/admin/clientes");
 }

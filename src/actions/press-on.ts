@@ -20,7 +20,7 @@ export async function commanderPressOn(
   if (formData.get("conditions") !== "on") {
     return {
       erreur:
-        "Vous devez accepter les conditions de vente des press-on (paiement avant fabrication, aucun retour).",
+        "Vous devez accepter les conditions de vente des press-on (paiement avant fabrication, pas de droit de rétractation).",
     };
   }
 

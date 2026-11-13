@@ -13,6 +13,7 @@ import { annoncerCreneauRendu } from "@/lib/liberation-creneau";
 import { suivreLesPropositions } from "@/lib/decalage";
 import { urlSite } from "@/lib/site";
 import { envoyerSmsSansBloquer } from "@/lib/sms";
+import { appliquerConservation, type BilanConservation } from "@/lib/conservation";
 import type { TypePose } from "@/generated/prisma/client";
 
 export type BilanRappels = {
@@ -29,6 +30,8 @@ export type BilanRappels = {
   /** Créneaux rendus faute d'acompte réglé dans les délais. */
   creneauxLiberes: number;
   decalages: { relancees: number; expirees: number };
+  /** Données arrivées au terme de leur durée de conservation, supprimées. */
+  conservation: BilanConservation;
 };
 
 const JOUR_MS = 24 * 60 * 60 * 1000;
@@ -640,6 +643,14 @@ export async function executerRappels(): Promise<BilanRappels> {
 
   const recap = await etape("récapitulatif", envoyerRecapEnAttente, { envoye: false });
 
+  // Les durées de conservation annoncées aux clientes ne dépendent d'aucun
+  // réglage : c'est une obligation, pas un envoi qu'on choisit de couper.
+  const conservation = await etape("conservation des données", appliquerConservation, {
+    clientes: 0,
+    declarations: 0,
+    listeAttente: 0,
+  });
+
   if (!actifs) {
     return {
       actifs: false,
@@ -653,6 +664,7 @@ export async function executerRappels(): Promise<BilanRappels> {
       recapEnAttente: recap.envoye,
       creneauxLiberes: liberation.liberes,
       decalages,
+      conservation,
     };
   }
 
@@ -673,5 +685,6 @@ export async function executerRappels(): Promise<BilanRappels> {
     recapEnAttente: recap.envoye,
     creneauxLiberes: liberation.liberes,
     decalages,
+    conservation,
   };
 }

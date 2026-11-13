@@ -172,9 +172,9 @@ export async function envoyerDemandePaiement(id: string): Promise<EtatEnvoiPaiem
         </a>
       </p>
       <p style="font-size:13px;color:#8a6274">Le paiement est traité par SumUp. Votre set est lancé
-      dès réception du règlement. Les press-on étant personnalisés, aucun retour ni remboursement
-      n'est possible ; en cas de défaut visible à la remise, un échange ou un ajustement vous est
-      proposé.</p>
+      dès réception du règlement. Les press-on étant personnalisés, il n'y a pas de droit de
+      rétractation ; les garanties légales s'appliquent (conformité pendant deux ans, vices cachés) :
+      en cas de défaut, votre set est ajusté, remplacé ou remboursé.</p>
       <p>À très vite,<br>Zélia ✨</p>
     </div>`
   );
