@@ -7,6 +7,7 @@ import {
 } from "@/lib/email";
 import { modeStockage, stockageConfigure } from "@/lib/blob";
 import TestEmailForm from "@/components/TestEmailForm";
+import TestSmsForm from "@/components/TestSmsForm";
 import ReglagesAcompteForm from "@/components/ReglagesAcompteForm";
 import {
   CLE_AUTRE_RESEAU,
@@ -182,12 +183,12 @@ export default async function Reglages() {
           }
         />
         <Ligne
-          label="SMS (confirmation, rappel, acompte)"
+          label="SMS aux clientes"
           valeur={smsConfigure() ? `activé, expéditeur « ${expediteurSms()} »` : "non configuré"}
           ok={smsConfigure()}
           aide={
             smsConfigure()
-              ? "double l'e-mail sur les trois messages liés à un rendez-vous. Aucun message commercial n'est envoyé par SMS."
+              ? "double l'e-mail des messages liés à un rendez-vous : confirmation, rappel de la veille, acompte, déplacement, annulation, et la demande d'avis. Aucun message commercial n'est envoyé par SMS."
               : "BREVO_SMS_SENDER (11 caractères maximum) avec la clé Brevo déjà en place. Sans lui, tout part par e-mail seulement."
           }
         />
@@ -351,6 +352,9 @@ export default async function Reglages() {
         </p>
         <div className="mt-3">
           <TestEmailForm defaut={notify} />
+        </div>
+        <div className="mt-5 border-t border-pink-100 pt-4">
+          <TestSmsForm defaut="06 45 29 20 01" actif={smsConfigure()} />
         </div>
       </section>
 

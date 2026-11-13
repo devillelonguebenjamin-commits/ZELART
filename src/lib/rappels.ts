@@ -111,10 +111,12 @@ async function envoyerRappels(): Promise<{ envoyes: number; echecs: number }> {
     );
 
     // Le rappel est le message le plus utile de tous : c'est lui qui évite le
-    // rendez-vous oublié. Il part aussi par SMS, où il sera lu.
+    // rendez-vous oublié. Il part aussi par SMS, où il sera lu. Le numéro de
+    // Zélia y figure : un SMS envoyé sous le nom « ZelartNails » ne peut pas
+    // recevoir de réponse.
     await envoyerSmsSansBloquer(
       rdv.cliente.telephone,
-      `Zelart Nails : rappel de votre rendez-vous ${quand} a ${formatHeure(rdv.debut)}, 108 av. de la Republique. Un empechement ? Repondez a ce message.`
+      `Zelart Nails : rappel de votre rendez-vous ${quand} a ${formatHeure(rdv.debut)}, 108 av. de la Republique. Un empechement ? SMS au 06 45 29 20 01.`
     );
 
     if (resultat.ok) {

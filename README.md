@@ -197,8 +197,9 @@ le rendez-vous plutôt que de trancher à la place de Zélia.
 Tout le salon fonctionne par SMS ; le site ne parlait que par e-mail. Une cliente qui relève
 rarement sa boîte ratait sa confirmation, son rappel et sa demande d'acompte.
 
-Quatre messages seulement le doublent : **confirmation**, **rappel de la veille**, **demande
-d'acompte** et **demande d'avis**. Trois principes le tiennent :
+Il double les messages liés à un rendez-vous : **confirmation**, **rappel de la veille**, **demande
+d'acompte**, **déplacement** (décalage convenu ou proposition), **annulation** et **rétablissement**,
+plus la **demande d'avis**. Trois principes le tiennent :
 
 - il **ne remplace jamais l'e-mail**, qui porte le détail, les liens et la trace écrite ;
 - **rien de commercial n'y passe** : ce sont des messages liés à un rendez-vous demandé, ce qui
@@ -211,6 +212,18 @@ d'acompte** et **demande d'avis**. Trois principes le tiennent :
 Un numéro fixe ou incomplet est écarté **avant** tout appel à Brevo (`numeroInternational`) plutôt
 que d'être envoyé au jugé. La page Réglages indique si le canal est actif et sous quel nom
 d'expéditeur (onze caractères au maximum, contrainte de l'opérateur).
+
+**Mise en service** : créditer le compte Brevo en SMS, faire enregistrer l'expéditeur (`ZelartNails`,
+lettres et chiffres uniquement, 3 à 11 caractères) dans Brevo, puis ajouter `BREVO_SMS_SENDER` sur
+Vercel et redéployer. Réglages → *Tester le SMS* envoie un vrai message pour vérifier.
+
+**Coût** : un SMS de 160 caractères en alphabet GSM. Un seul caractère hors de cet alphabet (« û »,
+« ê », un emoji) fait passer tout le message en Unicode, à 70 caractères par SMS. `preparerTexteSms`
+retire donc ces accents-là avant l'envoi (« août » → « aout ») et ne garde l'Unicode que si le texte
+ne peut pas s'en passer.
+
+**Pas de réponse possible** : un SMS envoyé sous un nom d'expéditeur ne peut pas recevoir de
+réponse. Les messages donnent le numéro de Zélia plutôt que « répondez à ce message ».
 
 La demande d'avis est horodatée dès qu'**un** des deux canaux a fonctionné. Sans cela, un e-mail en
 échec laisserait la demande « à faire » et le SMS repartirait le lendemain, puis le surlendemain, à

@@ -21,6 +21,37 @@ import { cleTelephone } from "@/lib/telephone";
 
 const DELAI_ENVOI_MS = 10_000;
 
+// Alphabet GSM 7 bits : un SMS y tient en 160 caractères. Un seul caractère
+// hors de cet alphabet fait passer tout le message en Unicode, à 70 caractères
+// par SMS — le même texte peut alors coûter deux ou trois SMS au lieu d'un.
+// « é », « è », « à », « ù » en font partie ; « ê », « â », « û », « ç » non.
+const GSM7 =
+  "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡" +
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà" +
+  "^{}\\[~]|€";
+
+function estGsm7(texte: string): boolean {
+  return [...texte].every((c) => GSM7.includes(c));
+}
+
+/**
+ * Le texte tel qu'il partira, et son encodage. Un accent hors alphabet GSM
+ * (« août », « prêt ») est retiré plutôt que de tripler le prix du message ;
+ * l'Unicode ne sert que si le texte en a vraiment besoin (un emoji, par exemple).
+ */
+export function preparerTexteSms(texte: string): { contenu: string; unicode: boolean } {
+  if (estGsm7(texte)) return { contenu: texte, unicode: false };
+  const simplifie = [...texte]
+    .map((c) => (GSM7.includes(c) ? c : c.normalize("NFD").replace(/[\u0300-\u036f]/g, "")))
+    .join("")
+    .replace(/[’‘]/g, "'")
+    .replace(/[«»“”]/g, '"')
+    .replace(/[–—]/g, "-")
+    .replace(/…/g, "...")
+    .replace(/\u00a0/g, " ");
+  return estGsm7(simplifie) ? { contenu: simplifie, unicode: false } : { contenu: texte, unicode: true };
+}
+
 /** Nom d'expéditeur affiché sur le téléphone. Onze caractères au maximum. */
 export function expediteurSms(): string | undefined {
   const brut = process.env.BREVO_SMS_SENDER?.trim();
@@ -59,6 +90,8 @@ export async function envoyerSms(
   const destinataire = numeroInternational(telephone);
   if (!destinataire) return { ok: false, erreur: "Numéro de mobile inexploitable." };
 
+  const { contenu, unicode } = preparerTexteSms(texte);
+
   try {
     const reponse = await fetch(
       process.env.BREVO_SMS_URL ?? "https://api.brevo.com/v3/transactionalSMS/sms",
@@ -70,11 +103,8 @@ export async function envoyerSms(
           type: "transactional",
           sender: expediteur,
           recipient: destinataire,
-          // Les accents font basculer le message en encodage Unicode, qui
-          // divise par deux la longueur utile. On l'assume plutôt que d'écrire
-          // sans accents à des clientes.
-          unicodeEnabled: true,
-          content: texte.slice(0, 300),
+          unicodeEnabled: unicode,
+          content: contenu.slice(0, 300),
         }),
       }
     );

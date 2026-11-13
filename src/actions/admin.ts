@@ -35,7 +35,7 @@ import {
 import { notifierListeAttente } from "@/lib/liste-attente";
 import { recompenserMarraine } from "@/lib/parrainage-email";
 import { urlSite } from "@/lib/site";
-import { envoyerSmsSansBloquer } from "@/lib/sms";
+import { envoyerSms, envoyerSmsSansBloquer, expediteurSms, numeroInternational, smsConfigure } from "@/lib/sms";
 import type { StatutRendezVous } from "@/generated/prisma/client";
 
 // --- Session ---
@@ -554,6 +554,32 @@ export async function envoyerEmailTest(
 
   return resultat.ok
     ? { ok: true, message: `E-mail envoyé à ${destinataire.data} via ${resultat.fournisseur}. Vérifiez la boîte de réception (et les indésirables).` }
+    : { ok: false, message: resultat.erreur };
+}
+
+// --- Diagnostic SMS ---
+
+export type EtatTestSms = { ok?: boolean; message?: string };
+
+/** Envoie un vrai SMS (un crédit Brevo) pour vérifier la configuration. */
+export async function envoyerSmsTest(
+  _etatPrecedent: EtatTestSms,
+  formData: FormData
+): Promise<EtatTestSms> {
+  await exigerAdmin();
+  if (!smsConfigure()) {
+    return { ok: false, message: "SMS non configuré : BREVO_SMS_SENDER manque sur Vercel." };
+  }
+  const telephone = String(formData.get("telephone") ?? "");
+  if (!numeroInternational(telephone)) {
+    return { ok: false, message: "Indiquez un numéro de mobile français (06 ou 07)." };
+  }
+  const resultat = await envoyerSms(
+    telephone,
+    "Zelart Nails : SMS de test envoye depuis l'espace gerante. Les SMS aux clientes fonctionnent !"
+  );
+  return resultat.ok
+    ? { ok: true, message: `SMS envoyé, expéditeur « ${expediteurSms()} ». Il arrive en général en moins d'une minute.` }
     : { ok: false, message: resultat.erreur };
 }
 
