@@ -215,7 +215,11 @@ export async function creerRendezVousManuel(
             debut,
             fin,
             statut: dejaVenue ? "TERMINE" : "CONFIRME",
-            consentementSante: true,
+            // La cliente n'a rien coché : c'est Zélia qui saisit. Marquer la
+            // déclaration santé comme faite fabriquerait une preuve fausse. Elle
+            // se fait signer au salon (formulaire papier depuis la carte du
+            // rendez-vous), puis s'enregistre dans le registre.
+            consentementSante: false,
             noteCliente: note || null,
             commentaireVisite: commentaireVisite || null,
             lignes: {

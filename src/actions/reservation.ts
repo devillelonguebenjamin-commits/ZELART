@@ -23,6 +23,8 @@ import { provenanceValide } from "@/lib/provenance";
 import { comporteNailArt, deposeNecessaire, prestationProposee, trouverDepose } from "@/lib/regles";
 import { REMISE_FILLEULE_POURCENT } from "@/lib/parrainage";
 import { formatDuree, formatPrix, totalDuree, totalTarifs } from "@/lib/format";
+import { texteDeclaration, VERSION_DECLARATION } from "@/lib/declaration-sante-texte";
+import { originePourPreuve } from "@/lib/declaration-sante";
 
 const LIBELLE_ETAT: Record<string, string> = {
   NATUREL: "ongles nus",
@@ -212,6 +214,9 @@ export async function creerReservation(
     .filter((v): v is string => typeof v === "string" && urlImageValide(v))
     .slice(0, 3);
 
+  // Pour le registre des déclarations santé : d'où la case a été cochée.
+  const provenanceRequete = await originePourPreuve();
+
   let rendezVousId: string;
   try {
     rendezVousId = await prisma.$transaction(
@@ -308,6 +313,28 @@ export async function creerReservation(
               })),
             },
             inspirations: { create: imagesInspiration.map((url) => ({ url })) },
+          },
+        });
+
+        // La preuve de la déclaration santé, dans la même transaction : pas de
+        // rendez-vous sans déclaration, pas de déclaration sans rendez-vous.
+        await tx.declarationSante.create({
+          data: {
+            rendezVousId: rendezVous.id,
+            clienteId: cliente.id,
+            prenom: donnees.prenom,
+            nom: donnees.nom,
+            email: donnees.email,
+            telephone: donnees.telephone,
+            rendezVousLe: debut,
+            prestations: lignes.map((l) => l.prestation.nom).join(" + "),
+            noteCliente: donnees.noteCliente || null,
+            version: VERSION_DECLARATION,
+            texte: texteDeclaration(),
+            majeure: true,
+            source: "EN_LIGNE",
+            ip: provenanceRequete.ip,
+            navigateur: provenanceRequete.navigateur,
           },
         });
         return rendezVous.id;

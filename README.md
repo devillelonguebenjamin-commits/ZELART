@@ -192,6 +192,38 @@ afficher dans ses résultats.
 Celles qui touchent aux allergies et à la grossesse renvoient explicitement vers un échange **avant**
 le rendez-vous plutôt que de trancher à la place de Zélia.
 
+## Déclaration santé et registre de preuve
+
+À la réservation, la cliente coche une **déclaration santé** obligatoire : elle a signalé ses
+allergies (ou n'en a pas), elle est informée que gels, résines et colles peuvent provoquer une
+réaction, Zélia peut refuser la prestation en cas de contre-indication, et elle accepte que ses
+informations de santé soient conservées. Le texte vit dans `src/lib/declaration-sante-texte.ts`,
+lu à la fois par le formulaire et par le registre : ce qui est archivé est mot pour mot ce qui a
+été affiché. Toute modification du texte change `VERSION_DECLARATION`.
+
+C'est une **déclaration**, pas une décharge. L'ancienne version (« Zelart décline toute
+responsabilité ») ne protégeait de rien : face à une consommatrice, une clause qui écarte la
+responsabilité de la professionnelle est réputée non écrite (code de la consommation, R212-1). Ce
+qui protège, c'est de prouver l'information et la déclaration.
+
+**Registre** (`DeclarationSante`) : chaque déclaration est une copie figée, créée dans la même
+transaction que le rendez-vous. Elle contient l'identité, le rendez-vous, les prestations et ce que
+la cliente a écrit dans son message, le texte exact et sa version, l'heure à la seconde, ainsi que
+l'adresse IP et le navigateur. Elle survit à la suppression de la fiche ou du rendez-vous
+(`SetNull`) : l'effacement cède devant une preuve conservée en vue d'un litige (RGPD, art. 17.3.e).
+La politique de confidentialité annonce cinq ans.
+
+**Agenda / fiche cliente → 📄 Déclaration santé** ouvre `/admin/declaration/[rendezVousId]`,
+qui s'imprime ou s'enregistre en PDF depuis le navigateur. Trois cas :
+
+- **déclaration au registre** : l'attestation ;
+- **rendez-vous antérieur au registre** (avant le 13 novembre 2026) : seule une case cochée était
+  enregistrée, et la page le dit tel quel avec le texte affiché à l'époque ;
+- **rendez-vous noté par Zélia** : rien n'a été coché. Le site enregistre désormais
+  `consentementSante = false` (il mettait `true`, ce qui fabriquait une preuve fausse). La page
+  propose le formulaire papier prérempli à faire signer au salon, puis « La cliente a signé » l'inscrit
+  au registre (`AU_SALON`). L'original signé fait foi.
+
 ## SMS (`src/lib/sms.ts`)
 
 Tout le salon fonctionne par SMS ; le site ne parlait que par e-mail. Une cliente qui relève

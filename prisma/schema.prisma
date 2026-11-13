@@ -78,6 +78,7 @@ model Cliente {
   changementsEmail ChangementEmail[]
   avantages   AvantageParrainage[]
   messages    MessageCliente[]
+  declarations DeclarationSante[]
 
   @@index([telephoneNormalise])
 }
@@ -469,8 +470,51 @@ model RendezVous {
   realisations Realisation[]
 
   inspirations InspirationImage[]
+  declarations DeclarationSante[]
 
   @@index([debut])
+}
+
+enum SourceDeclaration {
+  EN_LIGNE // case cochée en réservant sur le site
+  AU_SALON // formulaire papier signé, enregistré par Zélia
+}
+
+/// Registre des déclarations santé : la preuve, en cas de réaction, que la
+/// cliente a été informée des risques et a déclaré ses allergies.
+///
+/// Un booléen sur le rendez-vous ne prouvait rien : ni quand, ni quel texte, ni
+/// par qui. Chaque déclaration garde donc une **copie figée** — identité,
+/// rendez-vous, texte exact accepté et sa version, heure, adresse IP — qui
+/// survit à la suppression de la fiche ou du rendez-vous (`SetNull`) : le droit
+/// à l'effacement cède devant la conservation d'une preuve en vue d'un litige
+/// (RGPD, art. 17.3.e). Rien ne s'y modifie : on ajoute, on ne réécrit pas.
+model DeclarationSante {
+  id           String      @id @default(cuid())
+  rendezVous   RendezVous? @relation(fields: [rendezVousId], references: [id], onDelete: SetNull)
+  rendezVousId String?
+  cliente      Cliente?    @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  clienteId    String?
+
+  prenom       String
+  nom          String
+  email        String
+  telephone    String
+  rendezVousLe DateTime
+  prestations  String
+  /// Ce que la cliente a écrit dans « Notes » (allergies, précisions…).
+  noteCliente  String?
+
+  version   String
+  texte     String
+  majeure   Boolean
+  source    SourceDeclaration
+  accepteeLe DateTime @default(now())
+  ip        String?
+  navigateur String?
+
+  @@index([rendezVousId])
+  @@index([clienteId])
 }
 
 // Cliente intéressée par un jour complet : prévenue dès qu'une annulation

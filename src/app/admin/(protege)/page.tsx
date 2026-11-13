@@ -331,6 +331,14 @@ function CarteRdv({
         · <a href={`tel:${rdv.cliente.telephone}`} className="hover:underline">{rdv.cliente.telephone}</a>{" "}
         · <a href={`mailto:${rdv.cliente.email}`} className="hover:underline">{rdv.cliente.email}</a>
       </p>
+      <p className="mt-1 text-xs">
+        <Link href={`/admin/declaration/${rdv.id}`} className="text-pink-600 hover:underline">
+          📄 Déclaration santé
+        </Link>
+        {!rdv.consentementSante && (
+          <span className="ml-2 font-medium text-amber-700">à faire signer au salon</span>
+        )}
+      </p>
       {rdv.noteCliente && (
         <p className="mt-2 rounded-xl bg-pink-50 px-4 py-2 text-sm text-foreground/80">
           💬 {rdv.noteCliente}
