@@ -192,13 +192,46 @@ afficher dans ses résultats.
 Celles qui touchent aux allergies et à la grossesse renvoient explicitement vers un échange **avant**
 le rendez-vous plutôt que de trancher à la place de Zélia.
 
+## Déclaration santé et registre de preuve
+
+À la réservation, la cliente coche une **déclaration santé** obligatoire : elle a signalé ses
+allergies (ou n'en a pas), elle est informée que gels, résines et colles peuvent provoquer une
+réaction, Zélia peut refuser la prestation en cas de contre-indication, et elle accepte que ses
+informations de santé soient conservées. Le texte vit dans `src/lib/declaration-sante-texte.ts`,
+lu à la fois par le formulaire et par le registre : ce qui est archivé est mot pour mot ce qui a
+été affiché. Toute modification du texte change `VERSION_DECLARATION`.
+
+C'est une **déclaration**, pas une décharge. L'ancienne version (« Zelart décline toute
+responsabilité ») ne protégeait de rien : face à une consommatrice, une clause qui écarte la
+responsabilité de la professionnelle est réputée non écrite (code de la consommation, R212-1). Ce
+qui protège, c'est de prouver l'information et la déclaration.
+
+**Registre** (`DeclarationSante`) : chaque déclaration est une copie figée, créée dans la même
+transaction que le rendez-vous. Elle contient l'identité, le rendez-vous, les prestations et ce que
+la cliente a écrit dans son message, le texte exact et sa version, l'heure à la seconde, ainsi que
+l'adresse IP et le navigateur. Elle survit à la suppression de la fiche ou du rendez-vous
+(`SetNull`) : l'effacement cède devant une preuve conservée en vue d'un litige (RGPD, art. 17.3.e).
+La politique de confidentialité annonce cinq ans.
+
+**Agenda / fiche cliente → 📄 Déclaration santé** ouvre `/admin/declaration/[rendezVousId]`,
+qui s'imprime ou s'enregistre en PDF depuis le navigateur. Trois cas :
+
+- **déclaration au registre** : l'attestation ;
+- **rendez-vous antérieur au registre** (avant le 13 novembre 2026) : seule une case cochée était
+  enregistrée, et la page le dit tel quel avec le texte affiché à l'époque ;
+- **rendez-vous noté par Zélia** : rien n'a été coché. Le site enregistre désormais
+  `consentementSante = false` (il mettait `true`, ce qui fabriquait une preuve fausse). La page
+  propose le formulaire papier prérempli à faire signer au salon, puis « La cliente a signé » l'inscrit
+  au registre (`AU_SALON`). L'original signé fait foi.
+
 ## SMS (`src/lib/sms.ts`)
 
 Tout le salon fonctionne par SMS ; le site ne parlait que par e-mail. Une cliente qui relève
 rarement sa boîte ratait sa confirmation, son rappel et sa demande d'acompte.
 
-Quatre messages seulement le doublent : **confirmation**, **rappel de la veille**, **demande
-d'acompte** et **demande d'avis**. Trois principes le tiennent :
+Il double les messages liés à un rendez-vous : **confirmation**, **rappel de la veille**, **demande
+d'acompte**, **déplacement** (décalage convenu ou proposition), **annulation** et **rétablissement**,
+plus la **demande d'avis**. Trois principes le tiennent :
 
 - il **ne remplace jamais l'e-mail**, qui porte le détail, les liens et la trace écrite ;
 - **rien de commercial n'y passe** : ce sont des messages liés à un rendez-vous demandé, ce qui
@@ -211,6 +244,18 @@ d'acompte** et **demande d'avis**. Trois principes le tiennent :
 Un numéro fixe ou incomplet est écarté **avant** tout appel à Brevo (`numeroInternational`) plutôt
 que d'être envoyé au jugé. La page Réglages indique si le canal est actif et sous quel nom
 d'expéditeur (onze caractères au maximum, contrainte de l'opérateur).
+
+**Mise en service** : créditer le compte Brevo en SMS, faire enregistrer l'expéditeur (`ZelartNails`,
+lettres et chiffres uniquement, 3 à 11 caractères) dans Brevo, puis ajouter `BREVO_SMS_SENDER` sur
+Vercel et redéployer. Réglages → *Tester le SMS* envoie un vrai message pour vérifier.
+
+**Coût** : un SMS de 160 caractères en alphabet GSM. Un seul caractère hors de cet alphabet (« û »,
+« ê », un emoji) fait passer tout le message en Unicode, à 70 caractères par SMS. `preparerTexteSms`
+retire donc ces accents-là avant l'envoi (« août » → « aout ») et ne garde l'Unicode que si le texte
+ne peut pas s'en passer.
+
+**Pas de réponse possible** : un SMS envoyé sous un nom d'expéditeur ne peut pas recevoir de
+réponse. Les messages donnent le numéro de Zélia plutôt que « répondez à ce message ».
 
 La demande d'avis est horodatée dès qu'**un** des deux canaux a fonctionné. Sans cela, un e-mail en
 échec laisserait la demande « à faire » et le SMS repartirait le lendemain, puis le surlendemain, à
@@ -480,11 +525,11 @@ contenant un lien de paiement et le rappel des conditions — sauf sur un horair
 demande attend l'accord de Zélia (cf. *Horaire proposé par la cliente*).
 
 **Règle affichée aux clientes** : l'acompte est perdu si la cliente ne prévient pas au moins
-24 h à l'avance (annulation ou absence) ; prévenue à temps, elle peut reporter une fois en le
-gardant. Elle figure dans les CGV, la FAQ, l'accueil, la case à cocher de la réservation, la page
-de confirmation, l'espace cliente et les e-mails d'acompte (`REGLE_ACOMPTE` et
-`DELAI_PREVENANCE_ACOMPTE_H` dans `src/lib/annulation.ts`). Le site ne retient rien tout seul :
-c'est Zélia qui applique la règle. L'annulation en ligne, elle, reste fermée à moins de 48 h.
+48 h à l'avance (annulation ou absence) ; prévenue à temps, elle peut reporter une fois en le
+gardant. C'est le même délai que la fermeture de l'annulation en ligne : un seul nombre,
+`DELAI_ANNULATION_H` dans `src/lib/annulation.ts`, lu par les CGV, la FAQ, l'accueil, la case à
+cocher de la réservation, la page de confirmation, l'espace cliente et les e-mails d'acompte
+(`REGLE_ACOMPTE`). Le site ne retient rien tout seul : c'est Zélia qui applique la règle.
 
 ### Qui en est dispensée
 

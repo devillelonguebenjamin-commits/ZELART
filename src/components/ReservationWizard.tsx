@@ -22,6 +22,8 @@ import {
 import type { EtatOngles, TypeActe, TypePose } from "@/generated/prisma/client";
 import ChampInspiration from "@/components/ChampInspiration";
 import { PROVENANCES } from "@/lib/provenance";
+import { POINTS_DECLARATION, TITRE_DECLARATION } from "@/lib/declaration-sante-texte";
+import { DELAI_ANNULATION_H } from "@/lib/annulation";
 import NiveauxNailArt from "@/components/NiveauxNailArt";
 import type { NiveauExplique } from "@/lib/nail-art";
 
@@ -552,7 +554,7 @@ export default function ReservationWizard({
           <label className="block sm:col-span-2">
             <span className="text-sm font-medium">
               Un message pour moi ?{" "}
-              <span className="text-foreground/50">(allergies, précisions pratiques…)</span>
+              <span className="text-foreground/50">(allergies, santé, précisions pratiques…)</span>
             </span>
             <textarea
               name="noteCliente"
@@ -571,14 +573,19 @@ export default function ReservationWizard({
         <label className="mt-6 flex items-start gap-3 rounded-2xl border border-pink-200 bg-white px-4 py-3 text-sm">
           <input type="checkbox" name="consentementSante" required className="mt-1 accent-pink-500" />
           <span>
-            <span className="font-medium">📌 Consentement &amp; responsabilités *</span>
-            <span className="mt-1 block text-foreground/75">
-              J&rsquo;accepte et je confirme avoir communiqué toutes mes informations de santé et
-              allergies nécessaires, et je comprends que les produits utilisés peuvent contenir des
-              substances potentiellement allergènes. Je déclare accepter les conditions et les
-              risques liés à la prestation. Zelart décline toute responsabilité en cas de réaction
-              non signalée à l&rsquo;avance ; en cas d&rsquo;ongle abîmé, infecté ou en mauvais état,
-              Zelart peut refuser la prestation.
+            <span className="font-medium">📌 {TITRE_DECLARATION} *</span>
+            {/* Le texte vient du même module que celui archivé dans le registre :
+                ce que la cliente lit est mot pour mot ce qui est conservé. */}
+            <span className="mt-1 block space-y-1 text-foreground/75">
+              {POINTS_DECLARATION.map((point) => (
+                <span key={point} className="block">
+                  • {point}
+                </span>
+              ))}
+            </span>
+            <span className="mt-2 block text-xs text-foreground/55">
+              En cochant, vous confirmez ces déclarations. Elles sont enregistrées avec la date et
+              l&rsquo;heure de votre demande.
             </span>
           </span>
         </label>
@@ -588,8 +595,8 @@ export default function ReservationWizard({
           <span>
             Je certifie avoir 18 ans ou plus et j&rsquo;ai compris qu&rsquo;un acompte de 15 €
             (déduit du montant final) me sera demandé s&rsquo;il s&rsquo;agit de mon premier
-            rendez-vous, et qu&rsquo;il sera perdu si je ne préviens pas au moins 24 h à
-            l&rsquo;avance. *
+            rendez-vous, et qu&rsquo;il sera perdu si je ne préviens pas au moins{" "}
+            {DELAI_ANNULATION_H}&nbsp;h à l&rsquo;avance. *
           </span>
         </label>
 

@@ -306,6 +306,14 @@ export default async function FicheCliente({
                   {LIBELLES_STATUT[rdv.statut] ?? rdv.statut}
                 </span>
               </div>
+              <p className="mt-1 text-xs">
+                <Link href={`/admin/declaration/${rdv.id}`} className="text-pink-600 hover:underline">
+                  📄 Déclaration santé
+                </Link>
+                {!rdv.consentementSante && (
+                  <span className="ml-2 text-amber-700">non signée</span>
+                )}
+              </p>
               {rdv.commentaireVisite && (
                 <p className="mt-2 rounded-xl bg-pink-50 px-4 py-2 whitespace-pre-line text-foreground/80">
                   🗒️ {rdv.commentaireVisite}

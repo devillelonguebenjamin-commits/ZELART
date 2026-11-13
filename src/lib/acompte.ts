@@ -12,6 +12,7 @@ import { reglagesAcompte } from "@/lib/parametres";
 import { creerLienPaiement, lirePaiement, sumupConfigure, type EtatPaiement } from "@/lib/sumup";
 import { urlSite } from "@/lib/site";
 import { envoyerSmsSansBloquer } from "@/lib/sms";
+import { DELAI_ANNULATION_H } from "@/lib/annulation";
 
 /**
  * Faut-il demander un acompte pour ce rendez-vous.
@@ -299,7 +300,7 @@ export async function envoyerDemandeAcompte(rendezVousId: string): Promise<boole
       est définitivement réservé dès réception. À défaut, le créneau pourra être proposé à une
       autre cliente.</p>
       <p style="font-size:13px;color:#8a6274"><strong>L'acompte est perdu si vous ne prévenez pas
-      au moins 24 h à l'avance</strong> (annulation ou absence). Prévenue à temps, vous pouvez
+      au moins ${DELAI_ANNULATION_H} h à l'avance</strong> (annulation ou absence). Prévenue à temps, vous pouvez
       reporter votre rendez-vous une fois en le conservant.</p>
       <p>À très vite,<br>Zélia ✨</p>
     </div>`

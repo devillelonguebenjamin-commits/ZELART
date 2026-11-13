@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DELAI_ANNULATION_H } from "@/lib/annulation";
 
 export const metadata: Metadata = {
   title: "Mentions légales · Zelart Nails",
@@ -46,9 +47,10 @@ export default function MentionsLegales() {
             toute nouvelle cliente, un acompte de 15 € est demandé afin de confirmer le rendez-vous ;
             il est déduit du montant final.{" "}
             <strong>
-              L&rsquo;acompte est perdu si la cliente ne prévient pas au moins 24 h à l&rsquo;avance
+              L&rsquo;acompte est perdu si la cliente ne prévient pas au moins {DELAI_ANNULATION_H}&nbsp;h
+              à l&rsquo;avance
             </strong>{" "}
-            (annulation ou non-présentation). Prévenue au moins 24 h avant, la cliente peut reporter
+            (annulation ou non-présentation). Prévenue au moins {DELAI_ANNULATION_H}&nbsp;h avant, la cliente peut reporter
             son rendez-vous une seule fois en conservant son acompte.
           </p>
         </section>

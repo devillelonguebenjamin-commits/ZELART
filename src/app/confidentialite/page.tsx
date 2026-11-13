@@ -41,6 +41,14 @@ export default function Confidentialite() {
               <strong>Historique de vos rendez-vous</strong> : pour assurer le suivi de vos poses.
             </li>
             <li>
+              <strong>Votre déclaration santé</strong> (case cochée en réservant, ou formulaire signé
+              au salon) : le texte accepté, la date et l&rsquo;heure, et pour une réservation en
+              ligne l&rsquo;adresse IP et le type d&rsquo;appareil utilisés. Elle établit que vous
+              avez été informée des risques liés aux produits et que vous avez déclaré vos
+              allergies. Les informations de santé ne sont traitées qu&rsquo;avec votre accord
+              explicite, donné par cette déclaration.
+            </li>
+            <li>
               <strong>Votre accord pour recevoir des offres</strong>, si vous l&rsquo;avez donné :
               pour vous informer des nouveautés et offres de fidélité. Cet accord est facultatif et
               révocable à tout moment.
@@ -56,6 +64,12 @@ export default function Confidentialite() {
             Vos coordonnées et votre historique sont conservés pendant <strong>trois ans</strong> à
             compter de votre dernier rendez-vous, puis supprimés. Vous pouvez demander leur
             suppression avant ce délai.
+          </p>
+          <p className="mt-2">
+            Les <strong>déclarations santé</strong> sont conservées <strong>cinq ans</strong> après
+            le rendez-vous concerné, y compris si vous demandez la suppression de votre compte :
+            elles servent à établir les faits en cas de réaction ou de litige (RGPD, article 17.3.e).
+            Elles ne sont consultées que dans ce cas.
           </p>
         </section>
 

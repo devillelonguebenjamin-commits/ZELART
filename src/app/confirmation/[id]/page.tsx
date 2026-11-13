@@ -6,6 +6,7 @@ import { formatHeure, formatJour } from "@/lib/creneaux";
 import { formatPrix, totalTarifs } from "@/lib/format";
 import Vagues from "@/components/Vagues";
 import { REMISE_FILLEULE_POURCENT } from "@/lib/parrainage";
+import { DELAI_ANNULATION_H } from "@/lib/annulation";
 
 export const dynamic = "force-dynamic";
 
@@ -98,8 +99,8 @@ export default async function Confirmation({
             <p>
               💳 S&rsquo;il s&rsquo;agit de votre premier rendez-vous, un <strong>acompte de 15 €</strong>{" "}
               vous sera demandé via un lien de paiement SumUp pour valider la réservation. Il sera
-              déduit du montant final. <strong>Il est perdu si vous ne prévenez pas au moins 24 h
-              à l&rsquo;avance</strong> en cas d&rsquo;empêchement.
+              déduit du montant final. <strong>Il est perdu si vous ne prévenez pas au moins{" "}
+              {DELAI_ANNULATION_H}&nbsp;h à l&rsquo;avance</strong> en cas d&rsquo;empêchement.
             </p>
             {rendezVous.remiseFilleule && (
               <p className="rounded-2xl bg-pink-50 px-5 py-4 font-medium text-pink-800">

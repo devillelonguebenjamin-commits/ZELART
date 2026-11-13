@@ -10,6 +10,7 @@ import { occupeLeCreneau, DELAI_EXPIRATION_ACOMPTE_MS } from "@/lib/acompte-born
 import { preparerLienAcompte, verifierAcompte } from "@/lib/acompte";
 import { urlSite } from "@/lib/site";
 import { envoyerSmsSansBloquer } from "@/lib/sms";
+import { DELAI_ANNULATION_H } from "@/lib/annulation";
 
 export type EtatRetablissement = { ok?: boolean; message?: string };
 
@@ -155,7 +156,7 @@ export async function retablirRendezVous(
            </p>
            <p style="font-size:13px;color:#8a6274">Ce lien remplace les précédents. L'acompte est
            déduit du montant final le jour de votre pose. Il est perdu si vous ne prévenez pas au
-           moins 24 h à l'avance.</p>`;
+           moins ${DELAI_ANNULATION_H} h à l'avance.</p>`;
 
     const courriel = await envoyerEmail(
       rdv.cliente.email,
