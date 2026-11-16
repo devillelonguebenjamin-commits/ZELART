@@ -7,6 +7,12 @@ import { formatPrix, totalTarifs } from "@/lib/format";
 import Vagues from "@/components/Vagues";
 import { REMISE_FILLEULE_POURCENT } from "@/lib/parrainage";
 import { DELAI_ANNULATION_H } from "@/lib/annulation";
+import { adresseRelanceAcompte, verifierAcompte } from "@/lib/acompte";
+import { reglagesAcompte } from "@/lib/parametres";
+import SuiviAcompte from "@/components/SuiviAcompte";
+import CompteARebours from "@/components/CompteARebours";
+import { expirerReservationsNonFinalisees } from "@/lib/reservation-non-finalisee";
+import { DELAI_PAIEMENT_ACOMPTE_MIN } from "@/lib/acompte-bornes";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +27,9 @@ export default async function Confirmation({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  // Une demande dont l'acompte n'a pas été réglé à temps s'annule ici même,
+  // pour que la cliente qui revient voie l'issue tout de suite.
+  await expirerReservationsNonFinalisees();
   const rendezVous = await prisma.rendezVous.findUnique({
     where: { id },
     include: {
@@ -32,16 +41,107 @@ export default async function Confirmation({
 
   const total = totalTarifs(rendezVous.lignes.map((l) => l.prestation));
 
+  // L'acompte en deux temps : tant qu'il n'est pas réglé, la page est une
+  // étape à finir, avec le bouton de paiement ; une fois réglé — constaté
+  // auprès de SumUp, jamais sur la seule foi d'un retour de page — elle dit que
+  // la demande attend Zélia. C'est aussi ici que la cliente revient après avoir
+  // payé : la vérification se fait donc à l'affichage, sans attendre la sonnette.
+  const enCours = rendezVous.statut !== "ANNULE";
+  let acompteRegle = rendezVous.acompteRegleLe !== null;
+  if (enCours && rendezVous.acompteDemandeLe && !acompteRegle && rendezVous.acompteReference) {
+    acompteRegle = (await verifierAcompte(rendezVous.id)) === "PAID";
+  }
+  const attenteAcompte = enCours && rendezVous.acompteDemandeLe !== null && !acompteRegle;
+  const lienPaiement = attenteAcompte ? await adresseRelanceAcompte(rendezVous.id) : null;
+  const { montantCents: montantAcompte } = await reglagesAcompte();
+
+  // Réservation abandonnée : l'acompte n'a pas été réglé dans les 10 minutes.
+  const nonFinalisee =
+    rendezVous.statut === "ANNULE" && rendezVous.acompteLimite !== null && !acompteRegle;
+
+  const statut =
+    nonFinalisee
+      ? { texte: "Non finalisée", classes: "bg-stone-200 text-stone-600" }
+      : rendezVous.statut === "ANNULE"
+      ? { texte: "Annulé", classes: "bg-stone-200 text-stone-600" }
+      : rendezVous.statut === "CONFIRME"
+        ? { texte: "Confirmé", classes: "bg-emerald-100 text-emerald-800" }
+        : rendezVous.creneauPropose
+          ? { texte: "Horaire proposé, en attente de réponse", classes: "bg-amber-100 text-amber-800" }
+          : attenteAcompte
+            ? { texte: "En attente de votre acompte", classes: "bg-pink-100 text-pink-800" }
+            : acompteRegle
+              ? { texte: "Acompte reçu · en attente de confirmation", classes: "bg-emerald-100 text-emerald-800" }
+              : { texte: "En attente de confirmation", classes: "bg-amber-100 text-amber-800" };
+
   return (
     <section className="relative isolate overflow-hidden">
       <Vagues />
       <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
         <div className="rounded-3xl border border-pink-100 bg-white p-8 text-center shadow-sm sm:p-10">
-          <p className="text-5xl">🤍</p>
-          <h1 className="font-display mt-4 text-3xl font-bold">Demande envoyée !</h1>
+          {attenteAcompte && <SuiviAcompte rendezVousId={rendezVous.id} />}
+          <p className="text-5xl">{nonFinalisee ? "⌛" : attenteAcompte ? "💳" : "🤍"}</p>
+          <h1 className="font-display mt-4 text-3xl font-bold">
+            {nonFinalisee
+              ? "Délai dépassé"
+              : attenteAcompte
+                ? "Plus qu’une étape !"
+                : "Demande envoyée !"}
+          </h1>
           <p className="mt-3 text-foreground/70">
-            Merci {rendezVous.cliente.prenom}, votre demande de rendez-vous a bien été enregistrée.
+            {nonFinalisee
+              ? `L’acompte n’a pas été réglé dans les ${DELAI_PAIEMENT_ACOMPTE_MIN} minutes : la demande est annulée et le créneau a été libéré. Aucun montant ne vous a été prélevé.`
+              : attenteAcompte
+                ? `Merci ${rendezVous.cliente.prenom}, votre demande est enregistrée. Réglez votre acompte pour la valider.`
+                : `Merci ${rendezVous.cliente.prenom}, votre demande de rendez-vous a bien été enregistrée.`}
           </p>
+          {nonFinalisee && (
+            <Link
+              href="/reserver"
+              className="mt-6 inline-block rounded-full bg-pink-500 px-8 py-3 font-medium text-white shadow-sm transition hover:bg-pink-600"
+            >
+              Reprendre rendez-vous
+            </Link>
+          )}
+
+          {attenteAcompte && (
+            <div className="mt-6 rounded-2xl border-2 border-pink-300 bg-pink-50 p-6 text-left">
+              <p className="font-semibold text-foreground">
+                Réglez votre acompte de {formatPrix(montantAcompte)}
+              </p>
+              <p className="mt-1 text-sm text-foreground/75">
+                {rendezVous.acompteLimite
+                  ? `À régler dans les ${DELAI_PAIEMENT_ACOMPTE_MIN} minutes : passé ce délai, la demande est annulée et le créneau libéré. `
+                  : ""}
+                Je confirme votre rendez-vous une fois l&rsquo;acompte reçu. Il est déduit du
+                montant final, et perdu si vous ne prévenez pas au moins {DELAI_ANNULATION_H}&nbsp;h
+                à l&rsquo;avance.
+              </p>
+              {rendezVous.acompteLimite && (
+                <CompteARebours limite={rendezVous.acompteLimite.toISOString()} />
+              )}
+              {lienPaiement && (
+                <a
+                  href={lienPaiement}
+                  className="mt-4 inline-block rounded-full bg-pink-500 px-6 py-3 font-medium text-white shadow-sm transition hover:bg-pink-600"
+                >
+                  Régler mon acompte de {formatPrix(montantAcompte)}
+                </a>
+              )}
+              <p className="mt-3 text-xs text-foreground/60">
+                {lienPaiement ? "Le même lien vous a été envoyé par e-mail" : "Le lien de paiement vous a été envoyé par e-mail"}{" "}
+                à {rendezVous.cliente.email} (pensez à regarder dans les indésirables). Paiement
+                sécurisé par SumUp. Cette page se met à jour dès que le règlement est reçu.
+              </p>
+            </div>
+          )}
+
+          {acompteRegle && rendezVous.statut === "EN_ATTENTE" && (
+            <p className="mt-6 rounded-2xl bg-emerald-50 px-5 py-4 text-left text-sm font-medium text-emerald-900">
+              ✅ Acompte reçu, merci ! Votre demande est maintenant en attente de confirmation par
+              Zélia. Vous recevrez un message dès qu&rsquo;elle l&rsquo;aura confirmée.
+            </p>
+          )}
 
           <div className="mt-8 rounded-2xl bg-pink-50 p-6 text-left">
             <dl className="space-y-3 text-sm">
@@ -75,16 +175,16 @@ export default async function Confirmation({
               <div className="flex justify-between gap-4">
                 <dt className="text-foreground/60">Statut</dt>
                 <dd className="text-right">
-                  <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                    {rendezVous.creneauPropose
-                      ? "Horaire proposé, en attente de réponse"
-                      : "En attente de confirmation"}
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statut.classes}`}>
+                    {statut.texte}
                   </span>
                 </dd>
               </div>
             </dl>
           </div>
 
+          {!nonFinalisee && (
+            <>
           <div className="mt-8 space-y-3 text-left text-sm leading-relaxed text-foreground/75">
             {rendezVous.creneauPropose && (
               <p className="rounded-2xl bg-sky-50 px-5 py-4 font-medium text-sky-900">
@@ -96,12 +196,18 @@ export default async function Confirmation({
               📱 Je vous envoie un <strong>message de confirmation</strong> au numéro indiqué (je
               ne réponds pas aux appels).
             </p>
-            <p>
-              💳 S&rsquo;il s&rsquo;agit de votre premier rendez-vous, un <strong>acompte de 15 €</strong>{" "}
-              vous sera demandé via un lien de paiement SumUp pour valider la réservation. Il sera
-              déduit du montant final. <strong>Il est perdu si vous ne prévenez pas au moins{" "}
-              {DELAI_ANNULATION_H}&nbsp;h à l&rsquo;avance</strong> en cas d&rsquo;empêchement.
-            </p>
+            {!rendezVous.acompteDemandeLe && !acompteRegle && (
+              <p>
+                💳 S&rsquo;il s&rsquo;agit de votre premier rendez-vous, un{" "}
+                <strong>acompte de {formatPrix(montantAcompte)}</strong> vous sera demandé via un lien
+                de paiement SumUp pour valider la réservation. Il sera déduit du montant final.{" "}
+                <strong>
+                  Il est perdu si vous ne prévenez pas au moins {DELAI_ANNULATION_H}&nbsp;h à
+                  l&rsquo;avance
+                </strong>{" "}
+                en cas d&rsquo;empêchement.
+              </p>
+            )}
             {rendezVous.remiseFilleule && (
               <p className="rounded-2xl bg-pink-50 px-5 py-4 font-medium text-pink-800">
                 💕 Bienvenue dans la squad ! Vous bénéficiez de{" "}
@@ -127,6 +233,9 @@ export default async function Confirmation({
               📅 Vous pourrez ajouter le rendez-vous à votre calendrier dès que je
               l&rsquo;aurai confirmé. Le lien vous sera envoyé par e-mail.
             </p>
+          )}
+
+            </>
           )}
 
           <div>

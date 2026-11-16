@@ -19,6 +19,16 @@ import type { Prisma, StatutRendezVous } from "@/generated/prisma/client";
 export const DELAI_EXPIRATION_ACOMPTE_MS = 48 * 60 * 60 * 1000;
 
 /**
+ * Délai pour régler l'acompte demandé **à la réservation**, comme sur les
+ * plateformes de réservation : la cliente paie tout de suite, ou la demande
+ * s'efface. Les 48 h ci-dessus ne valent plus que pour un acompte demandé après
+ * coup par Zélia (lien envoyé depuis l'agenda, horaire proposé accepté,
+ * rétablissement), que la cliente découvre dans sa boîte mail.
+ */
+export const DELAI_PAIEMENT_ACOMPTE_MIN = 10;
+export const DELAI_PAIEMENT_ACOMPTE_MS = DELAI_PAIEMENT_ACOMPTE_MIN * 60 * 1000;
+
+/**
  * Filtre Prisma des rendez-vous qui occupent leur créneau : tout ce qui n'est
  * pas annulé.
  *

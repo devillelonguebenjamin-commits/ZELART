@@ -43,7 +43,14 @@ export async function creerLienPaiement(
    * donc rien de son contenu. Elle ne sert que de sonnette — « quelque chose a
    * bougé » — après quoi le site va vérifier lui-même auprès de l'API.
    */
-  retourUrl?: string
+  retourUrl?: string,
+  /**
+   * Page du site vers laquelle la page de succès de SumUp propose de revenir.
+   * Revenir n'y prouve rien : le règlement est toujours vérifié auprès de l'API.
+   */
+  redirectionUrl?: string,
+  /** Au-delà, SumUp refuse le paiement : la réservation a été rendue. */
+  expireLe?: Date
 ): Promise<ResultatCheckout> {
   const cle = process.env.SUMUP_API_KEY?.trim();
   const marchand = process.env.SUMUP_MERCHANT_CODE?.trim();
@@ -69,8 +76,12 @@ export async function creerLienPaiement(
         merchant_code: marchand,
         description: description.slice(0, 100),
         ...(retourUrl ? { return_url: retourUrl } : {}),
-        // `valid_until` volontairement omis : le lien part par e-mail et doit
-        // rester valable le temps que la cliente le règle.
+        ...(redirectionUrl ? { redirect_url: redirectionUrl } : {}),
+        // Sans échéance, le lien reste valable le temps que la cliente le
+        // règle. Avec une échéance (acompte à régler dans les 10 minutes de la
+        // réservation), payer après coup devient impossible : le créneau a pu
+        // être repris entre-temps.
+        ...(expireLe ? { valid_until: expireLe.toISOString() } : {}),
         hosted_checkout: { enabled: true },
       }),
     });

@@ -14,6 +14,7 @@ import { suivreLesPropositions } from "@/lib/decalage";
 import { urlSite } from "@/lib/site";
 import { envoyerSmsSansBloquer } from "@/lib/sms";
 import { appliquerConservation, type BilanConservation } from "@/lib/conservation";
+import { expirerReservationsNonFinalisees } from "@/lib/reservation-non-finalisee";
 import type { TypePose } from "@/generated/prisma/client";
 
 export type BilanRappels = {
@@ -621,6 +622,9 @@ export async function executerRappels(): Promise<BilanRappels> {
     regles: 0,
   });
   const acompte = await etape("acompte", envoyerRelancesAcompte, AUCUNE_ENVOYEE);
+  // Réservations dont l'acompte n'a pas été réglé dans les 10 minutes et
+  // qu'aucun affichage n'a encore rendues.
+  await etape("réservations non finalisées", () => expirerReservationsNonFinalisees(), 0);
 
   // Après les relances, jamais avant : une cliente qui vient de recevoir sa
   // relance ce matin ne doit pas trouver son créneau libéré dans la foulée.

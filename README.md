@@ -546,6 +546,31 @@ gardant. C'est le même délai que la fermeture de l'annulation en ligne : un se
 cocher de la réservation, la page de confirmation, l'espace cliente et les e-mails d'acompte
 (`REGLE_ACOMPTE`). Le site ne retient rien tout seul : c'est Zélia qui applique la règle.
 
+**Parcours de la cliente : 10 minutes pour régler** (comme sur les plateformes de réservation).
+À la réservation, `ouvrirAcompteReservation` crée le paiement SumUp avec une échéance
+(`valid_until`), pose `acompteLimite` (maintenant + 10 min) et envoie la demande par e-mail et SMS.
+`/confirmation/[id]` devient une étape à finir : bouton de paiement, compte à rebours, et la page
+guette le règlement (`/api/acompte/[id]` toutes les 5 s, `redirect_url` de SumUp). Réglé : « Acompte
+reçu, en attente de confirmation par Zélia ». Zélia n'est **pas** prévenue d'une réservation non
+payée : elle reçoit « Nouvelle demande de RDV (acompte réglé) » au paiement, avec tout le détail.
+
+Passé l'heure limite (+ 2 min de marge pour la sonnette de SumUp),
+`expirerReservationsNonFinalisees` (`src/lib/reservation-non-finalisee.ts`) interroge SumUp, puis
+annule la demande non réglée : statut ANNULE, hors du bloc « Annulations à vérifier », hors des
+« créneaux perdus » des Chiffres. La cliente reçoit « Votre réservation n'a pas été finalisée ». Si
+SumUp ne répond pas, rien n'est annulé. Sans tâche à la minute, la vérification tourne à chaque
+affichage des créneaux (accueil, /reserver), à chaque réservation, dans l'agenda, sur la page de la
+demande, à chaque sonnette de SumUp et chaque matin.
+
+Les acomptes demandés **après coup** par Zélia (lien envoyé depuis l'agenda, horaire proposé
+accepté, rétablissement) n'ont pas d'`acompteLimite` et gardent le délai de 48 h : la cliente les
+découvre dans sa boîte mail, elle n'est pas devant le site. Sans API SumUp (lien réutilisable seul),
+il n'y a pas d'échéance non plus : un paiement anonyme ne peut pas être vérifié, donc rien n'est
+annulé au bout de 10 minutes.
+
+Dans l'agenda, tant que l'acompte n'est pas reçu, « ✓ Confirmer » laisse place à « ⏳ En attente de
+l'acompte (jusqu'à HH:MM) » ; « Confirmer sans acompte » reste pour une cliente connue.
+
 ### Qui en est dispensée
 
 `acompteADemander()` pose deux questions, et la dispense passe avant le décompte : ce que Zélia

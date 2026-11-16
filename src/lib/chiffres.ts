@@ -158,7 +158,15 @@ export async function tableauDeBord(): Promise<TableauDeBord> {
       where: { statut: { not: "ANNULE" } },
       _min: { debut: true },
     }),
-    prisma.rendezVous.count({ where: { statut: "ANNULE", debut: { gte: debutHistorique } } }),
+    prisma.rendezVous.count({
+      where: {
+        statut: "ANNULE",
+        debut: { gte: debutHistorique },
+        // Une réservation abandonnée faute d'acompte (10 minutes) n'a jamais
+        // été un rendez-vous : elle ne compte pas comme un créneau perdu.
+        NOT: { acompteLimite: { not: null }, acompteRegleLe: null },
+      },
+    }),
     prisma.rendezVous.count({ where: { statut: "NO_SHOW", debut: { gte: debutHistorique } } }),
     // Délais de réponse : seules les demandes reçues depuis la mise en place de
     // l'horodatage en portent un, d'où le filtre sur sa présence plutôt que sur

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { expirerReservationsNonFinalisees } from "@/lib/reservation-non-finalisee";
 import { prisma } from "@/lib/prisma";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { formatPrix, totalTarifs } from "@/lib/format";
@@ -511,12 +512,15 @@ function CarteRdv({
       {rdv.statut === "EN_ATTENTE" && rdv.acompteDemandeLe && !rdv.acompteRegleLe && (
         <p className="mt-3 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
           ⚠ <strong>Acompte demandé le {formatJour(rdv.acompteDemandeLe)}, pas encore reçu.</strong>{" "}
-          Confirmer ne l&rsquo;encaisse pas : sans règlement, le rendez-vous sera annulé par le
-          site{" "}
-          {new Date(rdv.acompteDemandeLe.getTime() + DELAI_EXPIRATION_ACOMPTE_MS) < new Date()
-            ? "dès son prochain passage, le lendemain matin"
-            : `à partir du ${formatJour(new Date(rdv.acompteDemandeLe.getTime() + DELAI_EXPIRATION_ACOMPTE_MS))}`}
-          .
+          Vous pourrez confirmer dès qu&rsquo;il arrive : le site le constate seul et vous prévient
+          par e-mail.{" "}
+          {rdv.acompteLimite
+            ? `La cliente a jusqu’à ${formatHeure(rdv.acompteLimite)} pour le régler ; sinon la demande s’annule d’elle-même et le créneau est libéré.`
+            : `Sans règlement, la demande sera annulée par le site ${
+                new Date(rdv.acompteDemandeLe.getTime() + DELAI_EXPIRATION_ACOMPTE_MS) < new Date()
+                  ? "dès son prochain passage, le lendemain matin"
+                  : `à partir du ${formatJour(new Date(rdv.acompteDemandeLe.getTime() + DELAI_EXPIRATION_ACOMPTE_MS))}`
+              }.`}{" "}
           Pour la garder sans acompte, choisissez « Confirmer sans acompte ».
         </p>
       )}
@@ -549,7 +553,17 @@ function CarteRdv({
             </>
           ) : (
             <>
-              <BoutonStatut id={rdv.id} statut="CONFIRME" label="✓ Confirmer" />
+              {/* Le rendez-vous ne se valide qu'après l'acompte : tant qu'il
+                  n'est pas reçu, le bouton ordinaire laisse place à l'attente.
+                  « Confirmer sans acompte » reste là pour une cliente connue. */}
+              {rdv.acompteDemandeLe && !rdv.acompteRegleLe ? (
+                <span className="rounded-full bg-pink-50 px-4 py-2 text-sm font-medium text-pink-700">
+                  ⏳ En attente de l&rsquo;acompte
+                  {rdv.acompteLimite && ` (jusqu’à ${formatHeure(rdv.acompteLimite)})`}
+                </span>
+              ) : (
+                <BoutonStatut id={rdv.id} statut="CONFIRME" label="✓ Confirmer" />
+              )}
               {(acompteAlaConfirmation || (rdv.acompteDemandeLe && !rdv.acompteRegleLe)) && (
                 <BoutonStatut
                   id={rdv.id}
@@ -623,6 +637,9 @@ export default async function Agenda({
 }: {
   searchParams: Promise<{ mois?: string }>;
 }) {
+  // Les réservations dont l'acompte n'a pas été réglé à temps disparaissent
+  // des demandes avant l'affichage, plutôt qu'au prochain passage de la tâche.
+  await expirerReservationsNonFinalisees();
   const maintenant = new Date();
   const ilYa14Jours = new Date(maintenant.getTime() - 14 * 24 * 60 * 60 * 1000);
 
