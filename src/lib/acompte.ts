@@ -96,7 +96,10 @@ async function lienAcompte(
     montantCents,
     description,
     `acompte-${rendezVous.id}`,
-    `${urlSite()}/api/sumup/retour`
+    `${urlSite()}/api/sumup/retour`,
+    // Après le paiement, la cliente revient sur la page de sa demande, qui
+    // lui dit que l'acompte est reçu et que Zélia va confirmer.
+    `${urlSite()}/confirmation/${rendezVous.id}`
   );
   if (!resultat.ok) {
     // Le lien collé prendra le relais : un acompte non demandé coûte plus cher
@@ -175,14 +178,43 @@ export async function verifierAcompte(rendezVousId: string): Promise<EtatPaiemen
   if (paiement === null) return null;
   const etat = paiement.etat;
 
-  await prisma.rendezVous.update({
-    where: { id: rdv.id },
-    data: {
-      acompteVerifieLe: new Date(),
-      ...(etat === "PAID" ? { acompteRegleLe: new Date() } : {}),
-    },
-  });
+  // Le passage à « réglé » ne se fait qu'une fois, même si deux vérifications
+  // se croisent (page de la cliente, sonnette de SumUp, tâche du matin) : seule
+  // celle qui l'enregistre prévient Zélia.
+  const { count: devientRegle } =
+    etat === "PAID"
+      ? await prisma.rendezVous.updateMany({
+          where: { id: rdv.id, acompteRegleLe: null },
+          data: { acompteVerifieLe: new Date(), acompteRegleLe: new Date() },
+        })
+      : await prisma.rendezVous.updateMany({
+          where: { id: rdv.id },
+          data: { acompteVerifieLe: new Date() },
+        });
+  if (etat === "PAID" && devientRegle > 0) await prevenirAcompteRecu(rdv.id);
   return etat;
+}
+
+/**
+ * Zélia attend l'acompte pour confirmer : elle doit savoir qu'il est arrivé
+ * sans avoir à surveiller l'agenda.
+ */
+async function prevenirAcompteRecu(rendezVousId: string): Promise<void> {
+  if (!process.env.NOTIFY_EMAIL) return;
+  const rdv = await prisma.rendezVous.findUnique({
+    where: { id: rendezVousId },
+    include: { cliente: { select: { prenom: true, nom: true } } },
+  });
+  if (!rdv) return;
+  const aConfirmer = rdv.statut === "EN_ATTENTE";
+  await envoyerEmail(
+    process.env.NOTIFY_EMAIL,
+    `Acompte reçu · ${rdv.cliente.prenom} ${rdv.cliente.nom}${aConfirmer ? " · à confirmer" : ""}`,
+    `<p>${echapperHtml(rdv.cliente.prenom)} ${echapperHtml(rdv.cliente.nom)} a réglé son acompte pour le
+     <strong>${formatJour(rdv.debut)} à ${formatHeure(rdv.debut)}</strong>.</p>
+     ${aConfirmer ? "<p>Sa demande attend maintenant votre confirmation.</p>" : ""}
+     <p><a href="${urlSite()}/admin">Ouvrir l'espace gérante</a></p>`
+  );
 }
 
 /**
@@ -296,9 +328,9 @@ export async function envoyerDemandeAcompte(rendezVousId: string): Promise<boole
           Régler mon acompte de ${formatPrix(montantCents)}
         </a>
       </p>
-      <p style="font-size:13px;color:#8a6274">Le paiement est traité par SumUp. Votre rendez-vous
-      est définitivement réservé dès réception. À défaut, le créneau pourra être proposé à une
-      autre cliente.</p>
+      <p style="font-size:13px;color:#8a6274">Le paiement est traité par SumUp. Dès réception,
+      votre demande passe en attente de ma confirmation, et je vous confirme le rendez-vous par
+      message. Sans règlement, le créneau pourra être proposé à une autre cliente.</p>
       <p style="font-size:13px;color:#8a6274"><strong>L'acompte est perdu si vous ne prévenez pas
       au moins ${DELAI_ANNULATION_H} h à l'avance</strong> (annulation ou absence). Prévenue à temps, vous pouvez
       reporter votre rendez-vous une fois en le conservant.</p>

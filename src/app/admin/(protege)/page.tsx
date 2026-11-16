@@ -511,8 +511,8 @@ function CarteRdv({
       {rdv.statut === "EN_ATTENTE" && rdv.acompteDemandeLe && !rdv.acompteRegleLe && (
         <p className="mt-3 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
           ⚠ <strong>Acompte demandé le {formatJour(rdv.acompteDemandeLe)}, pas encore reçu.</strong>{" "}
-          Confirmer ne l&rsquo;encaisse pas : sans règlement, le rendez-vous sera annulé par le
-          site{" "}
+          Vous pourrez confirmer dès qu&rsquo;il arrive : le site le constate seul et vous prévient
+          par e-mail. Sans règlement, la demande sera annulée par le site{" "}
           {new Date(rdv.acompteDemandeLe.getTime() + DELAI_EXPIRATION_ACOMPTE_MS) < new Date()
             ? "dès son prochain passage, le lendemain matin"
             : `à partir du ${formatJour(new Date(rdv.acompteDemandeLe.getTime() + DELAI_EXPIRATION_ACOMPTE_MS))}`}
@@ -549,7 +549,16 @@ function CarteRdv({
             </>
           ) : (
             <>
-              <BoutonStatut id={rdv.id} statut="CONFIRME" label="✓ Confirmer" />
+              {/* Le rendez-vous ne se valide qu'après l'acompte : tant qu'il
+                  n'est pas reçu, le bouton ordinaire laisse place à l'attente.
+                  « Confirmer sans acompte » reste là pour une cliente connue. */}
+              {rdv.acompteDemandeLe && !rdv.acompteRegleLe ? (
+                <span className="rounded-full bg-pink-50 px-4 py-2 text-sm font-medium text-pink-700">
+                  ⏳ En attente de l&rsquo;acompte
+                </span>
+              ) : (
+                <BoutonStatut id={rdv.id} statut="CONFIRME" label="✓ Confirmer" />
+              )}
               {(acompteAlaConfirmation || (rdv.acompteDemandeLe && !rdv.acompteRegleLe)) && (
                 <BoutonStatut
                   id={rdv.id}

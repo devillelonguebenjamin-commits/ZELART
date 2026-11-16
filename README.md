@@ -546,6 +546,15 @@ gardant. C'est le même délai que la fermeture de l'annulation en ligne : un se
 cocher de la réservation, la page de confirmation, l'espace cliente et les e-mails d'acompte
 (`REGLE_ACOMPTE`). Le site ne retient rien tout seul : c'est Zélia qui applique la règle.
 
+**Parcours de la cliente** : après la réservation, `/confirmation/[id]` devient une étape à
+finir (« Plus qu'une étape ! ») avec le bouton de paiement, le même lien que dans l'e-mail. La page
+interroge `/api/acompte/[id]` toutes les 5 secondes, et la page SumUp renvoie vers elle après le
+paiement (`redirect_url`). Dès que SumUp dit « payé », la page bascule sur « Acompte reçu, en attente
+de confirmation par Zélia », et Zélia reçoit un e-mail « Acompte reçu · à confirmer ». Le règlement
+est toujours vérifié auprès de l'API : revenir sur la page ne prouve rien. Dans l'agenda, tant que
+l'acompte n'est pas reçu, « ✓ Confirmer » laisse place à « ⏳ En attente de l'acompte » ;
+« Confirmer sans acompte » reste disponible pour une cliente connue.
+
 ### Qui en est dispensée
 
 `acompteADemander()` pose deux questions, et la dispense passe avant le décompte : ce que Zélia

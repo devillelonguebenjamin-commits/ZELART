@@ -43,7 +43,12 @@ export async function creerLienPaiement(
    * donc rien de son contenu. Elle ne sert que de sonnette — « quelque chose a
    * bougé » — après quoi le site va vérifier lui-même auprès de l'API.
    */
-  retourUrl?: string
+  retourUrl?: string,
+  /**
+   * Page du site vers laquelle la page de succès de SumUp propose de revenir.
+   * Revenir n'y prouve rien : le règlement est toujours vérifié auprès de l'API.
+   */
+  redirectionUrl?: string
 ): Promise<ResultatCheckout> {
   const cle = process.env.SUMUP_API_KEY?.trim();
   const marchand = process.env.SUMUP_MERCHANT_CODE?.trim();
@@ -69,6 +74,7 @@ export async function creerLienPaiement(
         merchant_code: marchand,
         description: description.slice(0, 100),
         ...(retourUrl ? { return_url: retourUrl } : {}),
+        ...(redirectionUrl ? { redirect_url: redirectionUrl } : {}),
         // `valid_until` volontairement omis : le lien part par e-mail et doit
         // rester valable le temps que la cliente le règle.
         hosted_checkout: { enabled: true },
