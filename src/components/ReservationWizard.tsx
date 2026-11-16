@@ -23,6 +23,7 @@ import type { EtatOngles, TypeActe, TypePose } from "@/generated/prisma/client";
 import ChampInspiration from "@/components/ChampInspiration";
 import { PROVENANCES } from "@/lib/provenance";
 import { POINTS_DECLARATION, TITRE_DECLARATION } from "@/lib/declaration-sante-texte";
+import { DELAI_PAIEMENT_ACOMPTE_MIN } from "@/lib/acompte-bornes";
 import { DELAI_ANNULATION_H } from "@/lib/annulation";
 import NiveauxNailArt from "@/components/NiveauxNailArt";
 import type { NiveauExplique } from "@/lib/nail-art";
@@ -595,8 +596,9 @@ export default function ReservationWizard({
           <span>
             Je certifie avoir 18 ans ou plus et j&rsquo;ai compris qu&rsquo;un acompte de 15 €
             (déduit du montant final) me sera demandé s&rsquo;il s&rsquo;agit de mon premier
-            rendez-vous, et qu&rsquo;il sera perdu si je ne préviens pas au moins{" "}
-            {DELAI_ANNULATION_H}&nbsp;h à l&rsquo;avance. *
+            rendez-vous, à régler dans les {DELAI_PAIEMENT_ACOMPTE_MIN}&nbsp;minutes, et qu&rsquo;il
+            sera perdu si je ne préviens pas au moins {DELAI_ANNULATION_H}&nbsp;h à
+            l&rsquo;avance. *
           </span>
         </label>
 

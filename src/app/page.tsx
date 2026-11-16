@@ -1,3 +1,4 @@
+import { expirerReservationsNonFinalisees } from "@/lib/reservation-non-finalisee";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatPrix, grouperParCategorie } from "@/lib/format";
@@ -18,6 +19,7 @@ import { estIdTheme, themeSaison, THEMES } from "@/lib/saison";
 import { estAdmin } from "@/lib/auth";
 import { BandeauSaison, DecorSaison, EMOJI_TITRE } from "@/components/Saisons";
 import { DELAI_ANNULATION_H } from "@/lib/annulation";
+import { DELAI_PAIEMENT_ACOMPTE_MIN } from "@/lib/acompte-bornes";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +60,7 @@ export default async function Accueil({
       reglagesReseaux(),
       avisGoogle(),
       horaires(),
-      getCreneauxDisponibles(),
+      expirerReservationsNonFinalisees().then(() => getCreneauxDisponibles()),
     ]);
   // La galerie réunit les photos ajoutées à la main et les réalisations publiées.
   const visuels = [
@@ -304,7 +306,7 @@ export default async function Accueil({
               [ouverture.actuel, ouverture.aVenir].filter(Boolean).join(" "),
               "Il faut avoir 18 ans ou plus. Aucune pose sur les pieds.",
               "Après votre demande, je vous envoie un message de confirmation (je ne réponds pas aux appels).",
-              `Nouvelles clientes : un acompte de 15 € est demandé via SumUp pour valider le rendez-vous ; il est déduit du montant final, et perdu si vous ne prévenez pas au moins ${DELAI_ANNULATION_H} h à l'avance.`,
+              `Nouvelles clientes : un acompte de 15 € est à régler en ligne dans les ${DELAI_PAIEMENT_ACOMPTE_MIN} minutes qui suivent la réservation pour la valider ; il est déduit du montant final, et perdu si vous ne prévenez pas au moins ${DELAI_ANNULATION_H} h à l'avance.`,
               "Paiement sur place en espèces ou par carte bancaire (SumUp).",
               "Merci de signaler toute allergie ou problème de santé ; matériel désinfecté entre chaque cliente.",
             ].map((info) => (

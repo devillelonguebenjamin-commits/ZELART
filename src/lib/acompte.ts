@@ -13,6 +13,7 @@ import { creerLienPaiement, lirePaiement, sumupConfigure, type EtatPaiement } fr
 import { urlSite } from "@/lib/site";
 import { envoyerSmsSansBloquer } from "@/lib/sms";
 import { DELAI_ANNULATION_H } from "@/lib/annulation";
+import { DELAI_PAIEMENT_ACOMPTE_MIN, DELAI_PAIEMENT_ACOMPTE_MS } from "@/lib/acompte-bornes";
 
 /**
  * Faut-il demander un acompte pour ce rendez-vous.
@@ -78,7 +79,8 @@ export async function acompteADemander(
  */
 async function lienAcompte(
   rendezVous: { id: string; acompteReference: string | null; cliente: { prenom: string; nom: string } },
-  montantCents: number
+  montantCents: number,
+  expireLe?: Date
 ): Promise<{ url: string } | null> {
   if (!sumupConfigure()) return null;
 
@@ -99,7 +101,8 @@ async function lienAcompte(
     `${urlSite()}/api/sumup/retour`,
     // Après le paiement, la cliente revient sur la page de sa demande, qui
     // lui dit que l'acompte est reçu et que Zélia va confirmer.
-    `${urlSite()}/confirmation/${rendezVous.id}`
+    `${urlSite()}/confirmation/${rendezVous.id}`,
+    expireLe
   );
   if (!resultat.ok) {
     // Le lien collé prendra le relais : un acompte non demandé coûte plus cher
@@ -203,16 +206,32 @@ async function prevenirAcompteRecu(rendezVousId: string): Promise<void> {
   if (!process.env.NOTIFY_EMAIL) return;
   const rdv = await prisma.rendezVous.findUnique({
     where: { id: rendezVousId },
-    include: { cliente: { select: { prenom: true, nom: true } } },
+    include: {
+      cliente: { select: { prenom: true, nom: true, telephone: true, email: true } },
+      lignes: { include: { prestation: true }, orderBy: { ordre: "asc" } },
+    },
   });
   if (!rdv) return;
   const aConfirmer = rdv.statut === "EN_ATTENTE";
+  // Acompte réglé dans les 10 minutes de la réservation : c'est la première
+  // fois que Zélia entend parler de cette demande (elle n'est pas prévenue
+  // d'une réservation tant qu'elle n'est pas payée). L'e-mail porte donc tout
+  // le détail, comme une notification de nouvelle demande.
+  const total = totalTarifs(rdv.lignes.map((l) => l.prestation));
   await envoyerEmail(
     process.env.NOTIFY_EMAIL,
-    `Acompte reçu · ${rdv.cliente.prenom} ${rdv.cliente.nom}${aConfirmer ? " · à confirmer" : ""}`,
+    rdv.acompteLimite && aConfirmer
+      ? `Nouvelle demande de RDV (acompte réglé) · ${rdv.cliente.prenom} ${rdv.cliente.nom}`
+      : `Acompte reçu · ${rdv.cliente.prenom} ${rdv.cliente.nom}${aConfirmer ? " · à confirmer" : ""}`,
     `<p>${echapperHtml(rdv.cliente.prenom)} ${echapperHtml(rdv.cliente.nom)} a réglé son acompte pour le
      <strong>${formatJour(rdv.debut)} à ${formatHeure(rdv.debut)}</strong>.</p>
      ${aConfirmer ? "<p>Sa demande attend maintenant votre confirmation.</p>" : ""}
+     <p>${rdv.lignes
+       .map((l) => `<strong>${echapperHtml(l.prestation.nom)}</strong> : ${formatPrix(l.prestation.prixCents, l.prestation.aPartirDe)}`)
+       .join("<br>")}<br>
+     <strong>Total : ${formatPrix(total.prixCents, total.aPartirDe)}</strong></p>
+     <p>${echapperHtml(rdv.cliente.telephone)} · ${echapperHtml(rdv.cliente.email)}</p>
+     ${rdv.noteCliente ? `<p>Message : ${echapperHtml(rdv.noteCliente)}</p>` : ""}
      <p><a href="${urlSite()}/admin">Ouvrir l'espace gérante</a></p>`
   );
 }
@@ -328,9 +347,15 @@ export async function envoyerDemandeAcompte(rendezVousId: string): Promise<boole
           Régler mon acompte de ${formatPrix(montantCents)}
         </a>
       </p>
+      ${
+        rendezVous.acompteLimite
+          ? `<p><strong>Vous avez jusqu'à ${formatHeure(rendezVous.acompteLimite)} (${DELAI_PAIEMENT_ACOMPTE_MIN} minutes) pour le régler.</strong>
+             Passé ce délai, votre demande est annulée et le créneau proposé à une autre cliente.</p>`
+          : ""
+      }
       <p style="font-size:13px;color:#8a6274">Le paiement est traité par SumUp. Dès réception,
       votre demande passe en attente de ma confirmation, et je vous confirme le rendez-vous par
-      message. Sans règlement, le créneau pourra être proposé à une autre cliente.</p>
+      message.${rendezVous.acompteLimite ? "" : " Sans règlement, le créneau pourra être proposé à une autre cliente."}</p>
       <p style="font-size:13px;color:#8a6274"><strong>L'acompte est perdu si vous ne prévenez pas
       au moins ${DELAI_ANNULATION_H} h à l'avance</strong> (annulation ou absence). Prévenue à temps, vous pouvez
       reporter votre rendez-vous une fois en le conservant.</p>
@@ -352,5 +377,42 @@ export async function envoyerDemandeAcompte(rendezVousId: string): Promise<boole
     where: { id: rendezVousId },
     data: { acompteDemandeLe: new Date() },
   });
+  return true;
+}
+
+/**
+ * L'acompte demandé à la réservation, à régler dans les 10 minutes.
+ *
+ * Le paiement est créé avec une échéance chez SumUp, l'heure limite est posée
+ * sur le rendez-vous, puis la demande part par e-mail (et par SMS) comme
+ * d'habitude. La page de la demande affiche le bouton de paiement et le compte
+ * à rebours ; passé l'heure limite, la demande non réglée est annulée
+ * (cf. reservation-non-finalisee.ts).
+ *
+ * `false` quand le paiement n'a pas pu être créé (API SumUp absente ou en
+ * panne) : l'appelant retombe alors sur la demande classique, sans échéance —
+ * un acompte qu'on ne peut pas vérifier ne doit pas faire annuler qui que ce
+ * soit au bout de dix minutes.
+ */
+export async function ouvrirAcompteReservation(rendezVousId: string): Promise<boolean> {
+  if (!sumupConfigure()) return false;
+  const { montantCents } = await reglagesAcompte();
+  const rendezVous = await prisma.rendezVous.findUnique({
+    where: { id: rendezVousId },
+    include: { cliente: { select: { prenom: true, nom: true } } },
+  });
+  if (!rendezVous) return false;
+
+  const limite = new Date(Date.now() + DELAI_PAIEMENT_ACOMPTE_MS);
+  const paiement = await lienAcompte(rendezVous, montantCents, limite);
+  if (!paiement) return false;
+
+  await prisma.rendezVous.update({
+    where: { id: rendezVousId },
+    data: { acompteDemandeLe: new Date(), acompteLimite: limite },
+  });
+  // L'e-mail double la page : s'il ne part pas, le bouton de paiement reste
+  // affiché à la cliente, qui est en train de réserver.
+  await envoyerDemandeAcompte(rendezVousId);
   return true;
 }

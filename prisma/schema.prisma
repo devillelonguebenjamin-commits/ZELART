@@ -402,6 +402,11 @@ model RendezVous {
   acompteDemandeLe        DateTime?
   acompteRegleLe          DateTime?
   acompteRelanceEnvoyeeLe DateTime? // relance à 24h si toujours pas réglé
+  // Heure limite pour régler l'acompte demandé à la réservation (10 minutes,
+  // comme sur les plateformes de réservation). Passé ce délai, la demande non
+  // réglée est annulée et le créneau rendu. Nul pour un acompte demandé après
+  // coup par Zélia, qui garde le délai de 48 h.
+  acompteLimite DateTime?
 
   // Référence du paiement SumUp propre à ce rendez-vous. C'est elle, et elle
   // seule, qui permet de savoir automatiquement si l'acompte a été réglé : une

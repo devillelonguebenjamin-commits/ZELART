@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DELAI_ANNULATION_H } from "@/lib/annulation";
+import { DELAI_PAIEMENT_ACOMPTE_MIN } from "@/lib/acompte-bornes";
 
 export const metadata: Metadata = {
   title: "Mentions légales · Zelart Nails",
@@ -45,7 +46,9 @@ export default function MentionsLegales() {
           <p className="mt-2">
             Le règlement s&rsquo;effectue sur place, en espèces ou par carte bancaire (SumUp). Pour
             toute nouvelle cliente, un acompte de 15 € est demandé afin de confirmer le rendez-vous ;
-            il est déduit du montant final.{" "}
+            il est déduit du montant final. Il se règle en ligne dans les{" "}
+            {DELAI_PAIEMENT_ACOMPTE_MIN}&nbsp;minutes qui suivent la demande : à défaut, la demande
+            est annulée et le créneau libéré, sans aucun prélèvement.{" "}
             <strong>
               L&rsquo;acompte est perdu si la cliente ne prévient pas au moins {DELAI_ANNULATION_H}&nbsp;h
               à l&rsquo;avance

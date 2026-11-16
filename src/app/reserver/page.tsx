@@ -1,3 +1,4 @@
+import { expirerReservationsNonFinalisees } from "@/lib/reservation-non-finalisee";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
@@ -46,7 +47,7 @@ export default async function Reserver() {
         typePose: true,
       },
     }),
-    getCreneauxDisponibles(),
+    expirerReservationsNonFinalisees().then(() => getCreneauxDisponibles()),
     avisGoogle(),
   ]);
 

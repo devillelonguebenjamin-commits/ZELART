@@ -14,7 +14,8 @@ import {
 } from "@/lib/creneaux";
 import { reservationSchema, urlImageValide } from "@/lib/validations";
 import { envoyerEmail, echapperHtml } from "@/lib/email";
-import { envoyerDemandeAcompte, acompteADemander } from "@/lib/acompte";
+import { envoyerDemandeAcompte, acompteADemander, ouvrirAcompteReservation } from "@/lib/acompte";
+import { expirerReservationsNonFinalisees } from "@/lib/reservation-non-finalisee";
 import { occupeLeCreneau } from "@/lib/acompte-bornes";
 import { clienteBloquee, MESSAGE_BLOCAGE } from "@/lib/blocage";
 import { urlSite } from "@/lib/site";
@@ -217,6 +218,11 @@ export async function creerReservation(
   // Pour le registre des déclarations santé : d'où la case a été cochée.
   const provenanceRequete = await originePourPreuve();
 
+  // Rend d'abord les créneaux des réservations non finalisées (acompte non
+  // réglé dans les 10 minutes) : sans cela, le créneau visé pourrait être
+  // refusé alors qu'il est libre.
+  await expirerReservationsNonFinalisees();
+
   let rendezVousId: string;
   try {
     rendezVousId = await prisma.$transaction(
@@ -370,13 +376,19 @@ export async function creerReservation(
   // acompte, elle la confirmait, et rien n'était jamais réclamé. Il est
   // désormais annoncé dans sa notification, et l'agenda le montre.
   let acompteEnEchec = false;
+  // Acompte à régler dans les 10 minutes, depuis la page de la demande : tant
+  // qu'il n'est pas réglé, la demande n'est pas transmise à Zélia. Elle en
+  // reçoit le détail au paiement (« Nouvelle demande de RDV (acompte réglé) »),
+  // et une demande abandonnée ne la dérange jamais.
+  let acompteEnLigne = false;
   if (!propose && rendezVous && (await acompteADemander(rendezVous.clienteId, rendezVousId))) {
-    acompteEnEchec = !(await envoyerDemandeAcompte(rendezVousId));
+    acompteEnLigne = await ouvrirAcompteReservation(rendezVousId);
+    if (!acompteEnLigne) acompteEnEchec = !(await envoyerDemandeAcompte(rendezVousId));
   }
 
   // Notification à Zélia (sans effet si RESEND_API_KEY / NOTIFY_EMAIL absents)
   const total = totalTarifs(lignes.map((l) => l.prestation));
-  if (process.env.NOTIFY_EMAIL) {
+  if (process.env.NOTIFY_EMAIL && !acompteEnLigne) {
     await envoyerEmail(
       process.env.NOTIFY_EMAIL,
       `${propose ? "Créneau proposé" : "Nouvelle demande de RDV"} · ${donnees.prenom} ${donnees.nom}`,

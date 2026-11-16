@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifierAcompte } from "@/lib/acompte";
+import { expirerReservationsNonFinalisees } from "@/lib/reservation-non-finalisee";
 
 // Sonnette de SumUp : « quelque chose a bougé sur un paiement ».
 //
@@ -53,6 +54,9 @@ export async function POST(requete: Request): Promise<NextResponse> {
       });
 
   for (const rdv of concernes) await verifierAcompte(rdv.id);
+  // Un échec ou une expiration de paiement sonnent aussi : c'est l'occasion de
+  // rendre les créneaux des réservations non finalisées.
+  await expirerReservationsNonFinalisees();
 
   // Toujours 200 : un échec ferait rejouer la notification en boucle sans que
   // cela change quoi que ce soit, l'état venant de l'API et non du message.

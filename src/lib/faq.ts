@@ -1,4 +1,5 @@
 import { DELAI_ANNULATION_H, REGLE_ACOMPTE } from "@/lib/annulation";
+import { DELAI_PAIEMENT_ACOMPTE_MIN } from "@/lib/acompte-bornes";
 
 // Les questions qui partent aujourd'hui en SMS, et qui coûtent donc du temps.
 //
@@ -70,7 +71,7 @@ export const FAQ: RubriqueFaq[] = [
       {
         question: "Pourquoi un acompte pour un premier rendez-vous ?",
         reponse:
-          "Parce qu'un créneau réservé et non honoré ne se rattrape pas. L'acompte de 15 € est déduit du montant final, et il ne concerne que le premier rendez-vous. " +
+          `Parce qu'un créneau réservé et non honoré ne se rattrape pas. L'acompte de 15 € est déduit du montant final, et il ne concerne que le premier rendez-vous. Il se règle en ligne dans les ${DELAI_PAIEMENT_ACOMPTE_MIN} minutes qui suivent la demande : passé ce délai, la demande est annulée et le créneau libéré. ` +
           REGLE_ACOMPTE,
       },
       {
