@@ -77,7 +77,7 @@ export default function Image() {
             Prothésiste ongulaire et nail artist certifiée
           </div>
           <div style={{ fontSize: 28, color: "#a1587a", marginTop: 18 }}>
-            Gainage · Gel X · Pop-it · vernis semi-permanent · nail art
+            Vernis semi-permanent · gainage · rallongement · nail art
           </div>
           <div
             style={{

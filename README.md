@@ -276,6 +276,20 @@ La demande d'avis est horodatée dès qu'**un** des deux canaux a fonctionné. S
 échec laisserait la demande « à faire » et le SMS repartirait le lendemain, puis le surlendemain, à
 quelqu'un qui l'a déjà reçu.
 
+## Rallongement (Gel X ou Pop-it, choisi sur place)
+
+Les clientes confondaient Gel X et Pop-it. Le catalogue ne propose plus qu'une prestation de
+**rallongement** (`TypePose.RALLONGEMENT`, catégorie « Rallongement ») : pose, avec ou sans nail
+art, remplissage et dépose. Chaque tarif est « à partir de » le moins cher des deux techniques, et
+chaque durée reprend la plus longue. La description de la prestation précise que la technique se
+choisit sur place. Zélia ajuste ensuite le prix réel à la validation de la venue.
+
+Les anciennes prestations Gel X et Pop-it sont masquées, pas supprimées (migration
+`20261117090100_prestations_rallongement`). Les rendez-vous qui les portent gardent leur libellé, et
+« Ajuster le niveau » cherche encore leurs variantes parmi les prestations masquées. À la question
+« que portez-vous ? », la cliente répond « Rallongement ». Le remplissage lui est proposé si la pose
+a été faite ici, et Zélia vérifie sur place que la technique s'y prête.
+
 ## Parcours de réservation
 
 1. `/` — page d'accueil publique : présentation, prestations & tarifs, infos pratiques.

@@ -10,7 +10,7 @@ import { urlSite } from "@/lib/site";
 // manquait n'était pas décoratif : sans horaires, la fiche ne peut pas dire
 // « ouvert » ; sans `sameAs`, rien ne relie le compte Instagram et le site à la
 // même personne ; sans les prestations et leurs prix, une recherche du type
-// « prix pose gel x saint-nazaire » n'a aucune raison de tomber ici.
+// « prix rallongement ongles saint-nazaire » n'a aucune raison de tomber ici.
 //
 // Deux abstentions volontaires :
 //
@@ -138,7 +138,7 @@ export async function ficheEtablissement(entree: EntreeFiche) {
     "@id": `${base}/#salon`,
     name: "Zelart Nails",
     description:
-      "Prothésiste ongulaire et nail artist certifiée à Saint-Nazaire : vernis semi-permanent, gainage, pose Gel X, pose Pop-it, nail art et press-on nails, sur rendez-vous.",
+      "Prothésiste ongulaire et nail artist certifiée à Saint-Nazaire : vernis semi-permanent, gainage, rallongement (Gel X ou Pop-it), nail art et press-on nails, sur rendez-vous.",
     url: base,
     telephone: "+33645292001",
     email: "Zelia.barreteaupro@outlook.fr",

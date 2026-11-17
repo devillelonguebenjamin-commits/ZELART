@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Les prestations expliquées · Zelart Nails",
   description:
-    "Gainage, pose Gel X, Pop-it, vernis semi-permanent : ce que chaque prestation veut dire, ce qu'elle coûte, combien de temps elle tient, et laquelle choisir. Zelart Nails, Saint-Nazaire.",
+    "Vernis semi-permanent, gainage, rallongement : ce que chaque prestation veut dire, ce qu'elle coûte, combien de temps elle tient, et laquelle choisir. Zelart Nails, Saint-Nazaire.",
 };
 
 export default async function Prestations() {
@@ -47,7 +47,7 @@ export default async function Prestations() {
           </h1>
           <TraitVagues className="mx-auto mt-4" />
           <p className="mt-4 text-foreground/75">
-            Gainage, Gel X, Pop-it, semi-permanent… Si ces mots ne vous disent rien, cette page est
+            Semi-permanent, gainage, rallongement… Si ces mots ne vous disent rien, cette page est
             faite pour vous. Aucune connaissance requise : de quoi choisir en confiance, et savoir
             à quoi vous attendre avant de venir.
           </p>
@@ -57,7 +57,7 @@ export default async function Prestations() {
       <div className="mx-auto max-w-4xl space-y-14 px-4 pb-16 sm:px-6">
         {/* ── Les techniques, une carte chacune ─────────────────────────── */}
         <section>
-          <h2 className="font-display text-2xl font-bold">Les quatre techniques</h2>
+          <h2 className="font-display text-2xl font-bold">Les trois prestations</h2>
           <p className="mt-2 text-sm text-foreground/70">
             Elles se distinguent par ce qu&rsquo;on pose sur l&rsquo;ongle, et par la longueur
             qu&rsquo;elles permettent d&rsquo;ajouter, ou non.
@@ -137,8 +137,9 @@ export default async function Prestations() {
             <div className="rounded-2xl border border-pink-100 bg-white p-5">
               <p className="font-display text-lg font-bold text-pink-500">Le remplissage</p>
               <p className="mt-2 text-sm leading-relaxed text-foreground/80">
-                On comble la repousse sans tout retirer. Réservé au gainage et au Pop-it,{" "}
-                <strong>que j&rsquo;ai posés moi-même</strong>.
+                On comble la repousse sans tout retirer. Pour un gainage ou un rallongement{" "}
+                <strong>que j&rsquo;ai posé moi-même</strong>, quand la technique s&rsquo;y prête :
+                je vous le dis sur place.
               </p>
             </div>
             <div className="rounded-2xl border border-pink-100 bg-white p-5">
@@ -169,14 +170,12 @@ export default async function Prestations() {
               garantir ce que je pose.
             </li>
             <li>
-              <strong>Capsules Gel X :</strong> elles se retirent, elles ne se remplissent pas.
-            </li>
-            <li>
               <strong>Vernis semi-permanent :</strong> retiré avant la pose suivante.
             </li>
             <li>
-              <strong>Gainage ou Pop-it posé ici :</strong> au choix, un remplissage ou une
-              nouvelle pose.
+              <strong>Gainage ou rallongement posé ici :</strong> au choix, un remplissage ou une
+              nouvelle pose. Pour un rallongement, je vérifie sur place que la technique se
+              remplit ; sinon, on refait la pose.
             </li>
           </ul>
         </section>

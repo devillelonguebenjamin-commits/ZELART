@@ -26,21 +26,23 @@ export type EtatAjustement = { ok?: boolean; message?: string };
  * Les prestations qui peuvent en remplacer une autre.
  *
  * Même technique et même nature d'acte, ce qui délimite exactement les
- * variantes comparables : les quatre niveaux d'une pose Gel X entre eux, les
- * quatre d'un remplissage Pop-it entre eux. Un remplacement au-delà changerait
+ * variantes comparables : les niveaux d'un rallongement entre eux, ceux d'un
+ * remplissage de gainage entre eux. Un remplacement au-delà changerait
  * la prestation elle-même et non son niveau, ce qui ne se règle pas d'un menu
  * déroulant mais d'une conversation.
  */
 export async function variantesPossibles(prestationId: string) {
   const prestation = await prisma.prestation.findUnique({
     where: { id: prestationId },
-    select: { typeActe: true, typePose: true },
+    select: { typeActe: true, typePose: true, active: true },
   });
   if (!prestation) return [];
 
   return prisma.prestation.findMany({
     where: {
-      active: true,
+      // Un rendez-vous pris avant un changement de catalogue (une pose Gel X,
+      // par exemple) s'ajuste encore parmi ses propres variantes, masquées.
+      ...(prestation.active ? { active: true } : {}),
       typeActe: prestation.typeActe,
       typePose: prestation.typePose,
     },

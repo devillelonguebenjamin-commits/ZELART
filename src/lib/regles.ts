@@ -24,21 +24,25 @@ export const ETATS_ONGLES: { id: EtatOngles; libelle: string; description: strin
   },
 ];
 
+// Ce que la cliente peut déclarer porter. Gel X et Pop-it ne se distinguent
+// plus : la cliente ne sait pas toujours lequel elle porte, et c'est Zélia qui
+// tranche sur place. Les deux valeurs restent dans l'énumération pour
+// l'historique, mais ne se proposent plus.
 export const TYPES_POSE: { id: TypePose; libelle: string }[] = [
   { id: "VSP", libelle: "Vernis semi-permanent" },
   { id: "GAINAGE", libelle: "Gainage" },
-  { id: "GEL_X", libelle: "Pose Gel X (capsules)" },
-  { id: "POP_IT", libelle: "Pose Pop-it" },
+  { id: "RALLONGEMENT", libelle: "Rallongement" },
 ];
 
 // Un remplissage suppose une pose que Zélia a elle-même réalisée, et que la
-// technique se prête au remplissage : les capsules Gel X, elles, se déposent.
+// technique s'y prête. Pour un rallongement, la cliente peut le demander : si la
+// technique portée ne se remplit pas, Zélia le voit sur place.
 export function remplissageAutorise(
   etat: EtatOngles | null,
   typeActuel: TypePose | null
 ): boolean {
   if (etat !== "POSE_ZELART" || !typeActuel) return false;
-  return typeActuel === "GAINAGE" || typeActuel === "POP_IT";
+  return typeActuel === "GAINAGE" || typeActuel === "POP_IT" || typeActuel === "RALLONGEMENT";
 }
 
 export function aUnePose(etat: EtatOngles | null): boolean {

@@ -306,8 +306,7 @@ export default async function Reglages() {
             delais={[
               { cle: cleRelance("VSP"), libelle: "Vernis semi-permanent", jours: rappels.delais.VSP },
               { cle: cleRelance("GAINAGE"), libelle: "Gainage", jours: rappels.delais.GAINAGE },
-              { cle: cleRelance("GEL_X"), libelle: "Pose Gel X", jours: rappels.delais.GEL_X },
-              { cle: cleRelance("POP_IT"), libelle: "Pose Pop-it", jours: rappels.delais.POP_IT },
+              { cle: cleRelance("RALLONGEMENT"), libelle: "Rallongement", jours: rappels.delais.RALLONGEMENT },
             ]}
           />
         </div>

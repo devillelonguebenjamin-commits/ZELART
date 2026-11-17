@@ -20,6 +20,7 @@ export const DELAIS_RELANCE_DEFAUT: Record<TypePose, number> = {
   GAINAGE: 24,
   GEL_X: 24,
   POP_IT: 28,
+  RALLONGEMENT: 24,
 };
 
 export type ReglagesRappels = {
