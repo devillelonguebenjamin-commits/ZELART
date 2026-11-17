@@ -45,6 +45,7 @@ const LIBELLE_TECHNIQUE: Record<TypePose, string> = {
   GAINAGE: "gainage",
   GEL_X: "pose Gel X",
   POP_IT: "pose Pop-it",
+  RALLONGEMENT: "rallongement",
 };
 
 function enveloppe(contenu: string, pied?: string): string {

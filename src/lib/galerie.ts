@@ -3,7 +3,7 @@
 // Le texte alternatif servait de repli générique : seize photos décrites par
 // « Réalisation Zelart ». C'est inutile pour une personne qui navigue au
 // lecteur d'écran, et invisible pour Google Images, qui n'a alors aucune raison
-// de rattacher ces images à une pose Gel X ou à un nail art.
+// de rattacher ces images à un rallongement ou à un nail art.
 //
 // Plutôt que de demander une légende de plus à Zélia, la description se déduit
 // de ce qui a réellement été fait : les prestations du rendez-vous d'où sort la
@@ -14,7 +14,7 @@ const LIEU = "Zelart Nails, prothésiste ongulaire à Saint-Nazaire";
 
 export const LEGENDE_PAR_DEFAUT = `Réalisation de ${LIEU}`;
 
-/** "Pose Gel X et nail art, par Zelart Nails, prothésiste ongulaire à Saint-Nazaire" */
+/** "Rallongement et nail art, par Zelart Nails, prothésiste ongulaire à Saint-Nazaire" */
 export function descriptionRealisation(prestations: { nom: string; categorie: string }[]): string {
   // Les catégories plutôt que les noms : « VSP + nail art niveau 1 » se lit mal
   // à voix haute, « Vernis semi-permanent » se lit bien et se cherche mieux.

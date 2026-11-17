@@ -56,7 +56,7 @@ export const FAQ: RubriqueFaq[] = [
       {
         question: "Combien de temps ça tient ?",
         reponse:
-          "Le vernis semi-permanent tient environ trois semaines, le gainage et le Gel X trois à quatre, le Pop-it un peu plus. C'est la repousse qui décide, pas l'usure : je vous envoie un message quand le moment approche.",
+          "Le vernis semi-permanent tient environ trois semaines, le gainage et le rallongement trois à quatre. C'est la repousse qui décide, pas l'usure : je vous envoie un message quand le moment approche.",
       },
       {
         question: "Un ongle s'est cassé, que faire ?",

@@ -38,6 +38,7 @@ const LIBELLE_POSE: Record<string, string> = {
   GAINAGE: "gainage",
   GEL_X: "Gel X",
   POP_IT: "Pop-it",
+  RALLONGEMENT: "Rallongement",
 };
 
 export type EtatReservation = { erreur?: string };

@@ -23,7 +23,7 @@ const playfair = Playfair_Display({
 
 const TITRE = "Zelart Nails · Prothésiste ongulaire à Saint-Nazaire";
 const DESCRIPTION =
-  "Zélia, prothésiste ongulaire et nail artist certifiée à Saint-Nazaire. Prenez rendez-vous en ligne : vernis semi-permanent, gainage, pose Gel X, pose Pop-it et nail art.";
+  "Zélia, prothésiste ongulaire et nail artist certifiée à Saint-Nazaire. Prenez rendez-vous en ligne : vernis semi-permanent, gainage, rallongement (Gel X ou Pop-it) et nail art.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(urlSite()),

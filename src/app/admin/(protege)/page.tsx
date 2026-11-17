@@ -108,6 +108,7 @@ const LIBELLE_POSE: Record<string, string> = {
   GAINAGE: "gainage",
   GEL_X: "Gel X",
   POP_IT: "Pop-it",
+  RALLONGEMENT: "Rallongement",
 };
 
 const BADGES: Record<string, { label: string; classes: string }> = {

@@ -212,7 +212,7 @@ export default function ValidationVenue({
           rows={3}
           maxLength={1000}
           defaultValue={commentaire ?? ""}
-          placeholder="Ex. très ponctuelle, a adoré le chrome, veut essayer le Pop-it la prochaine fois."
+          placeholder="Ex. très ponctuelle, a adoré le chrome, veut essayer un rallongement la prochaine fois."
           className="mt-1 w-full rounded-xl border border-pink-200 px-3 py-2 text-sm outline-none focus:border-pink-500"
         />
       </label>

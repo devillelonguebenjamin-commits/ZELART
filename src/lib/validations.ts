@@ -43,7 +43,7 @@ export const reservationSchema = z.object({
   etatOngles: z.enum(["NATUREL", "POSE_ZELART", "POSE_EXTERIEURE"], {
     message: "Indiquez dans quel état sont vos ongles.",
   }),
-  typePoseActuel: z.enum(["VSP", "GAINAGE", "GEL_X", "POP_IT"]).nullable(),
+  typePoseActuel: z.enum(["VSP", "GAINAGE", "RALLONGEMENT"]).nullable(),
   // Facultative et sans conséquence : une valeur inconnue est ignorée plutôt
   // que refusée, une question de confort ne doit jamais bloquer une réservation.
   provenance: z.string().trim().max(40).optional(),

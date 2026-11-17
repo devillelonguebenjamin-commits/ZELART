@@ -316,8 +316,12 @@ enum TypeActe {
 enum TypePose {
   VSP
   GAINAGE
+  // Gel X et Pop-it ne sont plus proposés séparément : la cliente réserve un
+  // rallongement, et Zélia choisit la technique sur place. Les deux valeurs
+  // restent pour l'historique des rendez-vous passés.
   GEL_X
   POP_IT
+  RALLONGEMENT
 }
 
 // Ce que la cliente a sur les ongles au moment de venir.

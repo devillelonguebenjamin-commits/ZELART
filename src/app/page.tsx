@@ -159,7 +159,7 @@ export default async function Accueil({
           <h2 className="font-display text-center text-3xl font-bold">Prestations &amp; tarifs 🌸</h2>
           <TraitVagues className="mx-auto mt-4" />
           <p className="mx-auto mt-3 max-w-2xl text-center text-foreground/70">
-            Gainage, pose Gel X, Pop-it et vernis semi-permanent, avec ou sans nail art. Le niveau de
+            Vernis semi-permanent, gainage et rallongement, avec ou sans nail art. Le niveau de
             nail art (1 à 3) dépend de la complexité du design souhaité.
           </p>
           {/* Seul point d'entrée visible sur téléphone : les liens secondaires
