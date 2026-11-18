@@ -1,5 +1,6 @@
 import { expirerReservationsNonFinalisees } from "@/lib/reservation-non-finalisee";
 import Link from "next/link";
+import VideoAccueil from "@/components/VideoAccueil";
 import { prisma } from "@/lib/prisma";
 import { formatPrix, grouperParCategorie } from "@/lib/format";
 import { reglagesReseaux } from "@/lib/parametres";
@@ -117,9 +118,15 @@ export default async function Accueil({
       <section className="relative isolate overflow-hidden">
         <Vagues />
         {theme && <DecorSaison theme={theme} />}
+        {/* La vidéo d'abord : sur téléphone, elle occupe le haut de l'écran et
+            le texte suit ; sur ordinateur, elle se place à droite du texte. */}
+        <div className="mx-auto max-w-6xl lg:flex lg:items-center lg:gap-12 lg:px-6 lg:pt-14">
+          <div className="lg:order-2 lg:shrink-0">
+            <VideoAccueil />
+          </div>
         {/* Avec les citrouilles posées en bas, un peu plus de marge sous le texte. */}
         <div
-          className={`mx-auto max-w-5xl px-4 pt-16 text-center sm:px-6 sm:pt-24 ${
+          className={`flex-1 px-4 pt-10 text-center sm:px-6 lg:px-0 lg:pt-0 lg:text-left ${
             theme ? "pb-24 sm:pb-28" : "pb-16 sm:pb-24"
           }`}
         >
@@ -127,13 +134,13 @@ export default async function Accueil({
           <h1 className="font-display mt-3 text-4xl font-bold sm:text-5xl">
             Bienvenue chez <span className="text-pink-500">Zelart</span> {theme ? EMOJI_TITRE[theme] : "✨"}
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-foreground/80">
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-foreground/80 lg:mx-0">
             Je m&rsquo;appelle <strong>Zélia</strong>, prothésiste ongulaire et nail artist
             certifiée, passionnée par le dessin et la mode. Spécialisée dans le nail art, je crée
             des designs originaux, du plus discret au plus audacieux. Chaque pose est unique,
             pensée avec vous, selon vos envies et votre style.
           </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4 lg:justify-start">
             <Link
               href="/reserver"
               className="rounded-full bg-pink-500 px-8 py-3 text-lg font-medium text-white shadow-md transition hover:bg-pink-600"
@@ -150,6 +157,7 @@ export default async function Accueil({
           <p className="mt-6 text-sm text-foreground/60">
             {ouverture.bref}
           </p>
+        </div>
         </div>
       </section>
 
