@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ReponseDemandeAnnulation from "@/components/ReponseDemandeAnnulation";
 import { expirerReservationsNonFinalisees } from "@/lib/reservation-non-finalisee";
 import { prisma } from "@/lib/prisma";
 import { formatHeure, formatJour } from "@/lib/creneaux";
@@ -339,6 +340,9 @@ function CarteRdv({
         </Link>
         {!rdv.consentementSante && (
           <span className="ml-2 font-medium text-amber-700">à faire signer au salon</span>
+        )}
+        {rdv.annulationDemandeeLe && rdv.statut !== "ANNULE" && (
+          <span className="ml-2 font-medium text-red-700">🛑 annulation demandée</span>
         )}
       </p>
       {rdv.noteCliente && (
@@ -811,6 +815,12 @@ export default async function Agenda({
   const DORT_DEPUIS_MS = 72 * 60 * 60 * 1000;
   const heuresDepuis = (rdv: RdvComplet) =>
     Math.floor((maintenant.getTime() - rdv.creeLe.getTime()) / 3_600_000);
+  // Demandes d'annulation des clientes : rien n'est annulé tant que Zélia n'a
+  // pas validé. Les plus proches en premier, ce sont les plus urgentes.
+  const demandesAnnulation = rdvs
+    .filter((r) => r.annulationDemandeeLe !== null && r.statut !== "ANNULE" && r.fin >= maintenant)
+    .sort((a, b) => a.debut.getTime() - b.debut.getTime());
+
   // Annulations à vérifier : ce que le site a annulé lui-même, et — pour la
   // période où il ne le marquait pas encore — ce qui ressemble à une
   // annulation automatique. Le second cas est une heuristique et se présente
@@ -868,6 +878,50 @@ export default async function Agenda({
         </div>
         <CalendrierMois grille={grille} masques={masquesCalendrier} detail={detailCalendrier} />
       </section>
+
+      {demandesAnnulation.length > 0 && (
+        <section className="rounded-3xl border-2 border-amber-200 bg-amber-50 p-5">
+          <h1 className="font-display text-2xl font-bold text-amber-900">
+            Demandes d&rsquo;annulation{" "}
+            <span className="ml-1 rounded-full bg-amber-600 px-3 py-1 align-middle text-sm font-semibold text-white">
+              {demandesAnnulation.length}
+            </span>
+          </h1>
+          <p className="mt-1 text-sm text-amber-900/80">
+            Ces clientes demandent à annuler. Le rendez-vous reste réservé tant que vous
+            n&rsquo;avez pas répondu ; en validant, la cliente reçoit la confirmation par e-mail et
+            SMS et le créneau se libère.
+          </p>
+          <div className="mt-4 grid gap-2">
+            {demandesAnnulation.map((rdv) => (
+              <div
+                key={rdv.id}
+                className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-amber-100 bg-white px-5 py-3 text-sm"
+              >
+                <Link
+                  href={`/admin/clientes/${rdv.clienteId}`}
+                  className="font-medium text-pink-600 hover:underline"
+                >
+                  {rdv.cliente.prenom} {rdv.cliente.nom}
+                </Link>
+                <span className="capitalize">
+                  {formatJour(rdv.debut)} · {formatHeure(rdv.debut)}
+                </span>
+                <span className="min-w-40 flex-1 text-foreground/70">
+                  {rdv.lignes.map((l) => l.prestation.nom).join(" + ")}
+                </span>
+                <span className="w-full text-xs text-foreground/60">
+                  Demandée le {formatJour(rdv.annulationDemandeeLe!)} à{" "}
+                  {formatHeure(rdv.annulationDemandeeLe!)}
+                  {rdv.acompteRegleLe ? " · acompte réglé (prévenance à temps : il reste acquis pour un report)" : ""}
+                  {rdv.motifAnnulation ? ` · « ${rdv.motifAnnulation} »` : ""}
+                </span>
+                <ReponseDemandeAnnulation rendezVousId={rdv.id} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {aVerifier.length > 0 && (
         <section className="rounded-3xl border-2 border-red-200 bg-red-50 p-5">

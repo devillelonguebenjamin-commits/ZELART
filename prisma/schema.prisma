@@ -455,6 +455,13 @@ model RendezVous {
   // rendez-vous sort du bloc « Annulations à vérifier ».
   annulationConfirmeeLe DateTime?
 
+  // Demande d'annulation faite par la cliente depuis son espace. Elle n'annule
+  // rien d'elle-même : c'est Zélia qui valide (la cliente est alors prévenue
+  // par e-mail et SMS) ou refuse. Sans cela, un rendez-vous annulé en ligne
+  // pouvait échapper à Zélia, qui se rendait au salon pour rien.
+  annulationDemandeeLe DateTime?
+  motifAnnulation      String?
+
   // Dernier déplacement : quand, et l'horaire d'origine (« initialement le … »).
   decaleLe     DateTime?
   debutInitial DateTime?

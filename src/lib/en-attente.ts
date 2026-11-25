@@ -26,7 +26,16 @@ export async function compterEnAttente(): Promise<EnAttente> {
   const [agenda, pressOn, parrainage, listeAttente, clientes, roue] = await Promise.all([
     // Demandes de rendez-vous encore à trancher. Celles dont l'heure est passée
     // ne comptent plus : les relancer n'aurait plus d'objet.
-    prisma.rendezVous.count({ where: { statut: "EN_ATTENTE", fin: { gte: maintenant } } }),
+    // Demandes de rendez-vous encore à trancher, et demandes d'annulation.
+    prisma.rendezVous.count({
+      where: {
+        fin: { gte: maintenant },
+        OR: [
+          { statut: "EN_ATTENTE" },
+          { statut: { not: "ANNULE" }, annulationDemandeeLe: { not: null } },
+        ],
+      },
+    }),
     // Commandes reçues mais dont le règlement n'a pas encore été demandé.
     prisma.commandePressOn.count({ where: { statut: "DEMANDE" } }),
     prisma.avantageParrainage.count({ where: { utiliseLe: null } }),

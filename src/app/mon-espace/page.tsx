@@ -239,7 +239,12 @@ export default async function MonEspace({
                     📅 Ajouter à mon calendrier
                   </a>
                 )}
-                {annulationPossible(rdv.debut) ? (
+                {rdv.annulationDemandeeLe ? (
+                  <p className="mt-3 rounded-xl bg-amber-50 px-4 py-2 text-xs text-amber-900">
+                    Annulation demandée le {formatJour(rdv.annulationDemandeeLe)}&nbsp;: Zélia vous
+                    confirmera par e-mail et SMS. D&rsquo;ici là, le rendez-vous reste réservé.
+                  </p>
+                ) : annulationPossible(rdv.debut) ? (
                   <BoutonAnnulation rendezVousId={rdv.id} />
                 ) : (
                   <p className="mt-3 text-xs text-foreground/50">

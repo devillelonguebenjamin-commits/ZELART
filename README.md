@@ -290,6 +290,23 @@ Les anciennes prestations Gel X et Pop-it sont masquées, pas supprimées (migra
 « que portez-vous ? », la cliente répond « Rallongement ». Le remplissage lui est proposé si la pose
 a été faite ici, et Zélia vérifie sur place que la technique s'y prête.
 
+## Annulation : demandée par la cliente, validée par Zélia
+
+La cliente ne s'annule plus elle-même. Depuis son espace (jusqu'à 48 h avant), elle **demande**
+l'annulation, avec un mot facultatif. Le rendez-vous reste réservé, Zélia reçoit un e-mail, et
+l'agenda affiche un bloc « Demandes d'annulation » (compté dans la pastille). Zélia peut alors :
+
+- **valider** : le rendez-vous passe à « annulé », la liste d'attente est prévenue et la cliente
+  reçoit la confirmation par e-mail et par SMS ;
+- **refuser** : la demande est effacée et la cliente apprend par e-mail et par SMS que son
+  rendez-vous est maintenu.
+
+L'heure de la demande (`annulationDemandeeLe`) fait foi pour le délai de prévenance de l'acompte.
+
+Quand c'est Zélia qui annule ou refuse une demande, la cliente est **toujours** prévenue par e-mail
+et par SMS, même sans mot écrit. Le refus d'un horaire proposé et un set de press-on prêt envoient
+aussi un SMS.
+
 ## Parcours de réservation
 
 1. `/` — page d'accueil publique : présentation, prestations & tarifs, infos pratiques.
