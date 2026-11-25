@@ -189,6 +189,11 @@ export async function refuserCreneauPropose(id: string): Promise<void> {
     },
   });
 
+  await envoyerSmsSansBloquer(
+    rendezVous.cliente.telephone,
+    `Zelart Nails : je ne suis malheureusement pas disponible le ${formatJour(rendezVous.debut)} a ${formatHeure(rendezVous.debut)}. Details par e-mail. Autres creneaux : ${urlSite()}/reserver`
+  );
+
   await envoyerEmail(
     rendezVous.cliente.email,
     "Votre proposition d'horaire chez Zelart Nails",
