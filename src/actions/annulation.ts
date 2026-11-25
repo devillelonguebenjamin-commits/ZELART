@@ -6,11 +6,26 @@ import { clienteConnectee } from "@/lib/cliente-auth";
 import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { annulationPossible, DELAI_ANNULATION_H } from "@/lib/annulation";
-import { notifierListeAttente } from "@/lib/liste-attente";
+import { urlSite } from "@/lib/site";
+
+// La cliente ne s'annule plus elle-même : elle **demande** l'annulation, et
+// Zélia la valide ou la refuse depuis l'agenda. C'est à la validation que la
+// cliente reçoit la confirmation (e-mail et SMS) et que le créneau se libère.
+//
+// Avant, l'annulation en ligne était immédiate : le créneau se libérait sans
+// que Zélia le voie forcément, et elle pouvait se rendre au salon pour une
+// cliente qui ne viendrait pas.
+//
+// L'heure de la demande fait foi pour le délai de prévenance : une demande
+// faite plus de 48 h avant le rendez-vous vaut prévenance à temps, même si
+// Zélia la valide plus tard.
 
 export type EtatAnnulation = { ok?: boolean; message?: string };
 
-export async function annulerParCliente(rendezVousId: string): Promise<EtatAnnulation> {
+export async function demanderAnnulation(
+  rendezVousId: string,
+  motif: string
+): Promise<EtatAnnulation> {
   const clienteId = await clienteConnectee();
   if (!clienteId) {
     return { ok: false, message: "Connectez-vous pour gérer vos rendez-vous." };
@@ -31,30 +46,32 @@ export async function annulerParCliente(rendezVousId: string): Promise<EtatAnnul
   if (rdv.statut === "ANNULE") {
     return { ok: false, message: "Ce rendez-vous est déjà annulé." };
   }
+  if (rdv.annulationDemandeeLe) {
+    return { ok: true, message: "Votre demande d'annulation est déjà entre les mains de Zélia." };
+  }
   if (!annulationPossible(rdv.debut)) {
     return {
       ok: false,
-      message: `L'annulation en ligne n'est plus possible à moins de ${DELAI_ANNULATION_H} h du rendez-vous. Prévenez-moi par SMS au 06 45 29 20 01.`,
+      message: `À moins de ${DELAI_ANNULATION_H} h du rendez-vous, prévenez-moi par SMS au 06 45 29 20 01.`,
     };
   }
 
+  const motifPropre = motif.trim().slice(0, 500) || null;
   await prisma.rendezVous.update({
     where: { id: rendezVousId },
-    data: { statut: "ANNULE" },
+    data: { annulationDemandeeLe: new Date(), motifAnnulation: motifPropre },
   });
 
-  // Le créneau libéré peut intéresser une cliente en liste d'attente.
-  await notifierListeAttente({ debut: rdv.debut });
-
-  // Zélia doit le savoir tout de suite pour reproposer le créneau.
   if (process.env.NOTIFY_EMAIL) {
     await envoyerEmail(
       process.env.NOTIFY_EMAIL,
-      `Annulation · ${rdv.cliente.prenom} ${rdv.cliente.nom} le ${formatJour(rdv.debut)}`,
-      `<p>${echapperHtml(rdv.cliente.prenom)} ${echapperHtml(rdv.cliente.nom)} vient d'annuler depuis son espace :</p>
+      `Demande d'annulation · ${rdv.cliente.prenom} ${rdv.cliente.nom} le ${formatJour(rdv.debut)}`,
+      `<p>${echapperHtml(rdv.cliente.prenom)} ${echapperHtml(rdv.cliente.nom)} demande à annuler son rendez-vous :</p>
        <p><strong>${formatJour(rdv.debut)} à ${formatHeure(rdv.debut)}</strong><br>
        ${echapperHtml(rdv.lignes.map((l) => l.prestation.nom).join(" + "))}</p>
-       <p>Le créneau est de nouveau disponible à la réservation.</p>`
+       ${motifPropre ? `<p>Motif : ${echapperHtml(motifPropre)}</p>` : ""}
+       <p>Le rendez-vous reste réservé tant que vous n'avez pas validé l'annulation.</p>
+       <p><a href="${urlSite()}/admin">Valider ou refuser dans l'agenda</a></p>`
     );
   }
 
@@ -62,6 +79,7 @@ export async function annulerParCliente(rendezVousId: string): Promise<EtatAnnul
   revalidatePath("/admin");
   return {
     ok: true,
-    message: "Votre rendez-vous est annulé. Le créneau est libéré, à bientôt 🤍",
+    message:
+      "Votre demande d'annulation est envoyée à Zélia. Vous recevrez sa confirmation par e-mail et SMS ; d'ici là, le rendez-vous reste réservé.",
   };
 }

@@ -77,7 +77,7 @@ export const FAQ: RubriqueFaq[] = [
       {
         question: "Comment annuler ou décaler ?",
         reponse:
-          `Depuis votre espace, jusqu'à ${DELAI_ANNULATION_H} h avant. Passé ce délai, prévenez-moi par SMS pour que je puisse proposer le créneau à quelqu'un d'autre ; un acompte réglé est alors perdu.`,
+          `Depuis votre espace, demandez l'annulation jusqu'à ${DELAI_ANNULATION_H} h avant : je vous la confirme par e-mail et SMS, et d'ici là le rendez-vous reste réservé. Passé ce délai, prévenez-moi par SMS pour que je puisse proposer le créneau à quelqu'un d'autre ; un acompte réglé est alors perdu.`,
       },
       {
         question: "Comment régler ?",

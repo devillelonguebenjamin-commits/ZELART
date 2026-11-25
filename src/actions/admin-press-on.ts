@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { exigerAdmin } from "@/lib/auth";
 import { envoyerEmail, echapperHtml, enteteLogo } from "@/lib/email";
+import { envoyerSmsSansBloquer } from "@/lib/sms";
 import { formatPrix } from "@/lib/format";
 import { LIBELLE_REMISE, montantARegler } from "@/lib/press-on";
 import { lienSumUpValide, reglagesAcompte } from "@/lib/parametres";
@@ -64,6 +65,12 @@ export async function changerStatutCommande(id: string, statut: string): Promise
            : "Il part par voie postale à l'adresse indiquée lors de votre commande."
        }</p>
        <p>À très vite,<br>Zélia ✨</p>`
+    );
+    await envoyerSmsSansBloquer(
+      commande.cliente.telephone,
+      enMainPropre
+        ? `Zelart Nails : votre set de press-on est pret ! Ecrivez-moi par SMS au 06 45 29 20 01 pour convenir de la remise. Zelia`
+        : `Zelart Nails : votre set de press-on est pret, il part par la poste a l'adresse indiquee. Zelia`
     );
   }
 

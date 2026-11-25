@@ -7,6 +7,7 @@ import { echapperHtml, envoyerEmail, enteteLogo } from "@/lib/email";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { notifierListeAttente } from "@/lib/liste-attente";
 import { urlSite } from "@/lib/site";
+import { envoyerSmsSansBloquer } from "@/lib/sms";
 
 // Annuler ou refuser en disant pourquoi.
 //
@@ -82,10 +83,12 @@ export async function annulerAvecMessage(
   // était réellement retenu. Une demande jamais confirmée n'occupait rien.
   if (etaitConfirme) await notifierListeAttente({ debut: rdv.debut });
 
+  // La cliente est **toujours** prévenue, par e-mail et par SMS. « Sans
+  // message » ne veut plus dire « sans rien » : un rendez-vous confirmé annulé
+  // en silence, c'était une cliente qui se présentait devant une porte close,
+  // et une demande refusée en silence, une cliente qui attendait une réponse.
   let envoi: string;
-  if (!note && libres.length === 0) {
-    envoi = "sans message";
-  } else {
+  {
     const titre = etaitConfirme
       ? `Votre rendez-vous du ${formatJour(rdv.debut)} est annulé`
       : rdv.creneauPropose
@@ -135,7 +138,23 @@ export async function annulerAvecMessage(
         data: { annulationNotifieeLe: new Date() },
       });
     }
-    envoi = resultat.ok ? "et la cliente est prévenue" : `mais l'e-mail n'est pas parti (${resultat.erreur})`;
+    const quand = `${formatJour(rdv.debut)} a ${formatHeure(rdv.debut)}`;
+    const sms = await envoyerSmsSansBloquer(
+      rdv.cliente.telephone,
+      etaitConfirme
+        ? `Zelart Nails : votre rendez-vous du ${quand} est annule, merci de ne pas vous presenter. Details par e-mail. Pour reprendre rendez-vous : ${urlSite()}/reserver`
+        : `Zelart Nails : je ne peux malheureusement pas retenir votre demande du ${quand}. Details par e-mail. Autres creneaux : ${urlSite()}/reserver`
+    );
+    if (sms && !resultat.ok) {
+      await prisma.rendezVous.update({
+        where: { id: rendezVousId },
+        data: { annulationNotifieeLe: new Date() },
+      });
+    }
+    envoi =
+      resultat.ok || sms
+        ? `et la cliente est prévenue (${[resultat.ok && "e-mail", sms && "SMS"].filter(Boolean).join(" et ")})`
+        : `mais la cliente n'a pas pu être prévenue (${resultat.ok ? "" : resultat.erreur})`;
   }
 
   revalidatePath("/admin");

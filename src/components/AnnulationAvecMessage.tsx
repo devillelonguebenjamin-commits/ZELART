@@ -147,9 +147,7 @@ export default function AnnulationAvecMessage({
       >
         {enCours
           ? "Envoi…"
-          : note.trim() || choisis.length > 0
-            ? `${confirme ? "Annuler" : "Refuser"} et prévenir la cliente`
-            : `${confirme ? "Annuler" : "Refuser"} sans message`}
+          : `${confirme ? "Annuler" : "Refuser"} et prévenir la cliente`}
       </button>
     </form>
   );
