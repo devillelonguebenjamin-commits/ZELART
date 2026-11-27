@@ -9,6 +9,7 @@ import { dateParis, partiesParis } from "@/lib/creneaux";
 import { LONGUEUR_MAX } from "@/lib/messages-bornes";
 import { peutEcrire } from "@/lib/messages";
 import { urlSite } from "@/lib/site";
+import { notifierZelia } from "@/lib/push";
 
 export type EtatMessage = { ok?: boolean; message?: string };
 
@@ -71,6 +72,13 @@ export async function ecrireAZelia(
   revalidatePath("/mon-espace");
   revalidatePath("/admin/clientes");
   revalidatePath(`/admin/clientes/${clienteId}`);
+
+  await notifierZelia({
+    titre: `Message de ${cliente.prenom} ${cliente.nom}`,
+    corps: texte.length > 120 ? `${texte.slice(0, 117)}…` : texte,
+    url: `/admin/clientes/${clienteId}`,
+    tag: `message-${clienteId}`,
+  });
 
   // Zélia est prévenue par e-mail : sans cela, le fil ne serait relevé que par
   // hasard, et une question posée la veille d'un rendez-vous resterait sans

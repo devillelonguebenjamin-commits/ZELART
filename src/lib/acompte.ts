@@ -11,6 +11,7 @@ import { formatPrix, totalTarifs } from "@/lib/format";
 import { reglagesAcompte } from "@/lib/parametres";
 import { creerLienPaiement, lirePaiement, sumupConfigure, type EtatPaiement } from "@/lib/sumup";
 import { urlSite } from "@/lib/site";
+import { notifierZelia } from "@/lib/push";
 import { envoyerSmsSansBloquer } from "@/lib/sms";
 import { DELAI_ANNULATION_H } from "@/lib/annulation";
 import { DELAI_PAIEMENT_ACOMPTE_MIN, DELAI_PAIEMENT_ACOMPTE_MS } from "@/lib/acompte-bornes";
@@ -203,7 +204,6 @@ export async function verifierAcompte(rendezVousId: string): Promise<EtatPaiemen
  * sans avoir à surveiller l'agenda.
  */
 async function prevenirAcompteRecu(rendezVousId: string): Promise<void> {
-  if (!process.env.NOTIFY_EMAIL) return;
   const rdv = await prisma.rendezVous.findUnique({
     where: { id: rendezVousId },
     include: {
@@ -213,6 +213,16 @@ async function prevenirAcompteRecu(rendezVousId: string): Promise<void> {
   });
   if (!rdv) return;
   const aConfirmer = rdv.statut === "EN_ATTENTE";
+  await notifierZelia({
+    titre:
+      rdv.acompteLimite && aConfirmer
+        ? `Nouvelle demande · ${rdv.cliente.prenom} ${rdv.cliente.nom}`
+        : `Acompte reçu · ${rdv.cliente.prenom} ${rdv.cliente.nom}`,
+    corps: `${formatJour(rdv.debut)} à ${formatHeure(rdv.debut)} · acompte réglé${aConfirmer ? ", à confirmer" : ""}`,
+    url: "/admin",
+    tag: `rdv-${rdv.id}`,
+  });
+  if (!process.env.NOTIFY_EMAIL) return;
   // Acompte réglé dans les 10 minutes de la réservation : c'est la première
   // fois que Zélia entend parler de cette demande (elle n'est pas prévenue
   // d'une réservation tant qu'elle n'est pas payée). L'e-mail porte donc tout

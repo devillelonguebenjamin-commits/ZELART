@@ -26,6 +26,7 @@ import { REMISE_FILLEULE_POURCENT } from "@/lib/parrainage";
 import { formatDuree, formatPrix, totalDuree, totalTarifs } from "@/lib/format";
 import { texteDeclaration, VERSION_DECLARATION } from "@/lib/declaration-sante-texte";
 import { originePourPreuve } from "@/lib/declaration-sante";
+import { notifierZelia } from "@/lib/push";
 
 const LIBELLE_ETAT: Record<string, string> = {
   NATUREL: "ongles nus",
@@ -389,6 +390,14 @@ export async function creerReservation(
 
   // Notification à Zélia (sans effet si RESEND_API_KEY / NOTIFY_EMAIL absents)
   const total = totalTarifs(lignes.map((l) => l.prestation));
+  if (!acompteEnLigne) {
+    await notifierZelia({
+      titre: `${propose ? "Horaire proposé" : "Nouvelle demande"} · ${donnees.prenom} ${donnees.nom}`,
+      corps: `${formatJour(debut)} à ${formatHeure(debut)} · ${lignes.map((l) => l.prestation.nom).join(" + ")}`,
+      url: "/admin",
+      tag: `rdv-${rendezVousId}`,
+    });
+  }
   if (process.env.NOTIFY_EMAIL && !acompteEnLigne) {
     await envoyerEmail(
       process.env.NOTIFY_EMAIL,

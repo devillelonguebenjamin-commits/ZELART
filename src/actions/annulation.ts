@@ -7,6 +7,7 @@ import { envoyerEmail, echapperHtml } from "@/lib/email";
 import { formatHeure, formatJour } from "@/lib/creneaux";
 import { annulationPossible, DELAI_ANNULATION_H } from "@/lib/annulation";
 import { urlSite } from "@/lib/site";
+import { notifierZelia } from "@/lib/push";
 
 // La cliente ne s'annule plus elle-même : elle **demande** l'annulation, et
 // Zélia la valide ou la refuse depuis l'agenda. C'est à la validation que la
@@ -60,6 +61,13 @@ export async function demanderAnnulation(
   await prisma.rendezVous.update({
     where: { id: rendezVousId },
     data: { annulationDemandeeLe: new Date(), motifAnnulation: motifPropre },
+  });
+
+  await notifierZelia({
+    titre: `Demande d'annulation · ${rdv.cliente.prenom} ${rdv.cliente.nom}`,
+    corps: `${formatJour(rdv.debut)} à ${formatHeure(rdv.debut)}${motifPropre ? ` · « ${motifPropre.slice(0, 80)} »` : ""}`,
+    url: "/admin",
+    tag: `annulation-${rdv.id}`,
   });
 
   if (process.env.NOTIFY_EMAIL) {

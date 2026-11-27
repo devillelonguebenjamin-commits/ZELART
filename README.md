@@ -307,6 +307,27 @@ Quand c'est Zélia qui annule ou refuse une demande, la cliente est **toujours**
 et par SMS, même sans mot écrit. Le refus d'un horaire proposé et un set de press-on prêt envoient
 aussi un SMS.
 
+## Application gérante (PWA) et notifications
+
+L'espace gérante s'installe sur l'écran d'accueil : manifeste `/admin/manifest.webmanifest`
+(portée `/admin`, nom « Zelart Pro »), icônes dans `public/gerante/`, métadonnées iOS dans
+`src/app/admin/layout.tsx`. Le site public n'est pas installable.
+
+Notifications Web Push (`src/lib/push.ts`, service worker `public/sw-gerante.js`, enregistré avec
+la portée `/admin/`). Zélia les active depuis **Réglages → Application et notifications**, une fois
+par appareil. Sur iPhone, il faut d'abord ajouter le site à l'écran d'accueil (iOS 16.4 ou plus
+récent), et la page l'explique. Chaque appareil abonné est une ligne de `AbonnementPush`, supprimée
+dès que le service de notifications répond 404 ou 410.
+
+Les clés VAPID sont générées au premier besoin et stockées dans `Parametre` (`vapidCleePublique`,
+`vapidCleePrivee`), sans variable d'environnement. Il ne faut pas les supprimer : tous les appareils
+devraient alors se réabonner.
+
+Événements notifiés (`notifierZelia`, qui ne lève jamais d'erreur) : nouvelle demande (ou horaire
+proposé), acompte reçu (pour une réservation payée dans les 10 minutes, c'est la notification
+« nouvelle demande »), demande d'annulation, message d'une cliente. Toucher la notification ouvre
+l'agenda, ou la fiche de la cliente pour un message.
+
 ## Parcours de réservation
 
 1. `/` — page d'accueil publique : présentation, prestations & tarifs, infos pratiques.
