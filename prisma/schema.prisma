@@ -770,3 +770,16 @@ model PropositionDecalage {
   @@index([statut, debut])
   @@index([rendezVousId])
 }
+
+/// Téléphones (ou ordinateurs) de Zélia abonnés aux notifications de
+/// l'application gérante. Un appareil = une ligne ; un abonnement que le
+/// navigateur déclare expiré est supprimé au premier envoi refusé.
+model AbonnementPush {
+  id         String    @id @default(cuid())
+  endpoint   String    @unique
+  p256dh     String
+  auth       String
+  appareil   String?
+  creeLe     DateTime  @default(now())
+  dernierEnvoiLe DateTime?
+}

@@ -8,6 +8,8 @@ import {
 import { modeStockage, stockageConfigure } from "@/lib/blob";
 import TestEmailForm from "@/components/TestEmailForm";
 import TestSmsForm from "@/components/TestSmsForm";
+import NotificationsGerante from "@/components/NotificationsGerante";
+import { clePubliquePush } from "@/lib/push";
 import ReglagesAcompteForm from "@/components/ReglagesAcompteForm";
 import {
   CLE_AUTRE_RESEAU,
@@ -343,6 +345,18 @@ export default async function Reglages() {
       />
 
       <ReglagesAvisForm etablissement={etablissementGoogle} cleConfiguree={Boolean(cleGoogle())} />
+
+      <section className="rounded-2xl border border-pink-100 bg-white p-5">
+        <h2 className="font-semibold">Application et notifications</h2>
+        <p className="mt-1 text-xs text-foreground/60">
+          Installez l&rsquo;espace gérante sur votre téléphone et recevez une notification à
+          chaque nouvelle demande, acompte reçu, demande d&rsquo;annulation et message d&rsquo;une
+          cliente. À faire sur chaque appareil.
+        </p>
+        <div className="mt-3">
+          <NotificationsGerante clePublique={await clePubliquePush()} />
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-pink-100 bg-white p-5">
         <h2 className="font-semibold">Tester l&rsquo;envoi</h2>
